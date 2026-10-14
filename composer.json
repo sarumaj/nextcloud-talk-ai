@@ -1,0 +1,29 @@
+{
+    "name": "dawid/nextcloud-talk-ai",
+    "description": "Development tools of the Nextcloud app talk_ai (app/talk_ai); not part of the app",
+    "license": "AGPL-3.0-or-later",
+    "type": "project",
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "nextcloud/ocp": "dev-stable32",
+        "phpunit/phpunit": "^11.5"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OCA\\TalkAi\\": "app/talk_ai/lib/",
+            "OCA\\TalkAi\\Tests\\": "tests/",
+            "OCP\\": "vendor/nextcloud/ocp/OCP/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}

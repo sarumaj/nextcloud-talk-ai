@@ -1,0 +1,84 @@
+---
+# A tag vX.Y.Z (the version in appinfo/info.xml) becomes a release: the app as
+# talk_ai-X.Y.Z.tar.gz on the Forgejo release, signed with the app's key,
+# and published on the Nextcloud app store, which hands this download to the
+# servers that install it.
+#
+# Secrets: APP_SIGNING_KEY, the private key of the app store certificate for
+# talk_ai (PEM); APPSTORE_TOKEN, the API token of the store account
+# (apps.nextcloud.com, account, API token). Without them the release still gets
+# the archive, unsigned and not published.
+name: Release
+"on":
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: docker
+    container: docker.io/library/debian:bookworm-slim
+    timeout-minutes: 15
+    env:
+      TAG: ${{ github.ref_name }}
+      API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+      TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install the tools
+        run: apt-get update -qq && apt-get install -qq -y --no-install-recommends ca-certificates curl git jq openssl >/dev/null
+
+      - name: Check out
+        run: |
+          git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+
+      - name: Check the tag is the app's version
+        run: |
+          version=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' app/talk_ai/appinfo/info.xml)
+          test "v$version" = "$TAG" || { echo "info.xml says $version, the tag is $TAG"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      # The app folder alone, named as the app, with the licences.
+      - name: Build the archive
+        run: |
+          mkdir build && cp -r app/talk_ai build/ && cp LICENSE build/talk_ai/
+          tar -C build --owner=0 --group=0 --sort=name --mtime="@$(git log -1 --format=%ct)" \
+            -czf "talk_ai-$VERSION.tar.gz" talk_ai
+          ls -l "talk_ai-$VERSION.tar.gz"
+
+      - name: Sign the archive
+        env:
+          KEY: ${{ secrets.APP_SIGNING_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then echo "::warning::No APP_SIGNING_KEY: the archive is not signed"; exit 0; fi
+          umask 077 && printf '%s\n' "$KEY" > /tmp/key.pem
+          openssl dgst -sha512 -sign /tmp/key.pem "talk_ai-$VERSION.tar.gz" | openssl base64 -A > signature.txt
+          rm /tmp/key.pem
+
+      - name: Attach the archive to the release
+        run: |
+          auth="Authorization: token $TOKEN"
+          id=$(curl -fsS -H "$auth" "$API/releases/tags/$TAG" | jq -r .id) || id=""
+          if [ -z "$id" ] || [ "$id" = null ]; then
+            id=$(jq -n --arg t "$TAG" '{tag_name: $t, name: $t}' \
+              | curl -fsS -H "$auth" -H 'Content-Type: application/json' -d @- "$API/releases" | jq -r .id)
+          fi
+          name="talk_ai-$VERSION.tar.gz"
+          old=$(curl -fsS -H "$auth" "$API/releases/$id/assets" | jq -r --arg n "$name" '.[] | select(.name == $n) | .id')
+          [ -n "$old" ] && curl -fsS -X DELETE -H "$auth" "$API/releases/$id/assets/$old"
+          url=$(curl -fsS -H "$auth" -F "attachment=@$name" "$API/releases/$id/assets?name=$name" | jq -r .browser_download_url)
+          echo "Download: $url"
+          echo "DOWNLOAD=$url" >> "$GITHUB_ENV"
+
+      - name: Publish on the app store
+        env:
+          STORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+        run: |
+          if [ -z "$STORE_TOKEN" ] || [ ! -s signature.txt ]; then
+            echo "::warning::No APPSTORE_TOKEN or no signature: not published on the app store"; exit 0
+          fi
+          jq -n --arg d "$DOWNLOAD" --rawfile s signature.txt '{download: $d, signature: $s, nightly: false}' \
+            | curl -sS -o /tmp/answer -w '%{http_code}' -X POST -H "Authorization: Token $STORE_TOKEN" \
+                -H 'Content-Type: application/json' -d @- https://apps.nextcloud.com/api/v1/apps/releases > /tmp/status
+          cat /tmp/answer; echo
+          case $(cat /tmp/status) in 200|201) echo "Published $VERSION";; *) exit 1;; esac

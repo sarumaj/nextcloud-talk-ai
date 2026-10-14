@@ -1,0 +1,41 @@
+---
+# The app's PHP must parse, its info.xml must pass the app
+# store's schema, and the tests (PHPUnit, no Nextcloud and no network) must pass.
+name: CI
+"on":
+  push:
+    branches: [main, renovate/all-patch]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php:
+    runs-on: docker
+    container: docker.io/library/composer:2
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        run: &checkout |
+          git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+
+      - name: Lint the PHP files
+        run: find app -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Check info.xml against the app store's schema
+        run: |
+          apk add -q libxml2-utils
+          wget -q -O /tmp/info.xsd https://apps.nextcloud.com/schema/apps/info.xsd
+          xmllint --noout --schema /tmp/info.xsd app/talk_ai/appinfo/info.xml
+
+      - name: Run the tests
+        run: |
+          composer install -q --no-interaction --no-progress
+          vendor/bin/phpunit
+

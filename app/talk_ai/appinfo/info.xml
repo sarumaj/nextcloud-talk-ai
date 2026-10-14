@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>talk_ai</id>
+    <name>AI in Talk</name>
+    <summary>An AI bot for Talk that reads the files you share, searches the web and sends files back</summary>
+    <description><![CDATA[A bot for Nextcloud Talk that answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), the AI connection of your server.
+
+- **Reads what you share** in the conversation: images, text, Markdown, CSV, Word, ODT, Excel, PowerPoint and PDF files
+- **Finds your files** by name, when you ask about one
+- **Sends files back**: Markdown, text, CSV, HTML, ODT, or PDF (with Collabora)
+- **Searches the web**, when the AI connection can
+- Everything runs **with the asking person's rights**: the bot sees only what they may see
+
+Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@AI) or replied to.]]></description>
+    <version>0.1.0</version>
+    <licence>agpl</licence>
+    <author>Dawid Ciepiela</author>
+    <namespace>TalkAi</namespace>
+    <category>social</category>
+    <category>ai</category>
+    <website>https://git.ciepiela.org/dawid/nextcloud-talk-ai</website>
+    <bugs>https://github.com/sarumaj/nextcloud-talk-ai/issues</bugs>
+    <repository>https://git.ciepiela.org/dawid/nextcloud-talk-ai</repository>
+    <dependencies>
+        <php min-version="8.1"/>
+        <lib>zip</lib>
+        <nextcloud min-version="32" max-version="36"/>
+    </dependencies>
+    <repair-steps>
+        <install>
+            <step>OCA\TalkAi\Migration\InstallBot</step>
+        </install>
+        <uninstall>
+            <step>OCA\TalkAi\Migration\UninstallBot</step>
+        </uninstall>
+    </repair-steps>
+</info>
