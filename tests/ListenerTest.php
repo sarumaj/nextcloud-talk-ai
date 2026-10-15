@@ -55,6 +55,8 @@ class ListenerTest extends TestCase {
 	private array $removed = [];
 	/** The stored caption of the shared file (message 200). */
 	private string $caption = 'explain this picture';
+	/** Whether the shared file (message 200) is a voice message. */
+	private bool $voice = false;
 
 	private function listener(): BotInvokeListener {
 		$dispatcher = $this->createMock(Dispatcher::class);
@@ -83,13 +85,14 @@ class ListenerTest extends TestCase {
 			$this->released[] = $id;
 		});
 		$conversation->method('room')->willReturn(new \stdClass());
-		$conversation->method('comment')->willReturnCallback(fn ($room, $id) => $id === 200 ? new class($this->caption) {
-			public function __construct(private string $caption) {
+		$conversation->method('comment')->willReturnCallback(fn ($room, $id) => $id === 200 ? new class($this->caption, $this->voice) {
+			public function __construct(private string $caption, private bool $voice) {
 			}
 
 			public function getMessage(): string {
-				return (string)json_encode(['message' => 'file_shared', 'parameters' => ['fileId' => '7', 'metaData' => ['mimeType' => 'image/jpeg']
-					+ ($this->caption !== '' ? ['caption' => $this->caption] : [])]]);
+				return (string)json_encode(['message' => 'file_shared', 'parameters' => ['fileId' => '7', 'metaData' => ['mimeType' => $this->voice ? 'audio/mpeg' : 'image/jpeg']
+					+ ($this->caption !== '' ? ['caption' => $this->caption] : [])
+					+ ($this->voice ? ['messageType' => 'voice-message'] : [])]]);
 			}
 
 			public function getParentId(): int {
@@ -203,8 +206,10 @@ class ListenerTest extends TestCase {
 
 	/** A file shared with a caption, as Talk tells bots of it: an Activity with the parsed caption. */
 	private static function shared(string $parsed): array {
+		// Talk names the Activity after its parsed text: "message" with a caption, "{file}" without.
 		return ['type' => 'Activity', 'actor' => ['type' => 'Person', 'id' => 'users/ewa', 'name' => 'Ewa'],
-			'object' => ['type' => 'Note', 'id' => '200', 'name' => 'message', 'content' => json_encode(['message' => $parsed, 'parameters' => []]), 'mediaType' => 'text/markdown'],
+			'object' => ['type' => 'Note', 'id' => '200', 'name' => $parsed === '{file}' ? '{file}' : 'message',
+				'content' => json_encode(['message' => $parsed, 'parameters' => []]), 'mediaType' => 'text/markdown'],
 			'target' => ['type' => 'Collection', 'id' => 'room1', 'name' => 'Family']];
 	}
 
@@ -228,6 +233,23 @@ class ListenerTest extends TestCase {
 	public function testAFileWithoutACaptionIsNoQuestion(): void {
 		$this->people = 1;
 		$this->caption = '';
+		$this->listener()->handle(new FakeBotEvent(self::shared('{file}')));
+		$this->assertSame([], $this->dispatched);
+	}
+
+	public function testAVoiceMessageIsAQuestionWhereTheBotIsAlone(): void {
+		$this->people = 1;
+		$this->caption = '';
+		$this->voice = true;
+		$this->listener()->handle($event = new FakeBotEvent(self::shared('{file}')));
+		// Reply transcribes it; "{file}" stands for the question until then.
+		$this->assertSame(['room1', 'ewa', 200, '{file}'], $this->dispatched[0]);
+		$this->assertSame(['👀'], $event->reactions);
+	}
+
+	public function testInAGroupAVoiceMessageNeedsToReplyToTheBot(): void {
+		$this->caption = '';
+		$this->voice = true;
 		$this->listener()->handle(new FakeBotEvent(self::shared('{file}')));
 		$this->assertSame([], $this->dispatched);
 	}

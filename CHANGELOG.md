@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.8 - 2026-10-15
+
+### Fixed
+- Voice messages are answered: Talk tells bots of them as a shared file without a caption
+  (an Activity named "{file}"), which the bot took for no question. A voice message is
+  transcribed (Nextcloud's speech-to-text, e.g. the External App stt_whisper2) and
+  answered: always in a conversation with the bot alone, in a group when it replies to
+  the bot.
+
 ## 0.5.7 - 2026-10-15
 
 ### Fixed

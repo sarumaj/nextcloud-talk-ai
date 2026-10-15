@@ -106,14 +106,16 @@ class BotInvokeListener implements IEventListener {
 			return;
 		}
 		$caption = trim((string)($data['parameters']['metaData']['caption'] ?? ''));
-		if ($caption === '') {
+		// A voice message is a question too (transcribed by Reply): in a group, as a reply to the bot.
+		$voice = ($data['parameters']['metaData']['messageType'] ?? '') === 'voice-message';
+		if ($caption === '' && !$voice) {
 			return; // a file alone is no question
 		}
 		// Talk's parsed text of it has the mentions as names ("@Claude"); the stored caption has their ids.
 		$parsed = trim(str_replace('{file}', '', self::plainText((string)($activity['object']['content'] ?? ''))));
 		$parent = (int)$comment->getParentId() > 0 ? $this->conversation->comment($room, (int)$comment->getParentId()) : null;
-		$this->question($event, $actorId, $token, $messageId, $parsed !== '' && !str_starts_with($parsed, '{') ? $parsed : $caption,
-			$parent !== null && $parent->getActorType() === 'bots');
+		$text = $parsed !== '' && !str_starts_with($parsed, '{') ? $parsed : $caption;
+		$this->question($event, $actorId, $token, $messageId, $text !== '' ? $text : '{file}', $parent !== null && $parent->getActorType() === 'bots');
 	}
 
 	/** A message to answer, or not: the bot named, a reply to it, a confirmation open, or a conversation with it alone. */
@@ -165,8 +167,9 @@ class BotInvokeListener implements IEventListener {
 	 */
 	private function changed(Event $event, array $activity): void {
 		$kind = (string)($activity['object']['name'] ?? '');
-		// A file with a caption comes as an Activity named "message" (Talk's parsed text is the caption).
-		if ($kind === 'message') {
+		// A shared file comes as an Activity named after Talk's parsed text: "message" with a
+		// caption, "{file}" without (a voice message).
+		if ($kind === 'message' || $kind === '{file}') {
 			$this->captioned($event, $activity);
 			return;
 		}
