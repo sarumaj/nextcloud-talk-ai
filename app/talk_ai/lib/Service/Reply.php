@@ -42,6 +42,9 @@ use Psr\Log\LoggerInterface;
 class Reply {
 	public const SCENARIO = 'chat';
 	/** Images handed to the model with a question (AI-Hub takes four, of 5 MB each). */
+	/** Characters of text above which an answer goes as a file (Talk takes 32000 per message). */
+	private const LONG_ANSWER = 30000;
+
 	private const MAX_IMAGES = 4;
 	private const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 	private const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -391,9 +394,11 @@ class Reply {
 	private function postAnswer(string $uid, string $text): void {
 		$parts = Figures::split($text);
 		$texts = array_filter($parts, fn ($p) => $p['type'] === 'text');
-		$long = array_sum(array_map(fn ($p) => mb_strlen($p['text']), $texts)) > 2000;
+		$long = array_sum(array_map(fn ($p) => mb_strlen($p['text']), $texts)) > self::LONG_ANSWER;
 		if ($long && !$this->guest) {
-			// Long answers (U-09): the beginning in the chat, the whole as a Markdown file.
+			// Longer than one Talk message takes (U-09): the beginning in the chat, the whole as a Markdown file.
+			// Shorter ones go whole into the chat, once: at 2000 characters an ordinary explanation came
+			// as text and as a file, which read as two answers (2026-10-15).
 			$all = Math::forChat(implode("\n\n", array_map(fn ($p) => $p['text'], $texts)));
 			$cut = mb_substr($all, 0, 1800);
 			$cut = mb_substr($cut, 0, max(800, (int)mb_strrpos($cut, "\n\n"))) . "\n\n… (" . $this->text($uid, 'Long answer') . ')';

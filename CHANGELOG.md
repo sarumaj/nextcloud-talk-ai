@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.7 - 2026-10-15
+
+### Fixed
+- A photo or file shared with a caption ("explain this picture") is answered: Talk tells
+  bots of it as a system message, which the bot took for no question, so it waited for
+  the next message. The caption is the question (in a group, it names the bot), and the
+  file goes with it.
+- An answer comes once: a long one (over 2000 characters) came cut short in the chat and
+  again whole as a Markdown file, which read as two answers. Now the whole answer is one
+  message; only one longer than Talk takes (30000 characters) still comes as a file.
+
 ## 0.5.6 - 2026-10-15
 
 ### Changed

@@ -64,7 +64,7 @@ class BotInvokeListener implements IEventListener {
 			match ($activity['type'] ?? '') {
 				'Create' => $this->message($event, $activity),
 				'Like' => $this->reaction($activity),
-				'Activity' => $this->changed($activity),
+				'Activity' => $this->changed($event, $activity),
 				default => null,
 			};
 		} catch (\Throwable $e) {
@@ -78,14 +78,50 @@ class BotInvokeListener implements IEventListener {
 		if (!is_array($object) || ($object['name'] ?? '') !== 'message') {
 			return;
 		}
-		$userId = self::userOf($actorId);
+		$repliesToBot = str_starts_with((string)($activity['object']['inReplyTo']['actor']['id'] ?? $activity['inReplyTo']['actor']['id'] ?? ''), 'bots/');
+		$this->question($event, $actorId, (string)($activity['target']['id'] ?? ''), (int)($object['id'] ?? 0),
+			self::plainText((string)($object['content'] ?? '')), $repliesToBot);
+	}
+
+	/**
+	 * A file shared with a caption ("explain this picture" under a photo): Talk tells bots
+	 * of it as a system message (an Activity), not as a message, so it went unanswered
+	 * until the person wrote again (2026-10-15). Its caption is the question; the file is
+	 * the newest in the conversation, which the answer takes along.
+	 */
+	private function captioned(Event $event, array $activity): void {
+		$actorId = (string)($activity['actor']['id'] ?? '');
 		$token = (string)($activity['target']['id'] ?? '');
-		$messageId = (int)($object['id'] ?? 0);
-		$text = self::plainText((string)($object['content'] ?? ''));
+		$messageId = (int)($activity['object']['id'] ?? 0);
+		if (!str_starts_with($actorId, 'users/') && !str_starts_with($actorId, 'guests/') && !str_starts_with($actorId, 'federated_users/')) {
+			return;
+		}
+		if ($token === '' || $messageId === 0) {
+			return;
+		}
+		$room = $this->conversation->room($token);
+		$comment = $this->conversation->comment($room, $messageId);
+		$data = $comment === null ? null : json_decode((string)$comment->getMessage(), true);
+		if (!is_array($data) || ($data['message'] ?? '') !== 'file_shared') {
+			return;
+		}
+		$caption = trim((string)($data['parameters']['metaData']['caption'] ?? ''));
+		if ($caption === '') {
+			return; // a file alone is no question
+		}
+		// Talk's parsed text of it has the mentions as names ("@Claude"); the stored caption has their ids.
+		$parsed = trim(str_replace('{file}', '', self::plainText((string)($activity['object']['content'] ?? ''))));
+		$parent = (int)$comment->getParentId() > 0 ? $this->conversation->comment($room, (int)$comment->getParentId()) : null;
+		$this->question($event, $actorId, $token, $messageId, $parsed !== '' && !str_starts_with($parsed, '{') ? $parsed : $caption,
+			$parent !== null && $parent->getActorType() === 'bots');
+	}
+
+	/** A message to answer, or not: the bot named, a reply to it, a confirmation open, or a conversation with it alone. */
+	private function question(Event $event, string $actorId, string $token, int $messageId, string $text, bool $repliesToBot): void {
+		$userId = self::userOf($actorId);
 		if ($token === '' || $userId === '' || $messageId === 0 || trim($text) === '') {
 			return;
 		}
-		$repliesToBot = str_starts_with((string)($activity['object']['inReplyTo']['actor']['id'] ?? $activity['inReplyTo']['actor']['id'] ?? ''), 'bots/');
 		$named = self::names($text, $this->bot->name());
 		$guest = !str_starts_with($actorId, 'users/');
 		if (!$guest) {
@@ -127,8 +163,13 @@ class BotInvokeListener implements IEventListener {
 	 * A message the bot answered was edited (within an hour, by its author): the
 	 * answer goes and the new text is answered. Deleted: the answer goes too.
 	 */
-	private function changed(array $activity): void {
+	private function changed(Event $event, array $activity): void {
 		$kind = (string)($activity['object']['name'] ?? '');
+		// A file with a caption comes as an Activity named "message" (Talk's parsed text is the caption).
+		if ($kind === 'message') {
+			$this->captioned($event, $activity);
+			return;
+		}
 		if (!in_array($kind, ['message_edited', 'message_deleted'], true)) {
 			return;
 		}

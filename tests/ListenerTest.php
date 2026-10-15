@@ -53,6 +53,8 @@ class ListenerTest extends TestCase {
 	private int $people = 3;
 	private array $released = [];
 	private array $removed = [];
+	/** The stored caption of the shared file (message 200). */
+	private string $caption = 'explain this picture';
 
 	private function listener(): BotInvokeListener {
 		$dispatcher = $this->createMock(Dispatcher::class);
@@ -81,6 +83,19 @@ class ListenerTest extends TestCase {
 			$this->released[] = $id;
 		});
 		$conversation->method('room')->willReturn(new \stdClass());
+		$conversation->method('comment')->willReturnCallback(fn ($room, $id) => $id === 200 ? new class($this->caption) {
+			public function __construct(private string $caption) {
+			}
+
+			public function getMessage(): string {
+				return (string)json_encode(['message' => 'file_shared', 'parameters' => ['fileId' => '7', 'metaData' => ['mimeType' => 'image/jpeg']
+					+ ($this->caption !== '' ? ['caption' => $this->caption] : [])]]);
+			}
+
+			public function getParentId(): int {
+				return 0;
+			}
+		} : null);
 		$conversation->method('editedMessage')->willReturnCallback(fn ($room, $system) => ['id' => 100, 'author' => 'users/ewa',
 			'text' => '{"message":"@Claude what about Tuesday?","parameters":[]}', 'time' => time() - 120]);
 		$conversation->method('removeBotReplies')->willReturnCallback(function ($room, $id) {
@@ -183,6 +198,37 @@ class ListenerTest extends TestCase {
 
 	public function testOnlyTheAuthorsEditCounts(): void {
 		$this->listener()->handle(new FakeBotEvent(self::system('message_edited', 'users/maciej')));
+		$this->assertSame([], $this->dispatched);
+	}
+
+	/** A file shared with a caption, as Talk tells bots of it: an Activity with the parsed caption. */
+	private static function shared(string $parsed): array {
+		return ['type' => 'Activity', 'actor' => ['type' => 'Person', 'id' => 'users/ewa', 'name' => 'Ewa'],
+			'object' => ['type' => 'Note', 'id' => '200', 'name' => 'message', 'content' => json_encode(['message' => $parsed, 'parameters' => []]), 'mediaType' => 'text/markdown'],
+			'target' => ['type' => 'Collection', 'id' => 'room1', 'name' => 'Family']];
+	}
+
+	public function testAPhotoWithACaptionIsAQuestion(): void {
+		$this->people = 1;
+		$this->listener()->handle($event = new FakeBotEvent(self::shared('explain this picture')));
+		$this->assertSame(['room1', 'ewa', 200, 'explain this picture'], $this->dispatched[0]);
+		$this->assertSame(['👀'], $event->reactions);
+	}
+
+	public function testInAGroupACaptionMustNameTheBot(): void {
+		$this->caption = 'was ist das';
+		$this->listener()->handle(new FakeBotEvent(self::shared('was ist das')));
+		$this->assertSame([], $this->dispatched);
+		// Talk's parsed caption has the mention as a name; the stored one its id.
+		$this->caption = '@"bot-8e89" was ist das';
+		$this->listener()->handle(new FakeBotEvent(self::shared('@Claude was ist das')));
+		$this->assertSame('@Claude was ist das', $this->dispatched[0][3]);
+	}
+
+	public function testAFileWithoutACaptionIsNoQuestion(): void {
+		$this->people = 1;
+		$this->caption = '';
+		$this->listener()->handle(new FakeBotEvent(self::shared('{file}')));
 		$this->assertSame([], $this->dispatched);
 	}
 
