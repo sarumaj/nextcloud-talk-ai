@@ -47,6 +47,12 @@ class Dispatcher {
 		});
 	}
 
+	/** The ticker beside a running answer or job (TickerController); nothing when it cannot be handed off. */
+	public function startTicker(string $key): void {
+		$this->handOff('ticker', ['key' => $key], function (): void {
+		});
+	}
+
 	/** A queued document job (talk_ai_jobs), run by the document route or, failing that, a background job. */
 	public function dispatchDocument(int $id): void {
 		$this->handOff('document', ['job' => $id], function () use ($id): void {

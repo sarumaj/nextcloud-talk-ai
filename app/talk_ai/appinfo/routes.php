@@ -11,6 +11,8 @@ return [
 		['name' => 'process#run', 'url' => '/process', 'verb' => 'POST'],
 		// A document job (built in the sandbox), handed over the same way.
 		['name' => 'document#run', 'url' => '/document', 'verb' => 'POST'],
+		// The status of a slow answer or job, shown while it runs.
+		['name' => 'ticker#run', 'url' => '/ticker', 'verb' => 'POST'],
 		// The administration page.
 		['name' => 'settings#save', 'url' => '/settings', 'verb' => 'PUT'],
 		['name' => 'settings#status', 'url' => '/settings/status', 'verb' => 'GET'],

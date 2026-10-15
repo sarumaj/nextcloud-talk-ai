@@ -60,6 +60,6 @@ class ReplyTest extends TestCase {
 			$this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class), $this->createMock(Web::class),
 			$this->createMock(Calendar::class), $requests, $this->createMock(Actions::class), $this->createMock(Capabilities::class),
 			$this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class), $this->createMock(Policy::class),
-			$this->createMock(Confirmations::class), $this->createMock(\OCP\IConfig::class), $this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
+			$this->createMock(Confirmations::class), new FakeProgress(), $this->createMock(\OCP\IConfig::class), $this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
 	}
 }

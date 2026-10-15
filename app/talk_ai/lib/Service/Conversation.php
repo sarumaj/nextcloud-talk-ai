@@ -152,6 +152,15 @@ class Conversation {
 		return $removed;
 	}
 
+	/** Removes one of the bot's messages (a status that is no longer needed). */
+	public function removeMessage(object $room, object $comment): void {
+		try {
+			Server::get('OCA\Talk\Chat\ChatManager')->deleteMessage($room, $comment, $this->botParticipant($room), new \DateTime());
+		} catch (\Throwable $e) {
+			$this->logger->info('AI bot: a status message could not be removed: ' . $e->getMessage());
+		}
+	}
+
 	private function botParticipant(object $room): object {
 		$attendee = new \OCA\Talk\Model\Attendee();
 		$attendee->setActorType('bots');
@@ -259,7 +268,7 @@ class Conversation {
 		);
 	}
 
-	private function comment(object $room, int $id): ?object {
+	public function comment(object $room, int $id): ?object {
 		try {
 			return Server::get('OCA\Talk\Chat\ChatManager')->getComment($room, (string)$id);
 		} catch (\Throwable) {

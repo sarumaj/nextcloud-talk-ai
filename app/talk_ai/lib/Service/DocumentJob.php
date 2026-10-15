@@ -104,6 +104,7 @@ class DocumentJob {
 		private Actions $actions,
 		private IAppData $appData,
 		private Texts $texts,
+		private Progress $progress,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -184,6 +185,10 @@ class DocumentJob {
 			}
 			$this->status = $this->conversation->postText($this->room, '⏳ ' . $this->say('Building', $name) . ' …', (int)$this->job['messageId']);
 			$this->jobs->setOption($id, 'status_message', (int)$this->status->getId());
+			// The ticker adds the time to the status message, also while the AI works on a long turn.
+			$this->progress->start('job-' . $id, (string)$this->job['token'], (int)$this->job['messageId'], '⏳ ' . $this->say('Building', $name) . ' …',
+				(int)$this->status->getId(), (string)$this->job['userId']);
+			$this->dispatcher->startTicker('job-' . $id);
 			$this->openTrace();
 			$inputs = $this->copyInputs();
 			$style = $this->copyStyle();
@@ -209,6 +214,7 @@ class DocumentJob {
 	}
 
 	private function end(int $id, string $state, string $outcome): void {
+		$this->progress->done('job-' . $id);
 		$tracePath = $this->saveTrace($outcome);
 		$tokens = $this->tokens();
 		$this->jobs->beat($id, $this->tools, $this->rounds, $tokens);
@@ -836,6 +842,10 @@ class DocumentJob {
 	private function setStatus(string $text, bool $final = false): void {
 		if ($this->room === null) {
 			return;
+		}
+		if (!$final && isset($this->job['id'])) {
+			// Without its own "stop" hint: the ticker adds the time and the hint.
+			$this->progress->step('job-' . $this->job['id'], trim(str_replace($this->say('Stop hint', ''), '', $text)));
 		}
 		if ($this->status !== null && $this->conversation->editText($this->room, $this->status, $text)) {
 			return;

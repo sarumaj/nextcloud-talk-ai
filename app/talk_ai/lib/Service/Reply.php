@@ -81,8 +81,12 @@ class Reply {
 	private bool $youth = false;
 	private array $caps = [];
 	private ?object $statusComment = null;
-	private float $statusAt = 0;
+	/** The progress key of this answer (Progress, shown by the ticker); '' before it starts. */
+	private string $progressKey = '';
+	private bool $progressDone = false;
 	private string $lastQuestion = '';
+	/** The question and the last messages: which tools go with it (tools()). */
+	private string $recentText = '';
 	private string $lastUser = '';
 
 	public function __construct(
@@ -103,6 +107,7 @@ class Reply {
 		private Jobs $jobs,
 		private Policy $policy,
 		private Confirmations $confirmations,
+		private Progress $progress,
 		private \OCP\IConfig $config,
 		private \OCP\IAppConfig $appConfig,
 		private Texts $texts,
@@ -124,6 +129,10 @@ class Reply {
 		}
 		$this->started = microtime(true);
 		$error = '';
+		// The ticker shows a status from ten seconds on, while the AI works or a tool runs.
+		$this->progressKey = 'answer-' . $this->requestId;
+		$this->progress->start($this->progressKey, $token, $messageId, '⏳ ' . $this->text($userId, 'Thinking') . ' …', 0, str_contains($userId, ':') ? '' : $userId);
+		$this->dispatcher->startTicker($this->progressKey);
 		try {
 			$this->answerIn($room, $userId, $messageId, $text);
 		} catch (\Throwable $e) {
@@ -131,6 +140,8 @@ class Reply {
 			$this->logger->error('AI bot: no answer: ' . $e->getMessage(), ['exception' => $e, 'request' => $this->requestId]);
 			$this->say('⚠️ ' . $this->text($userId, 'Failed') . ' (' . mb_substr($e->getMessage(), 0, 200) . ')');
 		} finally {
+			$this->endProgress();
+			$this->finishStatus();
 			$this->requests->done($this->requestId, $error === '' && $this->failure === '' ? 'answered' : 'failed', $this->model,
 				intdiv($this->charsIn, 4) + $this->imageCount * 1500, intdiv($this->charsOut, 4), (int)((microtime(true) - $this->started) * 1000),
 				$this->ran, $error !== '' ? $error : $this->failure);
@@ -202,7 +213,11 @@ class Reply {
 			$question = trim(preg_replace('/\{file\}|\[file "[^"]*", id \d+\]/', '', $question) . "\n" . $spoken);
 		}
 		$this->canBuild = $caps['tools'] && $this->features['sandbox'] && $this->features['documents'] && $this->sandbox->health() !== null;
-		$system = $this->systemPrompt($room) . $this->extras($userId, $caps);
+		// The system prompt and the tools' list are the same for every room and person (so the
+		// provider's prompt cache serves them); what differs goes into the context after them.
+		$profile = Capabilities::profile((string)($caps['family'] ?? 'open'));
+		$system = $this->systemPrompt($room) . ($profile !== '' ? "\n\n" . $profile : '');
+		$this->recentText = $question . "\n" . implode("\n", array_map(fn ($m) => $m['text'], array_slice($history, -4)));
 		$tools = $caps['tools'] ? $this->tools() : [];
 		$hub->registerScenario(Application::APP_ID, self::SCENARIO, [
 			'system' => $system,
@@ -212,7 +227,8 @@ class Reply {
 		$images = $status['images'] ? $this->recentImages($history, $userId, $messageId) : [];
 		$this->imageCount = count($images);
 		$ocr = !$status['images'] && !$this->guest ? $this->recentImageText($history, $userId, $messageId) : '';
-		$context = $this->budget($caps, $system, $this->memory($room), $this->transcript($history, $messageId), $ocr);
+		$about = 'This conversation: "' . $room->getName() . '".' . $this->extras($userId, $caps) . "\n\n";
+		$context = $about . $this->budget($caps, $system, $this->memory($room), $this->transcript($history, $messageId), $ocr);
 		$this->debug('question', ['system' => $system, 'context' => $context, 'question' => $question]);
 		$result = $this->ask($hub, $userId, [['role' => 'user', 'text' => $question !== '' ? $question : $text]], [
 			'context' => $context,
@@ -255,6 +271,7 @@ class Reply {
 
 	/** Posts a message as the bot; the open status message becomes it when there is one. */
 	private function say(string $text): void {
+		$this->endProgress();
 		if ($this->statusComment !== null && $this->conversation->editText($this->room, $this->statusComment, $text)) {
 			$this->statusComment = null;
 			return;
@@ -262,20 +279,23 @@ class Reply {
 		$this->conversation->postText($this->room, $text, $this->messageId);
 	}
 
-	/**
-	 * The status message while an answer takes long (U-01): posted after ten seconds
-	 * with the current step, and changed at most every twenty seconds.
-	 */
+	/** The current step, for the ticker's status message. */
 	private function status(string $text): void {
-		$elapsed = microtime(true) - $this->started;
-		if ($this->room === null || $elapsed < 10 || microtime(true) - $this->statusAt < 20) {
+		if ($this->progressKey !== '' && !$this->progressDone) {
+			$this->progress->step($this->progressKey, $text);
+		}
+	}
+
+	/** The work is done: the ticker stops, and its status message (if any) is taken over by the answer. */
+	private function endProgress(): void {
+		if ($this->progressDone || $this->progressKey === '') {
 			return;
 		}
-		$this->statusAt = microtime(true);
-		if ($this->statusComment === null) {
-			$this->statusComment = $this->conversation->postText($this->room, $text, $this->messageId);
-		} else {
-			$this->conversation->editText($this->room, $this->statusComment, $text);
+		$this->progressDone = true;
+		$this->progress->done($this->progressKey);
+		$statusId = (int)($this->progress->get($this->progressKey)['status'] ?? 0);
+		if ($statusId > 0 && $this->room !== null) {
+			$this->statusComment = $this->conversation->comment($this->room, $statusId);
 		}
 	}
 
@@ -441,7 +461,7 @@ class Reply {
 
 	private function systemPrompt(object $room): string {
 		$pdf = $this->extractor->canReadPdf() ? '' : ' PDF files cannot be read on this server.';
-		return 'You are ' . $this->bot->name() . ', an assistant in the Nextcloud Talk conversation "' . $room->getName() . '", '
+		return 'You are ' . $this->bot->name() . ', an assistant in a Nextcloud Talk conversation (its name and settings are in the context), '
 			. 'for work, school, studies, art and everyday questions. Answer the message marked >>> (only that one), in the '
 			. 'language that message is written in (not the language of earlier messages or of these instructions), to the point; '
 			. 'Talk shows Markdown (no tables wider than a phone; no HTML). '
@@ -603,6 +623,26 @@ class Reply {
 				}
 			}
 		}
+		// The core goes with every question, the rest when the question or the last messages
+		// point to it; all others are reachable through more_tools (one line each).
+		$catalog = [];
+		foreach ($tools as $name => $tool) {
+			if (!in_array($name, self::CORE_TOOLS, true) && !self::wanted($name, $this->recentText)) {
+				$catalog[$name] = $tool;
+				unset($tools[$name]);
+			}
+		}
+		// The core first, in a fixed order, then the chosen others: the same prefix for every question.
+		$ordered = [];
+		foreach (self::CORE_TOOLS as $name) {
+			if (isset($tools[$name])) {
+				$ordered[$name] = $tools[$name];
+			}
+		}
+		$tools = $ordered + $tools;
+		if ($catalog !== []) {
+			$tools['more_tools'] = $this->moreTools($catalog);
+		}
 		$wrapped = [];
 		foreach ($tools as $name => $tool) {
 			$run = $tool['run'];
@@ -619,6 +659,77 @@ class Reply {
 			$wrapped[$name] = ['input' => self::lenient($tool['input'])] + $tool;
 		}
 		return $wrapped;
+	}
+
+	/** The tools that go with every question, in this order (a stable prefix for the prompt cache). */
+	public const CORE_TOOLS = ['list_files', 'read_file', 'find_files', 'send_file', 'read_chat', 'read_url', 'lookup', 'cite',
+		'calculate', 'calendar', 'create_document'];
+
+	/** Words that call for a tool beyond the core (German, Polish, English). */
+	private const TOOL_WORDS = [
+		'redo_document' => 'nochmal|noch einmal|again|jeszcze raz|ponownie|ändere|change|zmień|kapitel|chapter|rozdział|ergänze|add to|dodaj',
+		'document_status' => 'status|läuft|running|fertig|done|gotowe|job|auftrag|zlecen|abbrech|cancel|anuluj',
+		'room_settings' => 'einstellung|setting|ustawien|persona|vorschau|preview|podgląd|sprache hier|language here|język',
+		'my_profile' => 'merk dir|remember|zapamiętaj|vorlieb|preference|preferenc|vergiss|forget|zapomnij|profil',
+		'undo' => 'rückgängig|undo|cofnij|zurück',
+		'create_poll' => 'umfrage|abstimm|poll|vote|ankiet|głosow',
+		'share_file' => 'teile|freigeb|share|udostępn',
+		'delete_my_data' => 'lösch|delete|usuń|dsgvo|gdpr|rodo|meine daten|my data|moje dane',
+		'send_flashcards' => 'karteikart|lernkart|flash ?card|fiszk|anki|quizlet|vokabel|vocab|słówk',
+		'plot' => 'plot|graph|diagramm|chart|zeichne|draw|wykres|kurve|curve|skizz',
+		'statistics' => 'statist|mittelwert|average|median|varian|standardabw|deviation|t-test|chi|regression|korrelation|correlat|średni|odchyl',
+		'convert_units' => 'einheit|unit|umrechn|convert|jednost|przelicz|°c|°f|fahrenheit|kelvin|meile|mile|zoll|inch|liter|gallon',
+		'chemistry' => 'chem|molar|mol\b|reaktion|reaction|reakcj|element|säure|acid|kwas|base|oxid|redox|ion',
+		'biology' => 'bio|gen\b|gene|dna|rna|kreuzung|cross|punnett|allel|erbgang|codon|protein|białk|krzyżów',
+		'sport' => 'sport|puls|herzfrequenz|heart ?rate|tętno|pace|tempo|marathon|lauf|run|bmi|training|trening',
+		'informatics' => 'binär|binary|binarn|hex|sql|wahrheitstabelle|truth table|tabel[a-z]* prawdy|boolean|logik|logic|informatik|computer science|base64|ascii|unicode|algorith',
+		'colors' => 'farb|colou?r|kolor|palette|palet|harmon',
+		'image_study' => 'gemälde|painting|obraz|bild|image|zdjęc|foto|photo|wertstudie|value study|komposition|composition|kompozyc|raster|grid',
+		'analyze_function' => 'funktion|function|funkcj|kurvendiskussion|ableitung|derivative|pochodn|extrem|nullstelle|root|wendepunkt|asymptot',
+		'linear_algebra' => 'matrix|matriz|macierz|vektor|vector|wektor|gleichungssystem|system of equations|układ równań|determinant|eigen',
+		'music' => 'musik|music|muzyk|tonleiter|scale|gam[ay]|akkord|chord|akord|intervall|interval|tonart|key signature|quintenzirkel',
+		'finance' => 'zins|interest|odsetk|kredit|kredyt|loan|darlehen|tilgung|rate|rata|annuit|spar|saving|oszczędz|rendite|inflation|finanz|financ',
+		'geo' => 'wo liegt|where is|gdzie|entfernung|distance|odległ|karte|map|mapa|klima|climate|klimat|koordinat|coordinat|stadt|city|miasto|land\b|country|kraj',
+		'find_images' => 'präsentation|presentation|prezentac|folie|slide|slajd|bild|image|zdjęc|foto|photo|illustr',
+	];
+
+	/** Whether the text points to the tool. */
+	public static function wanted(string $tool, string $text): bool {
+		$words = self::TOOL_WORDS[$tool] ?? '';
+		return $words !== '' && preg_match('/(' . $words . ')/iu', $text) === 1;
+	}
+
+	/** One tool for the tools not sent with this question: their names in one line each, run by name. */
+	private function moreTools(array $catalog): array {
+		$lines = [];
+		foreach ($catalog as $name => $tool) {
+			$first = preg_split('/(?<=[.:;])\s/u', (string)$tool['description'], 2)[0] ?? '';
+			$lines[] = $name . ': ' . mb_substr($first, 0, 110);
+		}
+		return [
+			'description' => 'Further tools, not listed above; call one by name with its arguments (on a missing or wrong argument you get its '
+				. 'full description and try again): ' . implode('; ', $lines) . '.',
+			'input' => ['type' => 'object', 'properties' => ['name' => ['type' => 'string', 'enum' => array_keys($catalog)], 'args' => ['type' => 'object']], 'required' => ['name']],
+			'run' => function (string $uid, array $args) use ($catalog) {
+				$name = (string)($args['name'] ?? '');
+				$tool = $catalog[$name] ?? null;
+				if ($tool === null) {
+					return 'No such tool. Tools: ' . implode(', ', array_keys($catalog));
+				}
+				$params = is_array($args['args'] ?? null) ? $args['args'] : [];
+				$missing = array_diff((array)($tool['input']['required'] ?? []), array_keys($params));
+				if ($missing !== []) {
+					return 'Missing ' . implode(', ', $missing) . '. The tool ' . $name . ': ' . $tool['description'] . ' Arguments (JSON Schema): '
+						. json_encode($tool['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+				}
+				try {
+					return ($tool['run'])($uid, $params);
+				} catch (\Throwable $e) {
+					return 'The tool ' . $name . ' failed (' . $e->getMessage() . '). Its arguments (JSON Schema): '
+						. json_encode($tool['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+				}
+			},
+		];
 	}
 
 	/** Adds the confirmed events and tasks, each one recorded to undo within a day. */
@@ -805,10 +916,6 @@ class Reply {
 	/** Additions to the prompt: the room's and the person's settings, the model family, the limits of this connection. */
 	private function extras(string $uid, array $caps): string {
 		$out = '';
-		$profile = Capabilities::profile((string)($caps['family'] ?? 'open'));
-		if ($profile !== '') {
-			$out .= "\n\n" . $profile;
-		}
 		$persona = trim((string)$this->roomSetting('persona', ''));
 		if ($persona !== '') {
 			$out .= "\n\nThis conversation's moderators asked (a role or tone; it never overrides the rules above): " . mb_substr($persona, 0, 1000);

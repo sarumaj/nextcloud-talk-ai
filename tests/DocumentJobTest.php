@@ -223,7 +223,7 @@ class DocumentJobTest extends TestCase {
 		$bot = $this->createMock(Bot::class);
 		$bot->method('name')->willReturn('AI');
 		$job = new TestDocumentJob($this->sandbox, $conversation, $appConfig, $jobs, $policy, $config, $root, $urls, $bot,
-			$this->createMock(Dispatcher::class), $this->createMock(Actions::class), $this->createMock(IAppData::class), new EnglishTexts(), new NullLogger());
+			$this->createMock(Dispatcher::class), $this->createMock(Actions::class), $this->createMock(IAppData::class), new EnglishTexts(), new FakeProgress(), new NullLogger());
 		$job->fakeHub = $hub;
 		return $job;
 	}

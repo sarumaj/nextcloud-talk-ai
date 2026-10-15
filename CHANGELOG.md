@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.4 – 2026-10-15
+
+### Added
+- A status message for every slow answer and document job: from ten seconds on it shows
+  the current step and the time it runs, changed every twenty seconds, also while the AI
+  works on a long turn without tools; the answer takes its place.
+
+### Changed
+- Half the prompt for most questions: a core of tools goes with every question, the
+  others when the question points to them, all reachable through `more_tools`.
+- The system prompt and the tools' list are the same for every conversation and person,
+  so the provider's prompt cache can serve them; what differs is in the context.
+
 ## 0.5.3 – 2026-10-15
 
 ### Fixed
