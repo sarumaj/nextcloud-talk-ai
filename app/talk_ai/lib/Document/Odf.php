@@ -31,9 +31,10 @@ final class Odf {
 
 	/**
 	 * The package of a document of this MIME type, with embedded formulas
-	 * (name => MathML) as objects "./name".
+	 * (name => MathML) as objects "./name", and pictures (path => [data, MIME type])
+	 * at "Pictures/…".
 	 */
-	public static function package(string $mime, string $content, string $styles, string $title, array $formulas = []): string {
+	public static function package(string $mime, string $content, string $styles, string $title, array $formulas = [], array $pictures = []): string {
 		$zipPath = tempnam(sys_get_temp_dir(), 'talk-ai-odf');
 		$zip = new \ZipArchive();
 		try {
@@ -48,7 +49,11 @@ final class Odf {
 				. '<manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/>'
 				. implode('', array_map(fn (string $name) => '<manifest:file-entry manifest:full-path="' . $name . '/" manifest:media-type="application/vnd.oasis.opendocument.formula"/>'
 					. '<manifest:file-entry manifest:full-path="' . $name . '/content.xml" manifest:media-type="text/xml"/>', array_keys($formulas)))
+				. implode('', array_map(fn (string $path, array $p) => '<manifest:file-entry manifest:full-path="' . $path . '" manifest:media-type="' . $p[1] . '"/>', array_keys($pictures), $pictures))
 				. '</manifest:manifest>');
+			foreach ($pictures as $path => [$data]) {
+				$zip->addFromString($path, $data);
+			}
 			foreach ($formulas as $name => $mathml) {
 				$zip->addFromString($name . '/content.xml', '<?xml version="1.0" encoding="UTF-8"?>' . $mathml);
 			}
@@ -60,6 +65,26 @@ final class Odf {
 		} finally {
 			@unlink($zipPath);
 		}
+	}
+
+	/**
+	 * A picture's frame: as a character in the text (centred by its paragraph),
+	 * width at most $maxCm and height at most $maxHeightCm, keeping its proportions.
+	 */
+	public static function picture(string $path, array $picture, float $maxCm, float $maxHeightCm, string $extra = ''): string {
+		[$w, $h] = [max(1, $picture['width'] ?? 4), max(1, $picture['height'] ?? 3)];
+		$width = $maxCm;
+		$height = $width * $h / $w;
+		if ($height > $maxHeightCm) {
+			[$height, $width] = [$maxHeightCm, $maxHeightCm * $w / $h];
+		}
+		return '<draw:frame draw:style-name="Picture" ' . $extra . 'svg:width="' . round($width, 2) . 'cm" svg:height="' . round($height, 2) . 'cm">'
+			. '<draw:image xlink:href="' . $path . '" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" draw:mime-type="' . $picture['mime'] . '"/></draw:frame>';
+	}
+
+	/** A picture's file name in the package by its MIME type. */
+	public static function picturePath(int $n, string $mime): string {
+		return 'Pictures/picture' . $n . '.' . (['image/svg+xml' => 'svg', 'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime] ?? 'png');
 	}
 
 	public static function xml(string $text): string {

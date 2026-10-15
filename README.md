@@ -9,7 +9,13 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   and scanned PDFs is read with OCR. It also finds your files by name, reads web pages, and
   reads further back in the conversation (summaries, minutes).
 - **Writes files into the chat:** PDF, Word, Excel (with formulas), PowerPoint (with speaker
-  notes), OpenDocument, Markdown, CSV, HTML.
+  notes), OpenDocument, Markdown, CSV, HTML, `.ics`, `.bib` and source code.
+- **Designed documents:** themes (modern, classic, academic with numbered headings, minimal,
+  playful), cover pages, a table of contents, page numbers, footnotes, callout boxes (note,
+  tip, warning, definition, theorem, example …), striped tables, columns, LaTeX formulas,
+  highlighted code (Python, Java, SQL, pseudocode …), and charts and images embedded in
+  documents, slides and chat answers. Presentations get an agenda, section slides and slide
+  numbers.
 - **Learning:** summaries, quizzes, and flash cards, to print (question and answer side by side,
   to fold) or to import into Anki or Quizlet.
 - **Maths:** solves step by step and calculates exactly (a calculator tool, not the model's
@@ -19,15 +25,21 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
 - **Sources:** searches the web, looks things up in Wikipedia and finds scholarly papers
   (OpenAlex), and cites by DOI, ISBN or URL in APA, MLA, Chicago, Harvard, IEEE, Vancouver,
   DIN 1505-2, ISO 690 or any CSL style, also as BibTeX or RIS.
-- **Subjects, computed rather than guessed:** chemistry (molar masses, balancing equations,
-  elements), physics (units and constants), biology (crosses with Punnett squares, DNA to
-  protein), statistics and probability (normal, binomial, Poisson), physical education
-  (heart-rate zones, pace, race times, BMI, calories), informatics (truth tables, encodings,
-  SQL on example tables), history (timelines), and mind maps for any topic.
+- **Subjects, computed rather than guessed:** maths (curve sketching: zeros, extrema,
+  inflection points, integrals; linear systems, matrices, vectors, lines and planes, exact with
+  fractions), chemistry (molar masses, balancing equations, elements), physics (units and
+  constants), biology (crosses with Punnett squares, DNA to protein), statistics (probability
+  distributions, t- and χ² tests), geography (places, distances, climate diagrams), music
+  (scales, chords, intervals, transposition), economics (interest, loans with repayment
+  schedules, break-even), physical education (heart-rate zones, pace, race times, BMI,
+  calories), informatics (truth tables, encodings, SQL on example tables), history (timelines),
+  and mind maps for any topic.
 - **Art:** the palette of a painting or photo, colour harmonies, colour names (pigments too),
-  and help with exhibition texts and statements.
-- **Planning:** reads and adds events and tasks in your calendar, with reminders (exams,
-  deadlines, exhibitions, a study plan).
+  value studies (grayscale, notan), composition grids (thirds, golden ratio), mirrored and
+  blurred views, and help with exhibition texts and statements.
+- **Planning:** reads and adds events and tasks in your calendar, with reminders and repeats
+  (exams, deadlines, exhibitions, a timetable, a study plan), and turns dates from a PDF, a
+  letter or a photo of a timetable into an `.ics` file to import anywhere.
 - **Writing:** feedback as a document with marked corrections (deleted, inserted, highlighted).
 - **Uses your rights:** the bot sees only what the asking person may see, and the files it sends
   are saved in their folder for the conversation.
@@ -77,6 +89,10 @@ For example:
 - Share a painting and ask "@Claude what is its palette, and what would complement it?"
 - "Put my maths exam on 12 November at 9:00 in my calendar, with a reminder the day before."
 - "A mind map of the causes of the First World War."
+- Share a photo of the school timetable and ask "make it an .ics file, weekly until the summer
+  holidays".
+- "Curve sketching of f(x) = x³ − 3x" or "solve 2x + y − z = 8, −3x − y + 2z = −11, −2x + y + 2z = −3".
+- Share a painting and ask for "a value study in three tones and the thirds grid".
 - Share a photo of the blackboard and ask "@Claude what does it say?"
 
 ## How it works
@@ -101,7 +117,11 @@ The app (`app/talk_ai/`) is PHP, with no build step.
     - subjects: `convert_units` (`Units.php`), `chemistry` (`Chemistry.php`, balancing by the
       exact null space), `biology`, `sport`, `informatics` (SQL in an in-memory SQLite without
       files or recursion), `colors` (palettes by Imagick);
-    - planning: `calendar` (`lib/Service/Calendar.php`, through Nextcloud's calendar API);
+    - more subjects: `analyze_function` (`Analysis.php`), `linear_algebra` (`LinearAlgebra.php`,
+      fractions throughout), `music`, `finance`, `geo` (OpenStreetMap's Nominatim), and
+      `image_study` (Imagick);
+    - planning: `calendar` (`lib/Service/Calendar.php`, through Nextcloud's calendar API, and
+      `.ics` files with the time zone's definition, `lib/Document/Ics.php`);
     - context and the web: `read_chat`, `read_url`, `lookup` and `cite` (`lib/Service/Web.php`;
       Wikipedia, OpenAlex; DOIs are formatted by doi.org, books come from Open Library).
 - **Posting:** the bot's messages and files are posted as the bot, as Talk's bot API does. A

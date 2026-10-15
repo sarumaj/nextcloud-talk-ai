@@ -7,12 +7,18 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Service;
 
 use OCA\TalkAi\AppInfo\Application;
+use OCA\TalkAi\Document\Analysis;
 use OCA\TalkAi\Document\Biology;
 use OCA\TalkAi\Document\Calculator;
 use OCA\TalkAi\Document\Chart;
 use OCA\TalkAi\Document\Chemistry;
 use OCA\TalkAi\Document\Colors;
+use OCA\TalkAi\Document\Figures;
+use OCA\TalkAi\Document\Finance;
+use OCA\TalkAi\Document\ImageStudy;
 use OCA\TalkAi\Document\Informatics;
+use OCA\TalkAi\Document\LinearAlgebra;
+use OCA\TalkAi\Document\Music;
 use OCA\TalkAi\Document\Math;
 use OCA\TalkAi\Document\OdpWriter;
 use OCA\TalkAi\Document\OdsWriter;
@@ -108,11 +114,68 @@ class Reply {
 			'images' => $images,
 		]);
 		if (($result['state'] ?? '') === 'done' && trim((string)($result['text'] ?? '')) !== '') {
-			// Talk shows Markdown but no LaTeX: formulas in Unicode.
-			$this->conversation->postText($room, trim(Math::forChat((string)$result['text'])), $messageId);
+			$this->postAnswer($userId, (string)$result['text']);
 		} elseif (($result['state'] ?? '') !== 'done') {
 			$this->conversation->postText($room, '⚠️ I could not answer: ' . self::explain((string)($result['error'] ?? 'unknown error')), $messageId);
 		}
+	}
+
+	/**
+	 * The answer in the chat: text with formulas in Unicode (Talk shows Markdown
+	 * but no LaTeX), and its charts and images as pictures of their own, in order.
+	 */
+	private function postAnswer(string $uid, string $text): void {
+		foreach (Figures::split($text) as $part) {
+			try {
+				if ($part['type'] === 'text') {
+					$this->conversation->postText($this->room, trim(Math::forChat($part['text'])), $this->messageId);
+					continue;
+				}
+				$picture = $part['type'] === 'chart' ? Figures::chart($part['chart']) : $this->image($uid, $part['source']);
+				if ($picture === null) {
+					$this->conversation->postText($this->room, '[' . ($part['caption'] ?: $part['source']) . ': image not available]', $this->messageId);
+					continue;
+				}
+				$base = self::fileName(($part['caption'] ?? '') ?: ($picture['caption'] ?? '') ?: 'Chart');
+				if ($picture['mime'] === 'image/svg+xml') {
+					$png = $this->office->png($picture['data'], $base);
+					[$data, $extension] = $png !== null ? [$png, 'png'] : [$picture['data'], 'svg'];
+				} else {
+					$data = $picture['data'];
+					$extension = ['image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'][$picture['mime']] ?? 'png';
+				}
+				$this->conversation->postFile($this->room, $this->conversation->saveFile($this->room, $uid, $base . '.' . $extension, $data), $this->messageId);
+			} catch (\Throwable $e) {
+				$this->logger->warning('AI bot: a part of the answer could not be posted: ' . $e->getMessage());
+				$this->conversation->postText($this->room, '⚠️ (' . mb_substr($e->getMessage(), 0, 200) . ')', $this->messageId);
+			}
+		}
+	}
+
+	/**
+	 * An image for a document or the chat: "file:123" (a file the person may read,
+	 * by id), or a web address (through the HTTP client, up to 10 MB).
+	 *
+	 * @return array{data: string, mime: string, width: int, height: int}|null
+	 */
+	private function image(string $uid, string $source): ?array {
+		if (preg_match('/^(?:file:|id:)?(\d+)$/', trim($source), $m) === 1) {
+			$file = $this->conversation->userFile($uid, (int)$m[1]);
+			if ($file === null || !str_starts_with($file->getMimetype(), 'image/') || $file->getSize() > 20 * 1024 * 1024) {
+				return null;
+			}
+			$data = $file->getContent();
+			$mime = $file->getMimetype();
+		} elseif (preg_match('#^https?://#i', $source) === 1) {
+			[$data, $mime] = $this->web->image($source);
+		} else {
+			return null;
+		}
+		if (!in_array($mime, ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'], true)) {
+			return null;
+		}
+		[$w, $h] = Figures::size($data, $mime);
+		return ['data' => $data, 'mime' => $mime, 'width' => $w, 'height' => $h];
 	}
 
 	private function systemPrompt(object $room): string {
@@ -123,6 +186,10 @@ class Reply {
 			. 'Talk shows Markdown (no tables wider than a phone; no HTML). '
 			. 'The context holds the conversation\'s recent messages; files shared there appear as [file "name", id N]. Images shared '
 			. 'lately come with the question.' . "\n\n"
+			. 'Tools: every tool listed below is available and works; it runs on the server, not on your side. Call it with the '
+			. 'tool block as described, and never say a tool is unavailable without having called it. Your own built-in tools (file '
+			. 'reading, shell) are switched off; these are different. Inside a tool call\'s arguments never write three backticks: '
+			. 'fence code and charts with tildes instead (~~~python … ~~~, ~~~chart … ~~~), or the call is cut off.' . "\n\n"
 			. 'Files: read_file reads a file by id (Word, Excel, PowerPoint, OpenDocument, PDF, text; old .doc/.xls/.ppt too); '
 			. 'list_files lists the files shared here; find_files finds the person\'s own files by name. When asked about "the file", '
 			. '"the slides" or "the document", read the latest one that fits. You act with the rights of the person asking.' . $pdf . "\n\n"
@@ -132,6 +199,15 @@ class Reply {
 			. 'Excel formulas like =SUM(B2:B9) work), a presentation as Markdown slides ("## Title" per slide, 3 to 6 short bullets, '
 			. '"Notes:" for speaker notes). For flash cards use send_flashcards (printable PDF by default; "anki" or "quizlet" to '
 			. 'import into those apps). After sending, say so in a sentence; do not repeat the content.' . "\n\n"
+			. 'Design: make documents look finished. Choose a theme that fits (academic for school papers and theses, modern for '
+			. 'handouts, classic for letters and texts, minimal for plain notes, playful for children or invitations), a cover page '
+			. 'for longer documents, [TOC] when there are many sections, callout boxes for definitions, rules, tips and warnings, '
+			. 'tables for comparisons, charts where numbers speak, columns for cheat sheets, footnotes for sources, and code blocks '
+			. 'with their language. Presentations of more than a few slides: a title slide, an agenda (agenda: true), section '
+			. 'slides ("# Section" alone) for the parts, a chart or picture where it helps, and a closing slide. Do not overload '
+			. 'short documents.' . "\n\n"
+			. 'Pictures: documents and slides take a ~~~chart block (the JSON of plot) or an image ![caption](file:ID or https://…) on '
+			. 'its own line. Your chat answers may hold them too (there ```chart works as well): each appears as a picture at its place.' . "\n\n"
 			. 'Learning: summaries lead with the key points, then details; adapt to the level asked (e.g. a school year). Flash cards '
 			. 'ask one thing each, with short answers. Quizzes give the answers at the end. When helping with homework, explain the '
 			. 'steps so the person learns, not just the result.' . "\n\n"
@@ -143,15 +219,19 @@ class Reply {
 			. 'everyday units, temperatures), chemistry (molar masses, balancing equations, elements), biology (crosses with '
 			. 'Punnett squares, DNA/RNA transcription and translation), sport (heart-rate zones, pace, race times, BMI, '
 			. 'calories), informatics (truth tables, number encodings, SQL on example tables), plot (graphs of functions, '
-			. 'charts, timelines), colors (a painting\'s palette, colour harmonies). Chemical formulas: \\ce{H2SO4} inside $…$, '
+			. 'charts, timelines, mind maps, climate diagrams), colors (a painting\'s palette, colour harmonies), image_study (value '
+			. 'studies, composition grids), analyze_function (curve sketching), linear_algebra (systems, matrices, vectors, lines and '
+			. 'planes), statistics (also t- and χ² tests), music (scales, chords, intervals), finance (interest, loans), geo (places, '
+			. 'distances). Chemical formulas: \\ce{H2SO4} inside $…$, '
 			. 'or write H₂SO₄. Present a tool\'s result as it is, with a short explanation of the method; do not recompute it by '
 			. 'hand. If a tool fails, say so and only then work it out yourself, marked as such.' . "\n\n"
 			. 'Images: you see images shared lately; read_file also reads the text in an image or a scanned PDF (OCR). For art, '
 			. 'discuss composition, colour, light and technique concretely, with art-historical references where they help.' . "\n\n"
 			. 'Writing: when asked to correct or give feedback on a text, you may send a document that marks changes: '
 			. '~~deleted~~, ++inserted++ and ==remark== , with a short explanation of the main points.' . "\n\n"
-			. 'Planning: calendar reads and adds events (exams, deadlines, exhibitions) and tasks, with reminders; a study plan can '
-			. 'go there as events or tasks once the person agrees. Today is ' . date('l, Y-m-d') . '.' . "\n\n"
+			. 'Planning: calendar reads and adds events (exams, deadlines, exhibitions) and tasks, with reminders and repeats; a '
+			. 'study plan can go there once the person agrees. Dates in a PDF, a letter or a photo of a timetable: read them (read_file, '
+			. 'or the image itself), list what you found, and add them or send them as an .ics file, as the person wants. Today is ' . date('l, Y-m-d') . '.' . "\n\n"
 			. 'Chat: the context holds the last ' . Conversation::HISTORY . ' messages; read_chat reads more (for summaries or '
 			. 'minutes of a discussion, with times).' . "\n\n"
 			. 'Web and sources: search the web for current facts (news, prices, opening hours, weather) and name your sources. '
@@ -253,9 +333,15 @@ class Reply {
 			],
 			'send_file' => [
 				'description' => 'Sends a file into this chat; the name\'s extension sets the format. Documents (.pdf .docx .odt) from '
-					. 'Markdown: headings, lists (nested, "- [ ]" check boxes), tables, bold, italic, links, code, LaTeX formulas '
-					. '$…$ and $$…$$, and corrections ~~deleted~~, ++inserted++, ==highlighted==. Spreadsheets (.xlsx .ods) from Markdown tables, a "## Name" heading per sheet; numbers, 50%, and '
-					. 'formulas like =SUM(B2:B5) or =B2*C2 work. Presentations (.pptx .odp) from Markdown slides: "## Title" per slide, '
+					. 'Markdown: headings, lists (nested, "- [ ]" check boxes), tables (:--- :---: ---: align the columns), bold, italic, '
+					. 'links, code blocks with a language fenced by tildes (~~~python, ~~~java, ~~~sql, ~~~pseudocode …: highlighted), footnotes ([^1] and a '
+					. 'line "[^1]: text"), callouts ("> [!NOTE] Title" then "> text"; also TIP, IMPORTANT, WARNING, CAUTION, DEFINITION, '
+					. 'THEOREM, EXAMPLE, SUMMARY, QUESTION), [TOC] for the contents, \\pagebreak, "::: columns 2" … ":::" for columns, '
+					. 'theme, cover and landscape for the design, LaTeX formulas '
+					. '$…$ and $$…$$, corrections ~~deleted~~, ++inserted++, ==highlighted==, and pictures on their own lines: a chart as a '
+					. '~~~chart block (tildes, not backticks) holding the JSON plot takes, or an image ![caption](file:ID of a shared or found image, or '
+					. 'https://… of a web image). Spreadsheets (.xlsx .ods) from Markdown tables, a "## Name" heading per sheet; numbers, 50%, and '
+					. 'formulas like =SUM(B2:B5) or =B2*C2 work. Presentations (.pptx .odp) from Markdown slides: "## Title" per slide, "# Part" alone for a section slide, [AGENDA] for an agenda, '
 					. 'bullets, "Notes:" for speaker notes; the first slide "# Title" with a subtitle line. A .pdf of slides or of a '
 					. 'spreadsheet: set layout. Sent as written: .md .txt .csv .html .json .tex, references (.bib, .ris), and source '
 					. 'code (.py .java .js .c .cpp .sql …).',
@@ -263,8 +349,15 @@ class Reply {
 					'name' => ['type' => 'string', 'description' => 'File name with extension, e.g. "Summary.pdf", "Budget.xlsx", "Talk.pptx"'],
 					'content' => ['type' => 'string', 'description' => 'The content, as described'],
 					'layout' => ['type' => 'string', 'enum' => ['document', 'slides', 'spreadsheet'], 'description' => 'For .pdf: what the content is (default document)'],
+					'theme' => ['type' => 'string', 'enum' => array_keys(OdtWriter::THEMES), 'description' => 'Design of a document or slides: modern (default), classic, academic (serif, justified, numbered headings), minimal, playful'],
+					'cover' => ['type' => 'object', 'properties' => ['title' => ['type' => 'string'], 'subtitle' => ['type' => 'string'], 'author' => ['type' => 'string'], 'date' => ['type' => 'string'], 'institution' => ['type' => 'string']], 'description' => 'A cover page for a document'],
+					'landscape' => ['type' => 'boolean'],
+					'agenda' => ['type' => 'boolean', 'description' => 'Slides: an agenda slide after the title slide (of the sections, else the slides)'],
+					'agenda_title' => ['type' => 'string', 'description' => 'Its title in the document\'s language (Agenda, Gliederung, Plan …)'],
 				], 'required' => ['name', 'content']],
-				'run' => fn (string $uid, array $args) => $this->sendFile($uid, (string)$args['name'], (string)$args['content'], (string)($args['layout'] ?? '')),
+				'run' => fn (string $uid, array $args) => $this->sendFile($uid, (string)$args['name'], (string)$args['content'], (string)($args['layout'] ?? ''),
+					['theme' => (string)($args['theme'] ?? 'modern'), 'cover' => is_array($args['cover'] ?? null) ? $args['cover'] : null, 'landscape' => self::flag($args['landscape'] ?? false),
+						'agenda' => self::flag($args['agenda'] ?? false), 'agenda_title' => (string)($args['agenda_title'] ?? 'Agenda')]),
 			],
 			'send_flashcards' => [
 				'description' => 'Sends flash cards into this chat. Formats: pdf (default; to print, question left and answer right, '
@@ -306,10 +399,13 @@ class Reply {
 					. '(functions: [{expression: "x^2 - 2x", label}], x_min, x_max; same syntax as calculate); "line", "bar", "scatter": '
 					. 'labels (categories or x values) and series [{label, values}] (scatter: series [{label, points: [[x, y], …]}]); '
 					. '"pie": labels and one series; "timeline": events [{date (1789, 44 BC, 1789-07-14), label}] and periods [{from, to, '
-					. 'label}]; "mindmap": root and branches [{label, children: [short points]}] (up to 8 branches of 6). Optional: '
+					. 'label}]; "mindmap": root and branches [{label, children: [short points]}] (up to 8 branches of 6); "climate": a '
+					. 'climate diagram from 12 monthly temperature (°C) and precipitation (mm) values, with place and elevation. Optional: '
 					. 'title, x_label, y_label, y_min, y_max, degrees.',
 				'input' => ['type' => 'object', 'properties' => [
-					'type' => ['type' => 'string', 'enum' => ['function', 'line', 'bar', 'scatter', 'pie', 'timeline', 'mindmap']],
+					'type' => ['type' => 'string', 'enum' => ['function', 'line', 'bar', 'scatter', 'pie', 'timeline', 'mindmap', 'climate']],
+					'temperature' => ['type' => 'array', 'items' => ['type' => 'number']], 'precipitation' => ['type' => 'array', 'items' => ['type' => 'number']],
+					'place' => ['type' => 'string'], 'elevation' => ['type' => 'number'],
 					'root' => ['type' => 'string'],
 					'branches' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => ['label' => ['type' => 'string'], 'children' => ['type' => 'array', 'items' => ['type' => 'string']]]]],
 					'title' => ['type' => 'string'], 'x_label' => ['type' => 'string'], 'y_label' => ['type' => 'string'],
@@ -328,32 +424,46 @@ class Reply {
 				'run' => fn (string $uid, array $args) => $this->plot($uid, $args),
 			],
 			'statistics' => [
-				'description' => 'Statistics of numbers: count, sum, mean, median, mode, min, max, quartiles, sample and population '
-					. 'standard deviation and variance. With y_values as well: the linear regression y = a + bx and the correlation r.',
+				'description' => 'Statistics. test "describe" (default): count, sum, mean, median, mode, min, max, quartiles, standard '
+					. 'deviation and variance of values; "regression": the line y = a + bx and r for values (x) and y_values; '
+					. '"t_test": one sample against mu, two samples (Welch) with y_values, or paired (paired: true); "chi2_independence": '
+					. 'a table of counts (rows); "chi2_fit": observed values against expected (counts or proportions; equal if none); '
+					. '"correlation": whether r of n pairs differs from 0. Tests give p-values at alpha (0.05).',
 				'input' => ['type' => 'object', 'properties' => [
+					'test' => ['type' => 'string', 'enum' => ['describe', 'regression', 't_test', 'chi2_independence', 'chi2_fit', 'correlation']],
 					'values' => ['type' => 'string', 'description' => 'Numbers separated by spaces, commas or semicolons'],
-					'y_values' => ['type' => 'string', 'description' => 'For a regression: the y value of each value above'],
-				], 'required' => ['values']],
-				'run' => fn (string $uid, array $args) => isset($args['y_values']) && trim((string)$args['y_values']) !== ''
-					? Statistics::regression(Statistics::numbers((string)$args['values']), Statistics::numbers((string)$args['y_values']))
-					: Statistics::describe(Statistics::numbers((string)$args['values'])),
+					'y_values' => ['type' => 'string'], 'expected' => ['type' => 'string'], 'mu' => ['type' => 'number'],
+					'paired' => ['type' => 'boolean'], 'rows' => ['type' => 'array', 'items' => ['type' => 'array', 'items' => ['type' => 'number']]],
+					'r' => ['type' => 'number'], 'n' => ['type' => 'integer'], 'alpha' => ['type' => 'number'],
+				]],
+				'run' => fn (string $uid, array $args) => $this->statistics($args),
 			],
 			'calendar' => [
-				'description' => 'The asking person\'s Nextcloud calendars, in their time zone. action "events" (from, to as dates): what is '
-					. 'planned; "add_event" (title, start and end as "2026-11-12 09:00" or a date for all day, location, description, '
-					. 'reminder_minutes before, calendar name): adds an event; "add_task" (title, due, priority 1–9, description): adds a '
-					. 'to-do; "calendars": lists them. Add only what the person asked for, and say what you added.',
+				'description' => 'The asking person\'s calendars, in their time zone. action "events" (from, to as dates): what is planned; '
+					. '"add" (events and/or tasks): adds them to their calendar; "file" (events and/or tasks, name): sends an .ics file into '
+					. 'the chat to import anywhere (also for dates read from a PDF, a photo of a timetable or a letter); "calendars": '
+					. 'lists them. An event: {title, start and end as "2026-11-12 09:00" or a date for a whole day, location, description, '
+					. 'reminder_minutes before, repeat (daily, weekly, biweekly, monthly, yearly) with until (a date) or count, except '
+					. '(dates to skip, e.g. holidays)}. A task: {title, due, priority 1–9, description}. Up to 100 at once. Add to the '
+					. 'calendar only what the person asked for; say what you added or put in the file.',
 				'input' => ['type' => 'object', 'properties' => [
-					'action' => ['type' => 'string', 'enum' => ['events', 'add_event', 'add_task', 'calendars']],
-					'from' => ['type' => 'string'], 'to' => ['type' => 'string'],
-					'title' => ['type' => 'string'], 'start' => ['type' => 'string'], 'end' => ['type' => 'string'], 'due' => ['type' => 'string'],
-					'location' => ['type' => 'string'], 'description' => ['type' => 'string'], 'reminder_minutes' => ['type' => 'integer'],
-					'priority' => ['type' => 'integer'], 'calendar' => ['type' => 'string'],
+					'action' => ['type' => 'string', 'enum' => ['events', 'add', 'file', 'calendars']],
+					'from' => ['type' => 'string'], 'to' => ['type' => 'string'], 'name' => ['type' => 'string'], 'calendar' => ['type' => 'string'],
+					'events' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+						'title' => ['type' => 'string'], 'start' => ['type' => 'string'], 'end' => ['type' => 'string'], 'location' => ['type' => 'string'],
+						'description' => ['type' => 'string'], 'reminder_minutes' => ['type' => 'integer'], 'repeat' => ['type' => 'string'],
+						'until' => ['type' => 'string'], 'count' => ['type' => 'integer'], 'except' => ['type' => 'array', 'items' => ['type' => 'string']],
+					], 'required' => ['title', 'start']]],
+					'tasks' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+						'title' => ['type' => 'string'], 'due' => ['type' => 'string'], 'priority' => ['type' => 'integer'], 'description' => ['type' => 'string'],
+					], 'required' => ['title']]],
 				], 'required' => ['action']],
 				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
 					'events' => $this->calendar->events($uid, (string)($args['from'] ?? date('Y-m-d')), (string)($args['to'] ?? date('Y-m-d', strtotime('+7 days')))),
-					'add_event' => $this->calendar->addEvent($uid, $args),
-					'add_task' => $this->calendar->addTask($uid, $args),
+					'add' => $this->calendar->addEvents($uid, (array)($args['events'] ?? []), (string)($args['calendar'] ?? ''))
+						+ ($args['tasks'] ?? [] ? $this->calendar->addTasks($uid, (array)$args['tasks'], (string)($args['calendar'] ?? '')) : []),
+					'file' => $this->post($this->conversation->saveFile($this->room, $uid, self::fileName(preg_replace('/\.ics$/i', '', (string)($args['name'] ?? 'Dates')) ?? 'Dates') . '.ics',
+						$this->calendar->file($uid, (array)($args['events'] ?? []), (array)($args['tasks'] ?? []), (string)($args['name'] ?? ''))), 'ics'),
 					default => $this->calendar->list($uid),
 				},
 			],
@@ -450,6 +560,94 @@ class Reply {
 					? $this->web->papers((string)$args['query'], isset($args['from_year']) ? (int)$args['from_year'] : null, self::flag($args['open_access'] ?? false), (int)($args['count'] ?? 8))
 					: $this->web->wikipedia((string)$args['query'], (string)($args['language'] ?? 'en'), self::flag($args['full'] ?? false)),
 			],
+			'analyze_function' => [
+				'description' => 'Curve sketching of f(x) on [from, to], numerically (to check the working by hand): zeros, extrema, '
+					. 'inflection points, y-intercept, symmetry, the integral and the area to the x-axis; with at: f, f\', f\'\' and the '
+					. 'tangent there. Same syntax as calculate (x^3 - 3x, e^(-x^2), sin(x)).',
+				'input' => ['type' => 'object', 'properties' => [
+					'expression' => ['type' => 'string'], 'from' => ['type' => 'number'], 'to' => ['type' => 'number'],
+					'at' => ['type' => 'number'], 'degrees' => ['type' => 'boolean'],
+				], 'required' => ['expression', 'from', 'to']],
+				'run' => fn (string $uid, array $args) => Analysis::analyze((string)$args['expression'], (float)$args['from'], (float)$args['to'],
+					isset($args['at']) && $args['at'] !== '' ? (float)$args['at'] : null, self::flag($args['degrees'] ?? false)),
+			],
+			'linear_algebra' => [
+				'description' => 'Exact with fractions ("1/3" allowed). action "solve": a linear system as rows of the augmented matrix '
+					. '[[a, b, c, d], …] (names optional), with steps, also infinitely many or no solutions; "determinant", "inverse" '
+					. '(matrix); "multiply" (matrix, matrix_b); "vectors" (u, v: lengths, dot and cross product, angle); "geometry" (a, b, '
+					. 'each a point {point}, a line {point, direction} or a plane {equation: "2x - y + z = 4"} or {point, normal}): '
+					. 'position, intersection, distance, angle.',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['solve', 'determinant', 'inverse', 'multiply', 'vectors', 'geometry']],
+					'matrix' => ['type' => 'array'], 'matrix_b' => ['type' => 'array'], 'names' => ['type' => 'array', 'items' => ['type' => 'string']],
+					'u' => ['type' => 'array'], 'v' => ['type' => 'array'], 'a' => ['type' => 'object'], 'b' => ['type' => 'object'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'solve' => LinearAlgebra::solve((array)($args['matrix'] ?? []), (array)($args['names'] ?? [])),
+					'determinant' => LinearAlgebra::determinant((array)($args['matrix'] ?? [])),
+					'inverse' => LinearAlgebra::inverse((array)($args['matrix'] ?? [])),
+					'multiply' => LinearAlgebra::multiply((array)($args['matrix'] ?? []), (array)($args['matrix_b'] ?? [])),
+					'vectors' => LinearAlgebra::vectors((array)($args['u'] ?? []), (array)($args['v'] ?? [])),
+					default => LinearAlgebra::geometry((array)($args['a'] ?? []), (array)($args['b'] ?? [])),
+				},
+			],
+			'geo' => [
+				'description' => 'Geography from OpenStreetMap. action "place" (query, language): coordinates, country, population, '
+					. 'elevation, a map link; "distance" (from, to): the straight-line distance and direction. For a climate diagram '
+					. 'use plot with type "climate".',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['place', 'distance']],
+					'query' => ['type' => 'string'], 'language' => ['type' => 'string'], 'from' => ['type' => 'string'], 'to' => ['type' => 'string'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => ($args['action'] ?? '') === 'distance'
+					? $this->web->distance((string)($args['from'] ?? ''), (string)($args['to'] ?? ''))
+					: $this->web->place((string)($args['query'] ?? ''), (string)($args['language'] ?? 'en')),
+			],
+			'music' => [
+				'description' => 'Music theory, correctly spelled. action "scale" (root, kind: major, minor, harmonic minor, melodic minor, '
+					. 'dorian, phrygian, lydian, mixolydian, locrian, major/minor pentatonic, blues); "chord" (root, kind: major, minor, '
+					. 'diminished, augmented, sus2, sus4, 7, maj7, m7, m7b5, dim7, 6, m6, 9, add9); "interval" (from, to); "transpose" '
+					. '(notes, semitones or to: a new first note); "frequency" (note like A4, a4 Hz). German names work (H, Fis, Es).',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['scale', 'chord', 'interval', 'transpose', 'frequency']],
+					'root' => ['type' => 'string'], 'kind' => ['type' => 'string'], 'from' => ['type' => 'string'], 'to' => ['type' => 'string'],
+					'notes' => ['type' => 'string'], 'semitones' => ['type' => 'integer'], 'note' => ['type' => 'string'], 'a4' => ['type' => 'number'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'scale' => Music::scale((string)($args['root'] ?? 'C'), (string)($args['kind'] ?? 'major')),
+					'chord' => Music::chord((string)($args['root'] ?? 'C'), (string)($args['kind'] ?? 'major')),
+					'interval' => Music::interval((string)($args['from'] ?? ''), (string)($args['to'] ?? '')),
+					'transpose' => Music::transpose((string)($args['notes'] ?? ''), (int)($args['semitones'] ?? 0), (string)($args['to'] ?? '')),
+					default => Music::frequency((string)($args['note'] ?? 'A4'), (float)($args['a4'] ?? 440)),
+				},
+			],
+			'finance' => [
+				'description' => 'Money maths (rates in % a year). action "growth" (principal, rate, years, per_year compounding, deposit '
+					. 'per period): compound interest and savings plans; "loan" (amount, rate, years, per_year 12): instalment, total '
+					. 'interest and the repayment schedule; "inflation" (amount, rate, years); "break_even" (fixed, price, variable).',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['growth', 'loan', 'inflation', 'break_even']],
+					'principal' => ['type' => 'number'], 'amount' => ['type' => 'number'], 'rate' => ['type' => 'number'], 'years' => ['type' => 'number'],
+					'per_year' => ['type' => 'integer'], 'deposit' => ['type' => 'number'], 'fixed' => ['type' => 'number'], 'price' => ['type' => 'number'],
+					'variable' => ['type' => 'number'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'growth' => Finance::growth((float)($args['principal'] ?? $args['amount'] ?? 0), (float)($args['rate'] ?? 0), (float)($args['years'] ?? 0), (int)($args['per_year'] ?? 1), (float)($args['deposit'] ?? 0)),
+					'loan' => Finance::loan((float)($args['amount'] ?? $args['principal'] ?? 0), (float)($args['rate'] ?? 0), (float)($args['years'] ?? 0), (int)($args['per_year'] ?? 12)),
+					'inflation' => Finance::inflation((float)($args['amount'] ?? $args['principal'] ?? 0), (float)($args['rate'] ?? 0), (float)($args['years'] ?? 0)),
+					default => Finance::breakEven((float)($args['fixed'] ?? 0), (float)($args['price'] ?? 0), (float)($args['variable'] ?? 0)),
+				},
+			],
+			'image_study' => [
+				'description' => 'Studies of a shared painting or photo (file_id), sent into the chat as an image: "grayscale" (to judge '
+					. 'values), "values" (levels 2–9: a notan or value study), "grid" (grid: thirds, golden or diagonals, for the '
+					. 'composition), "mirror" (fresh eyes on the composition), "blur" (only the big shapes).',
+				'input' => ['type' => 'object', 'properties' => [
+					'file_id' => ['type' => 'integer'], 'kind' => ['type' => 'string', 'enum' => ImageStudy::KINDS],
+					'levels' => ['type' => 'integer'], 'grid' => ['type' => 'string', 'enum' => ['thirds', 'golden', 'diagonals']],
+				], 'required' => ['file_id', 'kind']],
+				'run' => fn (string $uid, array $args) => $this->imageStudy($uid, $args),
+			],
 			'calculate' => [
 				'description' => 'Calculates exactly: + - * / ^ % ( ) ! , pi, e, sqrt, cbrt, root(x,n), abs, exp, ln, log (base 10), log2, '
 					. 'sin cos tan asin acos atan (radians, or degrees: true), sinh cosh tanh, floor ceil round(x,digits), min, max, gcd, '
@@ -490,7 +688,7 @@ class Reply {
 		return $text === null ? 'This kind of file (' . $file->getMimetype() . ') cannot be read as text.' : "File \"" . $file->getName() . "\":\n" . $text;
 	}
 
-	private function sendFile(string $uid, string $name, string $content, string $layout): string {
+	private function sendFile(string $uid, string $name, string $content, string $layout, array $design = []): string {
 		$name = self::fileName($name);
 		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 		$base = pathinfo($name, PATHINFO_FILENAME);
@@ -508,8 +706,8 @@ class Reply {
 		};
 		$data = match ($kind) {
 			'ods' => $this->ods->write($content, $base),
-			'odp' => $this->odp->write($content, $base),
-			default => $this->odt->write($content, $base),
+			'odp' => $this->odp->write($content, $base, fn (string $source) => $this->image($uid, $source), (string)($design['theme'] ?? 'modern'), (bool)($design['agenda'] ?? false), (string)($design['agenda_title'] ?? 'Agenda') ?: 'Agenda'),
+			default => $this->odt->write($content, $base, fn (string $source) => $this->image($uid, $source), $design),
 		};
 		return $this->sendOdf($uid, $base, $kind, $data, $extension);
 	}
@@ -583,6 +781,32 @@ class Reply {
 			: $this->post($this->conversation->saveFile($this->room, $uid, $base . '.svg', $svg), 'svg');
 	}
 
+	private function statistics(array $args): array {
+		$alpha = (float)($args['alpha'] ?? 0.05) ?: 0.05;
+		$values = Statistics::numbers((string)($args['values'] ?? ''));
+		$y = Statistics::numbers((string)($args['y_values'] ?? ''));
+		return match ((string)($args['test'] ?? (isset($args['y_values']) && $y !== [] ? 'regression' : 'describe'))) {
+			'regression' => Statistics::regression($values, $y),
+			't_test' => Statistics::tTest($values, $y, (float)($args['mu'] ?? 0), self::flag($args['paired'] ?? false), $alpha),
+			'chi2_independence' => Statistics::chiSquareIndependence((array)($args['rows'] ?? []), $alpha),
+			'chi2_fit' => Statistics::chiSquareFit($values, Statistics::numbers((string)($args['expected'] ?? '')), $alpha),
+			'correlation' => Statistics::correlationTest((float)($args['r'] ?? 0), (int)($args['n'] ?? 0), $alpha),
+			default => Statistics::describe($values),
+		};
+	}
+
+	/** A study of a shared image, sent into the chat. */
+	private function imageStudy(string $uid, array $args): string {
+		$file = $this->conversation->userFile($uid, (int)($args['file_id'] ?? 0));
+		if ($file === null || !str_starts_with($file->getMimetype(), 'image/')) {
+			return 'No image with this id that the person may read.';
+		}
+		$kind = (string)($args['kind'] ?? 'grayscale');
+		$png = ImageStudy::make($file->getContent(), $kind, (int)($args['levels'] ?? 3), (string)($args['grid'] ?? 'thirds'));
+		$label = ['grayscale' => 'grayscale', 'values' => (int)($args['levels'] ?? 3) . ' values', 'grid' => ($args['grid'] ?? 'thirds') . ' grid', 'mirror' => 'mirrored', 'blur' => 'blurred'][$kind] ?? $kind;
+		return $this->post($this->conversation->saveFile($this->room, $uid, self::fileName(pathinfo($file->getName(), PATHINFO_FILENAME) . ' – ' . $label) . '.png', $png), 'png');
+	}
+
 	/** A palette or harmonies, with a swatch image sent into the chat. */
 	private function colors(string $uid, array $args): array {
 		if (($args['action'] ?? '') === 'palette') {
@@ -613,6 +837,7 @@ class Reply {
 		$hint = match ($format) {
 			'anki' => ' To import: in Anki, File → Import, choose this file.',
 			'quizlet' => ' To import: in Quizlet, create a set, "Import", paste the file\'s text (tab between term and definition).',
+			'ics' => ' To import: open the file in Nextcloud Calendar (or Google, Apple, Outlook): Import, choose the file and a calendar.',
 			default => '',
 		};
 		return 'Sent "' . $file->getName() . '" to the chat. Say so briefly; do not repeat its content.' . ($hint !== '' ? ' Tell the person:' . $hint : '');

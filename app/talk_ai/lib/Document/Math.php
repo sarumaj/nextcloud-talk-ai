@@ -40,7 +40,8 @@ class Math {
 		'forall' => '∀', 'exists' => '∃', 'nexists' => '∄', 'perp' => '⊥', 'parallel' => '∥', 'angle' => '∠', 'triangle' => '△',
 		'to' => '→', 'rightarrow' => '→', 'leftarrow' => '←', 'gets' => '←', 'leftrightarrow' => '↔', 'Rightarrow' => '⇒',
 		'Leftarrow' => '⇐', 'Leftrightarrow' => '⇔', 'implies' => '⟹', 'iff' => '⟺', 'mapsto' => '↦', 'uparrow' => '↑',
-		'downarrow' => '↓', 'longrightarrow' => '⟶', 'oplus' => '⊕', 'otimes' => '⊗', 'mid' => '∣', 'colon' => ':',
+		'downarrow' => '↓', 'longrightarrow' => '⟶', 'rightleftharpoons' => '⇌', 'leftrightarrows' => '⇄', 'longleftarrow' => '⟵',
+		'Longrightarrow' => '⟹', 'Longleftrightarrow' => '⟺', 'nearrow' => '↗', 'searrow' => '↘', 'oplus' => '⊕', 'otimes' => '⊗', 'mid' => '∣', 'colon' => ':',
 		'cdots' => '⋯', 'ldots' => '…', 'dots' => '…', 'vdots' => '⋮', 'ddots' => '⋱', 'therefore' => '∴', 'because' => '∵',
 		'langle' => '⟨', 'rangle' => '⟩', 'lfloor' => '⌊', 'rfloor' => '⌋', 'lceil' => '⌈', 'rceil' => '⌉', 'vert' => '|', 'Vert' => '‖',
 		'lbrace' => '{', 'rbrace' => '}', '{' => '{', '}' => '}', '|' => '‖', '%' => '%', '$' => '$', '#' => '#', '&' => '&', '_' => '_',
@@ -278,6 +279,24 @@ class Math {
 				return '<mrow><mo stretchy="true">' . $open . '</mo>' . $inner . '<mo stretchy="true">' . $close . '</mo></mrow>';
 			case in_array($name, ['big', 'Big', 'bigg', 'Bigg', 'bigl', 'bigr', 'Bigl', 'Bigr', 'biggl', 'biggr', 'middle'], true):
 				return '<mo>' . $this->delimiter() . '</mo>';
+			case in_array($name, ['xrightarrow', 'xleftarrow', 'xLeftrightarrow', 'xRightarrow'], true):
+				// An arrow with text above (and optionally [below]).
+				$below = '';
+				if ($this->peek() === '[') {
+					$this->next();
+					$below = $this->row([']']);
+					$this->next();
+				}
+				$arrow = ['xrightarrow' => '⟶', 'xleftarrow' => '⟵', 'xLeftrightarrow' => '⟺', 'xRightarrow' => '⟹'][$name];
+				$above = $this->argument();
+				return $below === '' ? '<mover><mo stretchy="true">' . $arrow . '</mo>' . $above . '</mover>'
+					: '<munderover><mo stretchy="true">' . $arrow . '</mo><mrow>' . $below . '</mrow>' . $above . '</munderover>';
+			case $name === 'overset' || $name === 'stackrel':
+				$top = $this->argument();
+				return '<mover>' . $this->argument() . $top . '</mover>';
+			case $name === 'underset':
+				$bottom = $this->argument();
+				return '<munder>' . $this->argument() . $bottom . '</munder>';
 			case $name === 'ce' || $name === 'pu':
 				// Chemistry (mhchem): subscripts, charges and arrows, upright.
 				return '<mtext>' . Odf::xml(Chemistry::pretty($this->rawGroup())) . '</mtext>';

@@ -9,7 +9,7 @@ namespace OCA\TalkAi\Document;
 /**
  * Charts and graphs as SVG (sent as PNG, rendered by Collabora): graphs of functions of x, line,
  * bar, scatter and pie charts of data, with title, axis labels, grid and legend, timelines of
- * events and periods (years; BC as negative), and mind maps.
+ * events and periods (years; BC as negative), mind maps, and climate diagrams.
  */
 class Chart {
 	private const WIDTH = 1000;
@@ -25,11 +25,12 @@ class Chart {
 	 *   labels?: list<string>, series?: list<array{label?: string, values?: list<float>, points?: list<array{float, float}>}>} $spec
 	 */
 	public static function svg(array $spec): string {
-		$type = in_array($spec['type'] ?? '', ['function', 'line', 'bar', 'scatter', 'pie', 'timeline', 'mindmap'], true) ? $spec['type'] : (isset($spec['functions']) ? 'function' : 'line');
+		$type = in_array($spec['type'] ?? '', ['function', 'line', 'bar', 'scatter', 'pie', 'timeline', 'mindmap', 'climate'], true) ? $spec['type'] : (isset($spec['functions']) ? 'function' : 'line');
 		$body = match ($type) {
 			'pie' => self::pie($spec),
 			'timeline' => self::timeline($spec),
 			'mindmap' => self::mindmap($spec),
+			'climate' => self::climate($spec),
 			'bar' => self::bars($spec),
 			default => self::xy($spec, $type),
 		};
@@ -96,7 +97,11 @@ class Chart {
 		[$l, $t, $r, $b] = self::AREA;
 		$px = fn (float $x): float => $l + ($x - $xMin) / ($xMax - $xMin) * ($r - $l);
 		$py = fn (float $y): float => $b - ($y - $yMin) / ($yMax - $yMin) * ($b - $t);
+		// Category labels along the axis; numeric labels are the x values themselves, on a numeric axis.
 		$labels = $type !== 'function' && !isset($spec['series'][0]['points']) ? ($spec['labels'] ?? []) : [];
+		if ($labels !== [] && array_filter($labels, fn ($l) => !is_numeric($l)) === []) {
+			$labels = [];
+		}
 		$out = self::grid($xMin, $xMax, $yMin, $yMax, $px, $py, $labels);
 		$out .= '<clipPath id="area"><rect x="' . $l . '" y="' . $t . '" width="' . ($r - $l) . '" height="' . ($b - $t) . '"/></clipPath><g clip-path="url(#area)">';
 		foreach ($series as $n => $s) {
@@ -345,6 +350,45 @@ class Chart {
 		$width = 40 + 12 * mb_strlen(mb_strimwidth($root, 0, 24, '…'));
 		return $out . '<ellipse cx="' . $cx . '" cy="' . $cy . '" rx="' . round($width / 2, 1) . '" ry="34" fill="#1f3864"/>'
 			. self::text($cx, $cy + 7, mb_strimwidth($root, 0, 24, '…'), 20, 'middle', 'bold', '#ffffff');
+	}
+
+	/**
+	 * A climate diagram (after Walter and Lieth, with bars): monthly precipitation
+	 * as bars on the right axis and temperature as a line on the left, 10 °C to
+	 * 20 mm; months where the temperature line lies above the precipitation are arid.
+	 */
+	private static function climate(array $spec): string {
+		$t = array_map('floatval', array_values((array)($spec['temperature'] ?? [])));
+		$p = array_map('floatval', array_values((array)($spec['precipitation'] ?? [])));
+		if (count($t) !== 12 || count($p) !== 12) {
+			throw new \InvalidArgumentException('a climate diagram needs 12 monthly temperatures (°C) and 12 precipitation totals (mm)');
+		}
+		$months = (array)($spec['months'] ?? ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']);
+		[$l, $top, $r, $b] = [110, 90, 890, 540];
+		$tMin = min(0, 10 * floor(min($t) / 10));
+		$tMax = max(30, 10 * ceil(max(max($t), max($p) / 2) / 10));
+		$py = fn (float $c) => $b - ($c - $tMin) / ($tMax - $tMin) * ($b - $top);
+		$slot = ($r - $l) / 12;
+		$out = '<rect x="' . $l . '" y="' . $top . '" width="' . ($r - $l) . '" height="' . ($b - $top) . '" fill="none" stroke="#bbbbbb"/>';
+		for ($c = $tMin; $c <= $tMax; $c += 10) {
+			$out .= '<line x1="' . $l . '" x2="' . $r . '" y1="' . round($py($c), 1) . '" y2="' . round($py($c), 1) . '" stroke="' . ($c == 0 ? '#555555' : '#e5e5e5') . '"/>'
+				. self::text($l - 10, $py($c) + 5, self::number($c), 14, 'end', 'normal', '#c0504d')
+				. ($c >= 0 ? self::text($r + 10, $py($c) + 5, self::number($c * 2), 14, 'start', 'normal', '#2e75b6') : '');
+		}
+		$line = '';
+		$arid = 0;
+		foreach (range(0, 11) as $i) {
+			$x = $l + $slot * $i;
+			$out .= '<rect x="' . round($x + $slot * 0.15, 1) . '" y="' . round($py(min($p[$i] / 2, $tMax)), 1) . '" width="' . round($slot * 0.7, 1) . '" height="' . round($py(0) - $py(min($p[$i] / 2, $tMax)), 1) . '" fill="#2e75b6" fill-opacity="0.75"/>'
+				. self::text($x + $slot / 2, $b + 22, (string)($months[$i] ?? ''), 14, 'middle');
+			$line .= ($i === 0 ? 'M' : 'L') . round($x + $slot / 2, 1) . ' ' . round($py($t[$i]), 1) . ' ';
+			$arid += $t[$i] * 2 > $p[$i] ? 1 : 0;
+		}
+		$out .= '<path d="' . trim($line) . '" fill="none" stroke="#c0504d" stroke-width="4" stroke-linejoin="round"/>';
+		$out .= self::text($l - 60, $top - 20, '°C', 16, 'start', 'bold', '#c0504d') . self::text($r + 10, $top - 20, 'mm', 16, 'start', 'bold', '#2e75b6');
+		$summary = array_filter([(string)($spec['place'] ?? '') . (isset($spec['elevation']) ? ' (' . $spec['elevation'] . ' m)' : ''),
+			round(array_sum($t) / 12, 1) . ' °C', round(array_sum($p)) . ' mm', $arid . ' arid month' . ($arid === 1 ? '' : 's')]);
+		return $out . self::text(($l + $r) / 2, $b + 60, implode(' · ', $summary), 16, 'middle', 'bold');
 	}
 
 	private static function axisLabels(string $x, string $y): string {

@@ -7,17 +7,17 @@
     <description><![CDATA[A bot for Nextcloud Talk that answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), the AI connection of your server. It is named after the AI that answers (Claude, Gemini, …).
 
 - **Reads what you share**: Word, Excel, PowerPoint (with speaker notes), OpenDocument, old .doc/.xls/.ppt, PDF, text, and images, with OCR for photos and scans
-- **Writes files into the chat**: PDF, Word, Excel (with formulas), PowerPoint, OpenDocument, Markdown, CSV
+- **Writes files into the chat**: PDF, Word, Excel (with formulas), PowerPoint, OpenDocument, Markdown, CSV, in designed themes with cover pages, contents, callouts, footnotes, formulas, highlighted code, and embedded charts and images
 - **Learning**: summaries, quizzes, and flash cards to print or to import into Anki or Quizlet
 - **Maths**: step by step, with exact calculation, formulas in documents, statistics, and graphs and charts as images
 - **Sources**: reads web pages, searches the web, Wikipedia and scholarly papers, and cites by DOI, ISBN or URL in APA, MLA, Chicago, Harvard, IEEE, DIN 1505-2 and other styles
-- **Subjects**: chemistry (molar masses, balancing equations), physics units and constants, genetics and DNA, probability, sport science, truth tables and SQL, timelines and mind maps
-- **Art**: the palette of a painting, colour harmonies and names
-- **Planning**: events, reminders and tasks in your calendar
+- **Subjects**: curve sketching, linear algebra and vectors, chemistry, physics units and constants, genetics and DNA, statistics and hypothesis tests, geography and climate diagrams, music theory, interest and loans, sport science, truth tables and SQL, timelines and mind maps
+- **Art**: the palette of a painting, colour harmonies, value studies and composition grids
+- **Planning**: events, reminders and tasks in your calendar, and .ics files from dates in a PDF or a photo
 - Everything runs **with the asking person's rights**: the bot sees only what they may see
 
 Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@Claude) or replied to. Office formats need Nextcloud Office (Collabora); reading PDFs needs pdftotext, OCR needs Tesseract on the server.]]></description>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAi</namespace>

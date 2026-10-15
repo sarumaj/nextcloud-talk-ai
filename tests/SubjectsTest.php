@@ -6,15 +6,21 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Tests;
 
+use OCA\TalkAi\Document\Analysis;
 use OCA\TalkAi\Document\Biology;
 use OCA\TalkAi\Document\Calculator;
 use OCA\TalkAi\Document\Chart;
 use OCA\TalkAi\Document\Chemistry;
 use OCA\TalkAi\Document\Colors;
+use OCA\TalkAi\Document\Finance;
+use OCA\TalkAi\Document\Ics;
 use OCA\TalkAi\Document\Informatics;
+use OCA\TalkAi\Document\LinearAlgebra;
 use OCA\TalkAi\Document\Math;
+use OCA\TalkAi\Document\Music;
 use OCA\TalkAi\Document\OdtWriter;
 use OCA\TalkAi\Document\Sport;
+use OCA\TalkAi\Document\Statistics;
 use OCA\TalkAi\Document\Units;
 use PHPUnit\Framework\TestCase;
 
@@ -90,6 +96,74 @@ class SubjectsTest extends TestCase {
 		$timeline = Chart::svg(['type' => 'timeline', 'events' => [['date' => '44 BC', 'label' => 'Caesar'], ['date' => '14.07.1789', 'label' => 'Bastille']], 'periods' => [['from' => -27, 'to' => 476, 'label' => 'Empire']]]);
 		$this->assertNotFalse(simplexml_load_string($timeline));
 		$this->assertStringContainsString('BC', $timeline);
+	}
+
+	public function testCurveSketching(): void {
+		$r = Analysis::analyze('x^3 - 3x', -3, 3, 1);
+		$this->assertSame(['-1.732051', '0', '1.732051'], $r['zeros']);
+		$this->assertSame([['x' => '-1', 'y' => '2', 'kind' => 'maximum'], ['x' => '1', 'y' => '-2', 'kind' => 'minimum']], $r['extrema']);
+		$this->assertSame('22.5', $r['area_to_x_axis']);
+		$this->assertSame('point-symmetric about the origin (odd)', $r['symmetry']);
+		$this->assertSame('y = -2', $r['at_x=1']['tangent']);
+		$this->assertSame('1.772415', Analysis::analyze('e^(-x^2)', -3, 3)['integral']);
+		$this->assertSame('none in the interval', Analysis::analyze('1/x', -2, 2)['zeros']);
+	}
+
+	public function testLinearAlgebra(): void {
+		$this->assertSame(['x' => '2', 'y' => '3', 'z' => '-1'], LinearAlgebra::solve([[2, 1, -1, 8], [-3, -1, 2, -11], [-2, 1, 2, -3]])['solution']);
+		$this->assertSame(['infinitely many' => ['x' => 'z', 'y' => '3 − 2·z', 'z' => 'z (free)']], LinearAlgebra::solve([[1, 2, 3, 6], [2, 4, 6, 12], [1, 1, 1, 3]])['solution']);
+		$this->assertSame('none (the system is inconsistent)', LinearAlgebra::solve([[1, 1, 2], [1, 1, 3]])['solution']);
+		$this->assertSame(['x' => '6/5', 'y' => '6/5'], LinearAlgebra::solve([['1/2', '1/3', 1], [1, -1, 0]])['solution']);
+		$this->assertSame('-2', LinearAlgebra::determinant([[1, 2], [3, 4]])['determinant']);
+		$this->assertSame("[3/5, -7/10]\n[-1/5, 2/5]", LinearAlgebra::inverse([[4, 7], [2, 6]])['inverse']);
+		$this->assertSame('(2, 4, -5)', LinearAlgebra::vectors([1, 2, 2], [2, -1, 0])['u×v']);
+		$this->assertSame('(2, 2, 2)', LinearAlgebra::geometry(['point' => [0, 0, 0], 'direction' => [1, 1, 1]], ['equation' => '2x + y - z = 4'])['intersection']);
+		$this->assertSame('skew', LinearAlgebra::geometry(['point' => [0, 0, 0], 'direction' => [1, 0, 0]], ['point' => [0, 1, 1], 'direction' => [0, 1, 0]])['position']);
+	}
+
+	public function testHypothesisTests(): void {
+		$this->assertSame('0.0455003', Statistics::chiSquareIndependence([[20, 30], [30, 20]])['p']);
+		$this->assertSame('0.0576689', Statistics::tTest([10, 12, 9, 11], [9, 11, 9, 10], 0, true)['p_two_sided']);
+		$this->assertSame('0.00516293', Statistics::correlationTest(0.6, 20)['p_two_sided']);
+		$this->assertSame('0.7154', Statistics::chiSquareFit([18, 22, 20, 25, 15, 20])['p']);
+	}
+
+	public function testMusicAndFinance(): void {
+		$this->assertSame('F# – G# – A# – B – C# – D# – E#', Music::scale('F#', 'major')['notes']);
+		$this->assertSame('Eb – F – Gb – Ab – Bb – Cb – Db', Music::scale('Eb', 'minor')['notes']);
+		$this->assertSame('F# – G# – A – B – C# – D – E', Music::scale('Fis', 'moll')['notes']);
+		$this->assertSame('E – G# – B#', Music::chord('E', 'aug')['notes']);
+		$this->assertSame('diminished fifth (tritone)', Music::interval('C', 'Gb')['interval']);
+		$this->assertSame('Eb4 G4 Bb4 D4', Music::transpose('C4 E4 G4 B3', 3)['transposed']);
+		$this->assertSame('261.63 Hz', Music::frequency('C4')['frequency']);
+		$this->assertSame('1 628.89', Finance::growth(1000, 5, 10)['final_value']);
+		$this->assertSame('443.21 per month', Finance::loan(10000, 6, 2)['instalment']);
+		$this->assertSame(500, Finance::breakEven(5000, 25, 15)['rounded_up']);
+	}
+
+	public function testClimateDiagram(): void {
+		$svg = Chart::svg(['type' => 'climate', 'place' => 'Kairo', 'temperature' => [14, 15.5, 18, 21.5, 25, 27.5, 28, 28, 26, 23.5, 19, 15.5], 'precipitation' => [5, 4, 4, 1, 0, 0, 0, 0, 0, 1, 3, 5]]);
+		$this->assertNotFalse(simplexml_load_string($svg));
+		$this->assertStringContainsString('12 arid months', $svg);
+	}
+
+	public function testCalendarFile(): void {
+		$ics = Ics::calendar([
+			['title' => 'Maths, room 204', 'start' => '2026-09-07 08:00', 'end' => '2026-09-07 09:30', 'repeat' => 'weekly', 'until' => '2027-06-30', 'except' => ['2026-10-19'], 'reminder_minutes' => 10],
+			['title' => 'Exam; final, part 1', 'start' => '2027-04-20'],
+		], [['title' => 'Hand in essay', 'due' => '2026-11-30']], new \DateTimeZone('Europe/Berlin'), 'School', fn () => 'fixed@talk-ai');
+		$this->assertStringContainsString("DTSTART;TZID=Europe/Berlin:20260907T080000\r\n", $ics);
+		$this->assertStringContainsString("RRULE:FREQ=WEEKLY;UNTIL=20270630T220000Z\r\n", $ics);
+		$this->assertStringContainsString("EXDATE;TZID=Europe/Berlin:20261019T080000\r\n", $ics);
+		$this->assertStringContainsString("DTSTART;VALUE=DATE:20270420\r\nDTEND;VALUE=DATE:20270421", $ics);
+		$this->assertStringContainsString('SUMMARY:Exam\; final\, part 1', $ics);
+		$this->assertStringContainsString("BEGIN:VTODO", $ics);
+		// Summer time ends on 25 October 2026 and starts on 28 March 2027.
+		$this->assertStringContainsString("BEGIN:STANDARD\r\nDTSTART:20261025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100", $ics);
+		$this->assertStringContainsString("BEGIN:DAYLIGHT\r\nDTSTART:20270328T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200", $ics);
+		foreach (explode("\r\n", $ics) as $line) {
+			$this->assertLessThanOrEqual(75, strlen($line));
+		}
 	}
 
 	public function testCorrections(): void {

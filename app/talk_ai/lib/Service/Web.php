@@ -164,6 +164,71 @@ class Web {
 			'note' => 'From OpenAlex. Cite a work with cite and its DOI; read a free one with read_url.'];
 	}
 
+	/**
+	 * An image from the web for a document or the chat: its data and MIME type
+	 * (raster images and SVG, up to 10 MB).
+	 *
+	 * @return array{string, string}
+	 */
+	public function image(string $url): array {
+		$response = $this->clients->newClient()->get(self::url($url), ['timeout' => 20, 'headers' => ['User-Agent' => self::AGENT, 'Accept' => 'image/*'], 'stream' => true]);
+		$body = $response->getBody();
+		$data = is_resource($body) ? (string)stream_get_contents($body, 10 * 1024 * 1024 + 1) : (string)$body;
+		if (strlen($data) > 10 * 1024 * 1024) {
+			throw new \InvalidArgumentException('the image is larger than 10 MB');
+		}
+		$mime = strtolower(trim(explode(';', $response->getHeader('Content-Type'))[0]));
+		if (!str_starts_with($mime, 'image/')) {
+			$mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($data) ?: '';
+		}
+		return [$data, $mime];
+	}
+
+		/** A place from OpenStreetMap (Nominatim): coordinates, kind, country, population and elevation where known. */
+	public function place(string $query, string $language = 'en'): array {
+		$found = json_decode((string)$this->clients->newClient()->get('https://nominatim.openstreetmap.org/search?' . http_build_query([
+			'q' => $query, 'format' => 'jsonv2', 'limit' => 1, 'extratags' => 1, 'addressdetails' => 1, 'accept-language' => $language ?: 'en',
+		]), ['timeout' => 20, 'headers' => ['User-Agent' => self::AGENT]])->getBody(), true);
+		$p = $found[0] ?? null;
+		if (!is_array($p)) {
+			throw new \InvalidArgumentException('no place found for "' . $query . '"');
+		}
+		return array_filter([
+			'name' => $p['display_name'] ?? $query,
+			'latitude' => round((float)$p['lat'], 5), 'longitude' => round((float)$p['lon'], 5),
+			'coordinates' => self::dms((float)$p['lat'], 'N', 'S') . ', ' . self::dms((float)$p['lon'], 'E', 'W'),
+			'kind' => trim(($p['category'] ?? '') . ' ' . ($p['type'] ?? '')),
+			'country' => $p['address']['country'] ?? null,
+			'population' => $p['extratags']['population'] ?? null,
+			'elevation_m' => $p['extratags']['ele'] ?? null,
+			'wikipedia' => $p['extratags']['wikipedia'] ?? null,
+			'map' => 'https://www.openstreetmap.org/?mlat=' . $p['lat'] . '&mlon=' . $p['lon'] . '#map=12/' . $p['lat'] . '/' . $p['lon'],
+			'source' => '© OpenStreetMap contributors',
+		], fn ($v) => $v !== null && $v !== '');
+	}
+
+	/** The great-circle distance and initial bearing between two places. */
+	public function distance(string $from, string $to): array {
+		$a = $this->place($from);
+		usleep(1100000); // Nominatim's policy: at most one request a second.
+		$b = $this->place($to);
+		[$la1, $lo1, $la2, $lo2] = array_map('deg2rad', [$a['latitude'], $a['longitude'], $b['latitude'], $b['longitude']]);
+		$h = sin(($la2 - $la1) / 2) ** 2 + cos($la1) * cos($la2) * sin(($lo2 - $lo1) / 2) ** 2;
+		$km = 2 * 6371.0088 * asin(min(1, sqrt($h)));
+		$bearing = fmod(rad2deg(atan2(sin($lo2 - $lo1) * cos($la2), cos($la1) * sin($la2) - sin($la1) * cos($la2) * cos($lo2 - $lo1))) + 360, 360);
+		$compass = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][(int)round($bearing / 45) % 8];
+		return ['from' => $a['name'], 'to' => $b['name'], 'distance_km' => round($km, 1), 'distance_mi' => round($km / 1.609344, 1),
+			'initial_bearing' => round($bearing) . '° (' . $compass . ')', 'note' => 'Straight-line (great-circle) distance; by road or rail it is longer.'];
+	}
+
+	private static function dms(float $value, string $positive, string $negative): string {
+		$a = abs($value);
+		$d = (int)floor($a);
+		$m = (int)floor(($a - $d) * 60);
+		$s = round((($a - $d) * 60 - $m) * 60);
+		return sprintf("%d°%02d'%02d\" %s", $d, $m, $s, $value >= 0 ? $positive : $negative);
+	}
+
 	/** An http(s) URL, or an exception. */
 	private static function url(string $url): string {
 		$url = trim($url);
