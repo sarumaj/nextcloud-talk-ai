@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.1 – 2026-10-15
 
 ### Added
 - The document sandbox without a container runtime: the runner's Bubblewrap backend
