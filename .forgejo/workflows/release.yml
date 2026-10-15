@@ -52,8 +52,13 @@ jobs:
         run: |
           if [ -z "$KEY" ]; then echo "::warning::No APP_SIGNING_KEY: the archive is not signed"; exit 0; fi
           umask 077 && printf '%s\n' "$KEY" > /tmp/key.pem
-          openssl dgst -sha512 -sign /tmp/key.pem "talk_ai-$VERSION.tar.gz" | openssl base64 -A > signature.txt
-          rm /tmp/key.pem
+          # A key that cannot be read (not yet the store's certificate key): unsigned, not a failed release.
+          if ! openssl dgst -sha512 -sign /tmp/key.pem "talk_ai-$VERSION.tar.gz" 2>/tmp/sign.err | openssl base64 -A > signature.txt \
+            || [ ! -s signature.txt ]; then
+            echo "::warning::APP_SIGNING_KEY is not a usable private key (PEM): the archive is not signed"; head -2 /tmp/sign.err
+            rm -f signature.txt
+          fi
+          rm -f /tmp/key.pem /tmp/sign.err
 
       - name: Attach the archive to the release
         run: |

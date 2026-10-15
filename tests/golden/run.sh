@@ -8,7 +8,9 @@ set -euo pipefail
 image="${1:-talk-ai-sandbox:ci}"
 here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
-work="$(mktemp -d)"
+# Below the checkout, not /tmp: a CI job may have a private /tmp the Docker daemon cannot see.
+work="$(mktemp -d "$repo/.golden.XXXXXX")"
+trap 'rm -rf "$work"' EXIT
 chmod 777 "$work"
 cp "$here"/*.py "$here"/*.csv "$work"/
 docker run --rm --network none --read-only --tmpfs /tmp:exec --user 10001:10001 \
