@@ -37,11 +37,12 @@ use Psr\Log\LoggerInterface;
  *
  * App settings: document_max_tools (60), document_max_seconds (0: no limit; each step is watched instead),
  * document_corrections (3), document_folder ("Talk-AI"), document_cpus,
- * document_memory_mb, document_disk_mb, preview_wait (120), trace_days (14).
+ * document_memory_mb, document_disk_mb, preview_wait (120). Nothing of the steps is kept: no protocol,
+ * no page images; the previews are removed when the job ends.
  */
 class DocumentJob {
 	public const SCENARIO = 'document';
-	/** The version of the system prompt and tools, in each protocol (with the skills' version). */
+	/** The version of the system prompt and tools, in the server log's line per job. */
 	public const VERSION = '2026-10-15.1';
 	/** Free space the person's files need at least for a job (bytes). */
 	private const MIN_FREE = 262144;
@@ -88,8 +89,10 @@ class DocumentJob {
 	private string $diff = '';
 	private ?object $status = null;
 	private string $phase = '';
-	private ?Folder $traceFolder = null;
-	private string $tracePath = '';
+	/** The previews' files while the job runs (a hidden folder of the person's), and their messages: removed at the end. */
+	private ?Folder $previewFolder = null;
+	/** @var list<object> */
+	private array $previewMessages = [];
 	private string $skillsVersion = '';
 	/** @var array<string, array> this job's tools, also for tool calls that come as plain text */
 	private array $toolSet = [];
@@ -203,7 +206,6 @@ class DocumentJob {
 			$this->progress->start('job-' . $id, (string)$this->job['token'], (int)$this->job['messageId'], '⏳ ' . $this->say('Building', $name) . ' …',
 				(int)$this->status->getId(), (string)$this->job['userId']);
 			$this->dispatcher->startTicker('job-' . $id);
-			$this->openTrace();
 			$inputs = $this->copyInputs();
 			$style = $this->copyStyle();
 			$this->skillsVersion = trim($this->sandbox->exec($this->box, 'cat /skills/VERSION 2>/dev/null', 10)['stdout']);
@@ -218,6 +220,7 @@ class DocumentJob {
 			$this->logger->warning('AI bot: document job failed: ' . $e->getMessage(), ['exception' => $e]);
 			$outcome = '⚠️ ' . $this->say('Not built', $name) . ': ' . mb_substr($e->getMessage(), 0, 300);
 		} finally {
+			$this->removePreviews();
 			if ($this->box !== '') {
 				$this->sandbox->delete($this->box);
 			}
@@ -229,16 +232,16 @@ class DocumentJob {
 
 	private function end(int $id, string $state, string $outcome): void {
 		$this->progress->done('job-' . $id);
-		$tracePath = $this->saveTrace($outcome);
 		$tokens = $this->tokens();
 		$this->jobs->beat($id, $this->tools, $this->rounds, $tokens);
-		$this->jobs->finish($id, $state, $outcome, $this->delivered, $tracePath);
+		$this->jobs->finish($id, $state, $outcome, $this->delivered, '');
 		$this->jobs->use((string)$this->job['userId'], 0, 0, $tokens);
 		// The administration's log: one line per job.
 		$this->logger->info('AI bot: document job ended', ['job' => $id, 'user' => $this->job['userId'], 'state' => $state,
 			'seconds' => (int)$this->elapsed(), 'tool_calls' => $this->tools, 'rounds' => $this->rounds, 'tokens_estimated' => $tokens,
 			'renders' => array_sum($this->renders), 'delivered' => count($this->delivered), 'version' => self::VERSION]);
-		$this->setStatus($outcome . ($tracePath !== '' ? "\n" . $this->say('Protocol', $tracePath) : ''), true);
+		// Only the result: the steps stay in the job's memory and go nowhere (no protocol, no page images).
+		$this->setStatus($outcome, true);
 		// The next waiting job gets the sandbox.
 		foreach ($this->jobs->queued(1) as $next) {
 			$this->dispatcher->dispatchDocument($next['id']);
@@ -634,7 +637,6 @@ class DocumentJob {
 			} catch (\Throwable) {
 			}
 		}
-		$this->saveRenderImages();
 		if ($this->images) {
 			$this->pending = [];
 			foreach (array_slice($shown, 0, 4) as $png) {
@@ -706,12 +708,16 @@ class DocumentJob {
 		$posted = 0;
 		foreach (array_slice($this->pagePaths, 0, $slides ? 3 : 1) as $png) {
 			$data = $this->renderImages[basename($png)] ?? '';
-			if ($data === '' || $this->traceFolder === null) {
+			$folder = $data === '' ? null : $this->previewFolder();
+			if ($folder === null) {
 				continue;
 			}
-			$image = $this->traceFolder->newFile('preview-' . $this->previews . '-' . basename($png), $data);
+			$image = $folder->newFile('preview-' . $this->previews . '-' . basename($png), $data);
 			$this->conversation->share($this->room, (string)$this->job['userId'], $image);
-			$this->conversation->postFile($this->room, $image, (int)$this->job['messageId']);
+			$message = $this->conversation->postFile($this->room, $image, (int)$this->job['messageId']);
+			if ($message !== null) {
+				$this->previewMessages[] = $message;
+			}
 			$posted++;
 		}
 		if ($posted === 0) {
@@ -907,66 +913,48 @@ class DocumentJob {
 		}
 	}
 
-	/** The job's folder for its protocol, made when it starts (previews and page images go there too). */
-	private function openTrace(): void {
+	/** A hidden folder of the person's for this job's previews (Talk shares only files of the person's). */
+	private function previewFolder(): ?Folder {
+		if ($this->previewFolder !== null) {
+			return $this->previewFolder;
+		}
 		try {
-			$this->tracePath = $this->folder() . '/Traces/' . date('Y-m-d His') . ' ' . Reply::fileName((string)($this->job['name'] ?? 'document'));
 			$dir = $this->rootFolder->getUserFolder((string)$this->job['userId']);
-			foreach (explode('/', $this->tracePath) as $part) {
+			foreach (explode('/', trim($this->appConfig->getValueString(Application::APP_ID, 'document_folder', 'Talk-AI'), '/') . '/.previews/' . (int)$this->job['id']) as $part) {
 				$dir = $dir->nodeExists($part) ? $dir->get($part) : $dir->newFolder($part);
 			}
-			$this->traceFolder = $dir instanceof Folder ? $dir : null;
-			if ($this->traceFolder !== null) {
-				$this->jobs->setTracePath((int)$this->job['id'], $this->tracePath);
-			}
+			$this->previewFolder = $dir instanceof Folder ? $dir : null;
 		} catch (\Throwable $e) {
-			$this->logger->warning('AI bot: no folder for the protocol: ' . $e->getMessage());
-			$this->traceFolder = null;
+			$this->logger->warning('AI bot: no folder for the previews: ' . $e->getMessage());
 		}
+		return $this->previewFolder;
 	}
 
-	/** The latest render's pages beside the protocol (replacing the previous render's). */
-	private function saveRenderImages(): void {
-		if ($this->traceFolder === null) {
+	/**
+	 * Clears up what the job saved on the way: the preview messages and their files,
+	 * deleted for good (not into the trash bin), so only the result stays.
+	 */
+	private function removePreviews(): void {
+		foreach ($this->previewMessages as $message) {
+			$this->conversation->removeMessage($this->room, $message);
+		}
+		$this->previewMessages = [];
+		if ($this->previewFolder === null) {
 			return;
 		}
+		$trash = interface_exists('OCA\Files_Trashbin\Trash\ITrashManager') ? Server::get('OCA\Files_Trashbin\Trash\ITrashManager') : null;
 		try {
-			foreach ($this->traceFolder->getDirectoryListing() as $node) {
-				if (str_starts_with($node->getName(), 'page-') || $node->getName() === 'sheet.png') {
-					$node->delete();
-				}
-			}
-			foreach ($this->renderImages as $name => $png) {
-				$this->traceFolder->newFile($name, $png);
+			$trash?->pauseTrash();
+			$parent = $this->previewFolder->getParent();
+			$this->previewFolder->delete();
+			if ($parent->getDirectoryListing() === []) {
+				$parent->delete();
 			}
 		} catch (\Throwable $e) {
-			$this->logger->info('AI bot: render images not saved: ' . $e->getMessage());
-		}
-	}
-
-	/** The trace as Markdown in the job's folder; its path for the person, or ''. */
-	private function saveTrace(string $outcome): string {
-		if ($this->traceFolder === null) {
-			return '';
-		}
-		$skills = $this->skillsVersion;
-		$md = '# ' . ($this->job['name'] ?? 'Document') . "\n\n" . '- ' . date('Y-m-d H:i') . ', ' . (int)$this->elapsed() . ' s, '
-			. $this->tools . ' tool calls in ' . $this->rounds . ' rounds, ' . array_sum($this->renders) . ' renders, about '
-			. number_format($this->tokens(), 0, '.', ' ') . " tokens (estimated)\n- Outcome: " . $outcome . "\n- Versions: prompt and tools "
-			. self::VERSION . ', skills ' . ($skills !== '' ? $skills : '?') . "\n\n## Task\n\n" . ($this->job['task'] ?? '') . "\n";
-		if ($this->diff !== '') {
-			$md .= "\n## Changes against the original\n\n```\n" . $this->diff . "\n```\n";
-		}
-		$md .= "\n## Steps\n";
-		foreach ($this->trace as $i => $t) {
-			$md .= "\n### " . ($i + 1) . '. ' . $t['tool'] . ' (' . $t['time'] . ")\n\n```json\n" . $t['input'] . "\n```\n\n```\n" . str_replace('```', "'''", $t['output']) . "\n```\n";
-		}
-		try {
-			$this->traceFolder->newFile('trace.md', $md);
-			return 'Files/' . $this->tracePath;
-		} catch (\Throwable $e) {
-			$this->logger->warning('AI bot: the trace was not saved: ' . $e->getMessage());
-			return '';
+			$this->logger->warning('AI bot: the previews were not removed: ' . $e->getMessage());
+		} finally {
+			$trash?->resumeTrash();
+			$this->previewFolder = null;
 		}
 	}
 
@@ -1037,7 +1025,7 @@ class DocumentJob {
 		$en = ['Building' => 'Building “%s”', 'Reading the guide' => 'Reading the guide for “%s”', 'Checking the layout' => 'Checking the layout of “%s”',
 			'Delivering' => 'Delivering “%s”', 'Not built' => '“%s” was not built', 'Time is up' => 'The time for “%s” is up',
 			'Too many steps' => '“%s” needed too many steps', 'Stopped' => '“%s” was stopped', 'Not finished' => '“%s” was not finished',
-			'Open' => 'Open: %s', 'Protocol' => 'Protocol: %s', 'Waiting' => '“%s” waits until the workshop is free …',
+			'Open' => 'Open: %s', 'Waiting' => '“%s” waits until the workshop is free …',
 			'Cancelled' => '“%s” cancelled', 'Done' => '“%s” is ready', 'Open in Office' => 'open: %s',
 			'Preview' => 'Preview of “%s” above.', 'Preview hint' => 'Answer “ok” or with a correction; without an answer I deliver in %s min.',
 			'Correcting' => 'Correcting “%s”', 'Stop hint' => '(“stop” cancels)',

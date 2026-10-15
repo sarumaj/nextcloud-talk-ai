@@ -174,7 +174,7 @@ class BotInvokeListener implements IEventListener {
 		if (in_array($emoji, self::CANCEL_REACTIONS, true)) {
 			$this->jobs->cancel($job['id']);
 		} elseif (in_array($emoji, ['👍', '👎'], true) && $fileId > 0) {
-			// Feedback: the job (task, model, protocol) is the example, this the rating.
+			// Feedback: the job (task, model, outcome) is the example, this the rating.
 			$this->jobs->setOption($job['id'], 'rating', ['value' => $emoji === '👍' ? 1 : -1, 'by' => $userId, 'file' => $fileId, 'time' => time()]);
 		}
 	}

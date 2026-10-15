@@ -150,6 +150,9 @@ class DocumentJobTest extends TestCase {
 	/** @var list<?string> answers to a preview, in turn */
 	private array $previewAnswers = [];
 	private array $saved = [];
+	/** Preview messages the job removed, and whether its folder for them was deleted. */
+	private int $removedMessages = 0;
+	private bool $previewsDeleted = false;
 
 	private function job(FakeHub $hub, bool $files = false): TestDocumentJob {
 		$this->sandbox = new FakeSandbox();
@@ -171,6 +174,10 @@ class DocumentJobTest extends TestCase {
 			return true;
 		});
 		$conversation->method('previewsOn')->willReturn($files);
+		$conversation->method('postFile')->willReturn(new \stdClass());
+		$conversation->method('removeMessage')->willReturnCallback(function () {
+			$this->removedMessages++;
+		});
 		$conversation->method('deliver')->willReturnCallback(function ($room, $user, $folder, $name, $data) {
 			$this->delivered[] = [$folder, $name, $data];
 			$file = $this->createMock(File::class);
@@ -213,6 +220,9 @@ class DocumentJobTest extends TestCase {
 			$folder->method('getFreeSpace')->willReturnCallback(fn () => $this->freeSpace);
 			$folder->method('newFolder')->willReturn($folder);
 			$folder->method('getDirectoryListing')->willReturn([]);
+			$folder->method('delete')->willReturnCallback(function () {
+				$this->previewsDeleted = true;
+			});
 			$folder->method('newFile')->willReturnCallback(function ($name, $data) {
 				$this->saved[$name] = $data;
 				return $this->createMock(File::class);
@@ -484,8 +494,12 @@ class DocumentJobTest extends TestCase {
 		$this->config['preview_wait'] = '6';
 		$this->job($hub, files: true)->run(7);
 		$this->assertArrayHasKey('preview-1-page-1.png', $this->saved);
-		$this->assertArrayHasKey('trace.md', $this->saved);
-		$this->assertStringContainsString('Versions: prompt and tools', $this->saved['trace.md']);
 		$this->assertCount(1, $this->delivered);
+		// Only the result stays: no protocol, no page images, and every preview message is cleared up with its file.
+		$previews = array_filter(array_keys($this->saved), fn ($name) => str_starts_with($name, 'preview-'));
+		$this->assertSame(array_keys($this->saved), array_values($previews));
+		$this->assertSame(count($previews), $this->removedMessages);
+		$this->assertTrue($this->previewsDeleted);
+		$this->assertStringNotContainsString('Protocol', end($this->posted));
 	}
 }

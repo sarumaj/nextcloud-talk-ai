@@ -27,7 +27,7 @@ lists what it can do here.
 - **Edited your question?** It answers the new version (within an hour); delete a
   question and its answer goes too.
 - **Your preferences**: "remember that I cite in APA"; "forget my preferences".
-- **Your data**: "delete my data" (protocols, or everything, or the delivered documents).
+- **Your data**: "delete my data" (everything, or the delivered documents).
 
 ## Deutsch
 
@@ -55,7 +55,7 @@ ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
 - **Frage bearbeitet?** Er beantwortet die neue Fassung (innerhalb einer Stunde); löschst
   du eine Frage, verschwindet auch seine Antwort.
 - **Vorlieben**: „merk dir, dass ich in APA zitiere“; „vergiss meine Vorlieben“.
-- **Deine Daten**: „lösche meine Daten“ (Protokolle, alles, oder die gelieferten Dokumente).
+- **Deine Daten**: „lösche meine Daten“ (alles, oder die gelieferten Dokumente).
 
 ## Polski
 
@@ -80,4 +80,4 @@ co tu potrafi.
 - **Poprawione pytanie?** Odpowiada na nową wersję (w ciągu godziny); usunięcie pytania
   usuwa też odpowiedź.
 - **Preferencje**: „zapamiętaj, że cytuję w APA”; „zapomnij moje preferencje”.
-- **Twoje dane**: „usuń moje dane” (protokoły, wszystko albo dostarczone dokumenty).
+- **Twoje dane**: „usuń moje dane” (wszystko albo dostarczone dokumenty).

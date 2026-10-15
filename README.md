@@ -105,7 +105,7 @@ processes and time, writable only `/work` (in memory); it is removed afterwards.
 
 Settings: `document_groups` (a JSON list of groups that may use it; empty: everyone),
 `document_max_tools` (60), `document_max_seconds` (0: no limit), `document_corrections` (3),
-`document_folder` (`Talk-AI`), `trace_days` (14). The AI connection must call tools; one that
+`document_folder` (`Talk-AI`). The AI connection must call tools; one that
 does not is refused. Without the sandbox, the bot writes documents itself as before.
 
 Nothing in a job is cut off by the clock: a command in the sandbox runs as long as it
@@ -181,8 +181,9 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   container (`lib/Service/Sandbox.php` talks to `sandbox/runner.py`). AI-Hub runs up to eight
   tool calls per question, so the job asks in rounds, with its history and a summary of the
   steps, until `finish` or a limit. Rendered pages (a contact sheet and single pages) go to the
-  model as images with the next round. A status message follows the phases; the steps are
-  saved as a protocol in the person's files (`Traces/`, removed after `trace_days` by
+  model as images with the next round. A status message follows the phases; only the result
+  stays: the steps are kept nowhere (no protocol, no page images), and the previews' messages
+  and files are removed when the job ends (protocols of earlier versions are removed by
   `lib/BackgroundJob/CleanTraces.php`). The skills (`skills/<format>/SKILL.md` and scripts)
   tell the model how to build each format.
 - **Name:** `lib/Service/Bot.php` installs the bot and renames it (Talk updates a bot installed

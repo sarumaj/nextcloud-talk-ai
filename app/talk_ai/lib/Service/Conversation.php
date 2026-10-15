@@ -257,11 +257,11 @@ class Conversation {
 		return $beside->getParent()->getFullPath($this->freeName($beside->getParent(), $name));
 	}
 
-	/** Posts a saved file as the bot's message: Talk's file message by file id, as Talk 25's attachments are. */
-	public function postFile(object $room, File $file, int $replyTo): void {
+	/** Posts a saved file as the bot's message: Talk's file message by file id, as Talk 25's attachments are; the message. */
+	public function postFile(object $room, File $file, int $replyTo): ?object {
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parent = $replyTo > 0 ? $this->comment($room, $replyTo) : null;
-		$chat->addSystemMessage(
+		return $chat->addSystemMessage(
 			$room, null, 'bots', Application::botActorId(),
 			json_encode(['message' => 'file_shared', 'parameters' => ['fileId' => (string)$file->getId(), 'metaData' => ['mimeType' => $file->getMimetype()]]], JSON_THROW_ON_ERROR),
 			new \DateTime(), true, null, $parent,

@@ -98,8 +98,9 @@ Every setting has an explanation on the page; the same keys work with
   per million tokens for the statistics.
 - **Document sandbox**: tool calls, time and correction rounds per job, the container's
   limits, the folder for documents, the wait for an answer to a preview.
-- **Retention**: protocols (default 14 days, at least 7), records and memories (90 days),
-  delivered documents (never, by default).
+- **Retention**: records and memories (90 days), delivered documents (never, by default).
+  Document jobs keep nothing of their steps: no protocol, no page images; previews are
+  removed (for good, not into the trash bin) when the job ends.
 - **Emergency stop**: conversations and people switched off; also
   `occ talk_ai:stop all|room <token>|user <id>` and `occ talk_ai:start`.
 - **House styles**: templates, logo, colours and fonts per group, uploaded on the page
@@ -129,13 +130,13 @@ the model and before letting everyone use it.
 - Changes outside the chat (calendar entries, shares, deleting) need the person's yes,
   for exactly one action, and can be undone for 24 hours.
 - Nothing of questions or answers is logged unless debugging is switched on.
-- People can delete their data themselves ("delete my data": protocols; all records,
-  preferences and memories; or the delivered documents).
-- API keys stay in AI-Hub; neither the sandbox nor the protocols see them.
+- People can delete their data themselves ("delete my data": all records, preferences
+  and memories; or the delivered documents).
+- API keys stay in AI-Hub; the sandbox never sees them.
 
 ## Logs and troubleshooting
 
 Log lines start with "AI bot:" and carry the request id (`request`), which the
-administration page shows for each answer. `occ talk_ai:jobs` lists the document jobs;
-a job's protocol (each tool call with input and output, the last render's pages) is in
-the person's files under `Talk-AI/<date>/Traces/`.
+administration page shows for each answer. `occ talk_ai:jobs` lists the document jobs
+with their outcome, tool calls and rounds; the server log has a line per job. The steps
+themselves are not kept.

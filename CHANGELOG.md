@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.6 - 2026-10-15
+
+### Changed
+- Only the result of a document job stays: its steps are no longer saved as a protocol in
+  the person's files (`Talk-AI/<date>/Traces/`), no page images are kept, and the chat no
+  longer names a protocol. The previews before a delivery are the only files saved on the
+  way; their messages and files are removed when the job ends (for good, not into the
+  trash bin). The protocols earlier versions saved are removed by the next clean-up run,
+  whatever their age; the setting `trace_days` is gone.
+- "delete my data" offers everything or the delivered documents (no protocols to delete).
+
 ## 0.5.5 - 2026-10-15
 
 ### Changed

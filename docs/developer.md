@@ -41,9 +41,10 @@ of the steps; page images go with the next round.
 | `deliver_file` | `path`, `target_folder`, `display_name` | the file in Files and the chat (after a preview) |
 | `finish` | `summary`, `open_issues` | ends the job (only after a delivery) |
 
-Limits: tool calls (60), time (15 min), correction rounds (3), the same call at most
-three times. Every job has a protocol with the versions of the prompt and tools
-(`DocumentJob::VERSION`) and the skills (`skills/VERSION`).
+Limits: tool calls (60), correction rounds (3), the same call at most three times; no
+time limit by default, each step is watched for progress. The steps are not saved: the
+server log's line per job names the versions of the prompt and tools
+(`DocumentJob::VERSION`), and previews are removed when the job ends.
 
 ## Skills
 

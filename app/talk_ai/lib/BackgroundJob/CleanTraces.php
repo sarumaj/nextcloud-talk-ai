@@ -18,7 +18,8 @@ use Psr\Log\LoggerInterface;
 
 /**
  * The retention of what the app keeps, every six hours:
- * - the protocols of document jobs after trace_days (default 14, at least 7);
+ * - the protocols and page images earlier versions saved for document jobs, all of
+ *   them (since 0.5.6 a job keeps nothing of its steps), deleted for good;
  * - job records, answer records, daily use and conversation memories after
  *   retention_days (default 90);
  * - undo records after a week (undo works for a day);
@@ -43,27 +44,22 @@ class CleanTraces extends TimedJob {
 
 	protected function run($argument): void {
 		$now = $this->time->getTime();
-		$traceDays = max(7, $this->days('trace_days', 14));
-		$keepDays = max($traceDays, $this->days('retention_days', 90));
+		$keepDays = max(7, $this->days('retention_days', 90));
 		$fileDays = $this->days('retention_files_days', 0);
 
-		// Protocols (and their page images and previews).
-		foreach ($this->jobs->older($now - $traceDays * 86400, 500) as $job) {
-			if (($job['trace_path'] ?? '') !== '' && !($job['options']['trace_removed'] ?? false)) {
-				$this->remove((string)$job['user_id'], (string)$job['trace_path']);
-				$this->jobs->setOption($job['id'], 'trace_removed', true);
+		// Protocols of earlier versions (with their page images and previews), whatever their age.
+		foreach ($this->jobs->older($now, 500) as $job) {
+			if (($job['trace_path'] ?? '') !== '') {
+				$this->remove((string)$job['user_id'], (string)$job['trace_path'], 0, true);
+				$this->jobs->setTracePath($job['id'], '');
 			}
 		}
-		// Older protocols listed by earlier versions of the app.
 		$traces = json_decode($this->appConfig->getValueString(Application::APP_ID, 'traces', '[]'), true) ?: [];
-		if ($traces !== []) {
-			foreach ($traces as $trace) {
-				if ((int)($trace['time'] ?? 0) < $now - $traceDays * 86400) {
-					$this->remove((string)$trace['user'], (string)$trace['path']);
-				}
-			}
-			$this->appConfig->deleteKey(Application::APP_ID, 'traces');
+		foreach ($traces as $trace) {
+			$this->remove((string)$trace['user'], (string)$trace['path'], 0, true);
 		}
+		$this->appConfig->deleteKey(Application::APP_ID, 'traces');
+		$this->appConfig->deleteKey(Application::APP_ID, 'trace_days');
 		if ($fileDays > 0) {
 			foreach ($this->jobs->older($now - $fileDays * 86400, 500) as $job) {
 				if (!($job['options']['files_removed'] ?? false) && $job['delivered'] !== []) {
@@ -92,13 +88,22 @@ class CleanTraces extends TimedJob {
 		}
 	}
 
-	private function remove(string $userId, string $path, int $id = 0): void {
+	/** Deletes a file or folder of a person's; $forGood: not into the trash bin, and its folder "Traces" too once empty. */
+	private function remove(string $userId, string $path, int $id = 0, bool $forGood = false): void {
+		$trash = $forGood && interface_exists('OCA\Files_Trashbin\Trash\ITrashManager') ? \OCP\Server::get('OCA\Files_Trashbin\Trash\ITrashManager') : null;
 		try {
+			$trash?->pauseTrash();
 			$folder = $this->rootFolder->getUserFolder($userId);
 			$node = $id > 0 ? $folder->getFirstNodeById($id) : ($folder->nodeExists($path) ? $folder->get($path) : null);
+			$parent = $node?->getParent();
 			$node?->delete();
+			if ($forGood && $parent !== null && $parent->getName() === 'Traces' && $parent->getDirectoryListing() === []) {
+				$parent->delete();
+			}
 		} catch (\Throwable $e) {
 			$this->logger->info('AI bot: not removed under retention: ' . $e->getMessage());
+		} finally {
+			$trash?->resumeTrash();
 		}
 	}
 

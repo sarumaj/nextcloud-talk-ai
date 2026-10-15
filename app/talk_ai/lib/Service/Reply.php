@@ -325,7 +325,7 @@ class Reply {
 			$result = match ((string)$action['tool']) {
 				'calendar' => $this->addToCalendar($uid, $args),
 				'share_file' => $this->shareFile($uid, $args),
-				'delete_my_data' => $this->deleteMyData($uid, (string)($args['what'] ?? 'protocols')),
+				'delete_my_data' => $this->deleteMyData($uid, (string)($args['what'] ?? 'all')),
 				default => throw new \RuntimeException('unknown action'),
 			};
 			$this->conversation->postText($this->room, '✅ ' . $this->texts->t($uid, 'Done.') . (is_string($result) && $result !== '' ? "\n" . $result : '')
@@ -1039,7 +1039,7 @@ class Reply {
 		}
 		return array_map(fn ($j) => ['job' => $j['id'], 'name' => $j['name'] . '.' . $j['format'], 'status' => $j['status'],
 			'created' => date('Y-m-d H:i', $j['created_at']), 'tool_calls' => $j['tool_calls'], 'outcome' => mb_substr((string)$j['outcome'], 0, 300),
-			'files' => $j['delivered'], 'protocol' => $j['trace_path']], $this->jobs->ofRoom($this->room->getToken(), 10));
+			'files' => $j['delivered']], $this->jobs->ofRoom($this->room->getToken(), 10));
 	}
 
 	/** Shares one of the person's files with a group, a person or this conversation, with their rights. */
@@ -1066,7 +1066,7 @@ class Reply {
 		return $file->getName() . ' → ' . $with;
 	}
 
-	/** Removes the person's data kept by the app: protocols, job records and use, the conversation memories they made. */
+	/** Removes the person's data kept by the app: job records and use, the conversation memories they made (and protocols of earlier versions). */
 	private function deleteMyData(string $uid, string $what): string {
 		$removed = 0;
 		$userFolder = Server::get(\OCP\Files\IRootFolder::class)->getUserFolder($uid);
@@ -1245,7 +1245,7 @@ class Reply {
 				'run' => fn (string $uid, array $args) => $this->redoDocument($uid, $args),
 			],
 			'document_status' => [
-				'description' => 'The document jobs of this conversation: status (queued, running, done, failed, cancelled), files, protocol. '
+				'description' => 'The document jobs of this conversation: status (queued, running, done, failed, cancelled), files, outcome. '
 					. 'cancel: a job id of the person to stop.',
 				'input' => ['type' => 'object', 'properties' => ['cancel' => ['type' => 'integer']]],
 				'run' => fn (string $uid, array $args) => $this->documentStatus($uid, $args),
@@ -1290,15 +1290,14 @@ class Reply {
 					. (self::flag($args['edit'] ?? false) ? ' (may edit)' : ' (read only)')),
 			],
 			'delete_my_data' => [
-				'description' => 'Deletes what the app keeps about the person: what "protocols" (the document jobs\' protocols), "all" '
-					. '(also the job and answer records, use counts, saved preferences and this conversation\'s memory; their documents stay) '
+				'description' => 'Deletes what the app keeps about the person: what "all" (the job and answer records, use counts, '
+					. 'saved preferences and this conversation\'s memory; their documents stay) '
 					. 'or "documents" (the documents the assistant delivered to them). Needs their confirmation.',
-				'input' => ['type' => 'object', 'properties' => ['what' => ['type' => 'string', 'enum' => ['protocols', 'all', 'documents']]], 'required' => ['what']],
+				'input' => ['type' => 'object', 'properties' => ['what' => ['type' => 'string', 'enum' => ['all', 'documents']]], 'required' => ['what']],
 				'run' => fn (string $uid, array $args) => $this->confirmations->ask($this->room->getToken(), $uid, 'delete_my_data', $args,
 					'delete ' . match ((string)$args['what']) {
-						'all' => 'all your data kept by the assistant',
 						'documents' => 'all documents the assistant delivered to you (they go to the trash)',
-						default => 'the protocols of your document jobs',
+						default => 'all your data kept by the assistant',
 					}),
 			],
 			'send_flashcards' => [
