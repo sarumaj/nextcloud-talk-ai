@@ -206,9 +206,9 @@ class ListenerTest extends TestCase {
 
 	/** A file shared with a caption, as Talk tells bots of it: an Activity with the parsed caption. */
 	private static function shared(string $parsed): array {
-		// Talk names the Activity after its parsed text: "message" with a caption, "{file}" without.
+		// As Talk names the Activity (probed on cloud): "message" with a caption, "file_shared" without.
 		return ['type' => 'Activity', 'actor' => ['type' => 'Person', 'id' => 'users/ewa', 'name' => 'Ewa'],
-			'object' => ['type' => 'Note', 'id' => '200', 'name' => $parsed === '{file}' ? '{file}' : 'message',
+			'object' => ['type' => 'Note', 'id' => '200', 'name' => $parsed === '{file}' ? 'file_shared' : 'message',
 				'content' => json_encode(['message' => $parsed, 'parameters' => []]), 'mediaType' => 'text/markdown'],
 			'target' => ['type' => 'Collection', 'id' => 'room1', 'name' => 'Family']];
 	}

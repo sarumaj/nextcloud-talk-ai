@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.9 - 2026-10-15
+
+### Fixed
+- Voice messages are answered for real: without a caption, Talk names the shared file's
+  Activity "file_shared" (0.5.8 waited for "{file}", so it still ignored them).
+- The transcript the bot shows of a voice message is just what was said: the marking that
+  tells the model it is data from outside no longer shows in the chat.
+
 ## 0.5.8 - 2026-10-15
 
 ### Fixed

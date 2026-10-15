@@ -211,7 +211,9 @@ class Reply {
 				$this->say('🎙️ ' . $this->text($userId, 'No transcription'));
 				return;
 			}
+			// The chat shows what was said; the model gets it marked as data from outside.
 			$this->say('🎙️ > ' . str_replace("\n", "\n> ", $spoken));
+			$spoken = self::untrusted('transcript of a voice message', $spoken);
 			$question = trim(preg_replace('/\{file\}|\[file "[^"]*", id \d+\]/', '', $question) . "\n" . $spoken);
 		}
 		$this->canBuild = $caps['tools'] && $this->features['sandbox'] && $this->features['documents'] && $this->sandbox->health() !== null;
@@ -793,7 +795,7 @@ class Reply {
 			$task = new \OCP\TaskProcessing\Task($type, ['input' => $fileId], Application::APP_ID, $uid);
 			$done = $manager->runTask($task);
 			$text = trim((string)($done->getOutput()['output'] ?? ''));
-			return $text === '' ? null : self::untrusted('transcript of a voice message', $text);
+			return $text === '' ? null : $text;
 		} catch (\Throwable $e) {
 			$this->logger->info('AI bot: no transcription: ' . $e->getMessage(), ['request' => $this->requestId]);
 			return null;

@@ -18,7 +18,7 @@
 - Everything runs **with the asking person's rights**: the bot sees only what they may see
 
 Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@Claude) or replied to. Office formats need Nextcloud Office (Collabora); reading PDFs needs pdftotext, OCR needs Tesseract on the server.]]></description>
-    <version>0.5.8</version>
+    <version>0.5.9</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAi</namespace>

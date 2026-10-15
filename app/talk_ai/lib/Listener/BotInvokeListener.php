@@ -167,9 +167,9 @@ class BotInvokeListener implements IEventListener {
 	 */
 	private function changed(Event $event, array $activity): void {
 		$kind = (string)($activity['object']['name'] ?? '');
-		// A shared file comes as an Activity named after Talk's parsed text: "message" with a
-		// caption, "{file}" without (a voice message).
-		if ($kind === 'message' || $kind === '{file}') {
+		// A shared file comes as an Activity named after Talk's raw message: "message" with a
+		// caption, "file_shared" without (a voice message; checked on Talk 23, 2026-10-15).
+		if ($kind === 'message' || $kind === 'file_shared') {
 			$this->captioned($event, $activity);
 			return;
 		}
