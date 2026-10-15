@@ -10,7 +10,12 @@ here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
 # Below the checkout, not /tmp: a CI job may have a private /tmp the Docker daemon cannot see.
 work="$(mktemp -d "$repo/.golden.XXXXXX")"
-trap 'rm -rf "$work"' EXIT
+# The container's files belong to its user (another ID under rootless Docker): removed by it.
+cleanup() {
+  docker run --rm --network none -v "$work:/work" --user 10001:10001 --entrypoint sh "$image" -c 'rm -rf /work/out' >/dev/null 2>&1 || true
+  rm -rf "$work"
+}
+trap cleanup EXIT
 chmod 777 "$work"
 cp "$here"/*.py "$here"/*.csv "$work"/
 docker run --rm --network none --read-only --tmpfs /tmp:exec --user 10001:10001 \
