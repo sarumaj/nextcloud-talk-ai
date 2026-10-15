@@ -91,7 +91,7 @@ jobs:
   # The document sandbox's images in the registry beside the code (N-08):
   # <registry>/<owner>/talk-ai-sandbox:X.Y.Z (for the runner) and
   # <registry>/<owner>/talk-ai-sandbox-exapp:X.Y.Z (the External App, which AppAPI
-  # pulls), each also :latest. Pushed with REGISTRY_TOKEN when set, else with the job's
+  # pulls), each also :latest. Pushed with PACKAGES_TOKEN when set, else with the job's
   # own token, which may publish the owner's packages.
   sandbox-image:
     runs-on: ubuntu-latest
@@ -112,12 +112,13 @@ jobs:
 
       - name: Push the images
         env:
-          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
           JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           registry="${{ github.server_url }}"; registry="${registry#https://}"
           owner="${{ github.repository_owner }}"
-          token="${REGISTRY_TOKEN:-$JOB_TOKEN}"
+          token="${PACKAGES_TOKEN:-$JOB_TOKEN}"
+          [ -n "$PACKAGES_TOKEN" ] || echo "::warning::No PACKAGES_TOKEN: trying the job's own token, which may not publish packages"
           echo "$token" | docker login "$registry" -u "$owner" --password-stdin
           for name in talk-ai-sandbox talk-ai-sandbox-exapp; do
             for tag in "${TAG#v}" latest; do

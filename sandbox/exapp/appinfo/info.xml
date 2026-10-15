@@ -7,7 +7,7 @@
     <description><![CDATA[The workshop in which [AI in Talk](https://apps.nextcloud.com/apps/talk_ai) builds office documents with code: Python and Node with the document libraries, LibreOffice and Poppler, and the skills for each format. Each job runs as a user of its own without network (seccomp), with limits for memory, processes, time and space, one at a time.
 
 Install it with AppAPI (a deploy daemon, e.g. HaRP); AI in Talk finds it by itself. Where the server can run the sandbox's own runner with Docker or Podman, that is the stronger isolation (a container per job).]]></description>
-    <version>0.5.2</version>
+    <version>0.5.3</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAiSandbox</namespace>
@@ -23,7 +23,7 @@ Install it with AppAPI (a deploy daemon, e.g. HaRP); AI in Talk finds it by itse
         <docker-install>
             <registry>git.ciepiela.org</registry>
             <image>dawid/talk-ai-sandbox-exapp</image>
-            <image-tag>0.5.2</image-tag>
+            <image-tag>0.5.3</image-tag>
         </docker-install>
         <environment-variables>
             <variable>

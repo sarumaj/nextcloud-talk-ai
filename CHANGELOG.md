@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 – 2026-10-15
+
+### Fixed
+- The release publishes the sandbox images with the repository secret `PACKAGES_TOKEN`.
+
 ## 0.5.2 – 2026-10-15
 
 ### Added
