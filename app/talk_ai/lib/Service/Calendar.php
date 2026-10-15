@@ -64,6 +64,9 @@ class Calendar {
 	 * New events (each one with a reminder, a repeat …, see Ics::event), into the
 	 * named or the first writable calendar.
 	 */
+	/** @var list<array{calendar: int, object: string, title: string}> what the last additions wrote (to undo them) */
+	public array $written = [];
+
 	public function addEvents(string $uid, array $events, string $calendar = ''): array {
 		$tz = $this->timezone($uid);
 		$added = [];
@@ -95,6 +98,24 @@ class Calendar {
 		return Ics::calendar($events, $tasks, $this->timezone($uid), $name, fn () => $this->uid());
 	}
 
+	/**
+	 * Removes an entry the bot wrote (undo), if it is still in a calendar the person
+	 * may write to.
+	 */
+	public function remove(string $uid, int $calendarKey, string $objectUri): bool {
+		foreach ($this->all($uid) as $calendar) {
+			if ((int)$calendar->getKey() === $calendarKey && $this->writable($calendar)) {
+				$backend = \OCP\Server::get(\OCA\DAV\CalDAV\CalDavBackend::class);
+				if ($backend->getCalendarObject($calendarKey, $objectUri) === null) {
+					return false;
+				}
+				$backend->deleteCalendarObject($calendarKey, $objectUri);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private function uid(): string {
 		return $this->random->generate(24, ISecureRandom::CHAR_LOWER . ISecureRandom::CHAR_DIGITS) . '@talk-ai';
 	}
@@ -111,6 +132,8 @@ class Calendar {
 		foreach ($candidates as $calendar) {
 			try {
 				$calendar->createFromString($objectUid . '.ics', $ics);
+				$this->written[] = ['calendar' => (int)$calendar->getKey(), 'object' => $objectUid . '.ics',
+					'title' => preg_match('/^SUMMARY:(.*)$/m', $ics, $m) === 1 ? trim($m[1]) : $objectUid];
 				return (string)($calendar->getDisplayName() ?? $calendar->getUri());
 			} catch (\Throwable $e) {
 				// A calendar without tasks refuses a VTODO: the next one.

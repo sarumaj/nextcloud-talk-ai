@@ -27,7 +27,8 @@ use Psr\Log\LoggerInterface;
  */
 class Conversation {
 	/** How many recent messages the bot reads. */
-	public const HISTORY = 40;
+	/** Messages read per answer when not set otherwise (history_window). */
+	public const HISTORY = 30;
 
 	public function __construct(
 		private IRootFolder $rootFolder,
@@ -87,6 +88,7 @@ class Conversation {
 				'bot' => $message->getActorType() === 'bots',
 				'text' => self::render($message->getMessage(), $parameters),
 				'files' => $files,
+				'replyTo' => (int)$comment->getParentId(),
 			];
 		}
 		return array_reverse($messages);
@@ -107,10 +109,76 @@ class Conversation {
 	}
 
 	/** Posts the bot's text (Markdown) in reply to a message. */
-	public function postText(object $room, string $text, int $replyTo): void {
+	/** @return object the posted comment (IComment), to edit it later */
+	public function postText(object $room, string $text, int $replyTo): object {
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parent = $replyTo > 0 ? $this->comment($room, $replyTo) : null;
-		$chat->sendMessage($room, null, 'bots', Application::botActorId(), $text, new \DateTime(), $parent, '', false, false);
+		return $chat->sendMessage($room, null, 'bots', Application::botActorId(), $text, new \DateTime(), $parent, '', false, false);
+	}
+
+	/** Changes a message the bot posted (a status that moves on); false when Talk refuses. */
+	public function editText(object $room, object $comment, string $text): bool {
+		try {
+			$attendee = new \OCA\Talk\Model\Attendee();
+			$attendee->setActorType('bots');
+			$attendee->setActorId(Application::botActorId());
+			$attendee->setRoomId($room->getId());
+			$participant = new \OCA\Talk\Participant($room, $attendee, null);
+			Server::get('OCA\Talk\Chat\ChatManager')->editMessage($room, $comment, $participant, new \DateTime(), $text);
+			return true;
+		} catch (\Throwable $e) {
+			$this->logger->info('AI bot: a status message could not be edited: ' . $e->getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * A finished file in the person's folder (a path in their files, created when
+	 * missing; they must be allowed to write there), shared into the conversation
+	 * without Talk's own "shared a file" message, so the bot can post it.
+	 */
+	public function deliver(object $room, string $userId, string $folderPath, string $name, string $data): File {
+		$folder = $this->rootFolder->getUserFolder($userId);
+		foreach (array_filter(explode('/', trim($folderPath, '/')), fn ($p) => $p !== '' && $p !== '.' && $p !== '..') as $part) {
+			$next = $folder->nodeExists($part) ? $folder->get($part) : $folder->newFolder($part);
+			if (!$next instanceof Folder) {
+				throw new \RuntimeException('"' . $part . '" is a file, not a folder');
+			}
+			$folder = $next;
+		}
+		if (!$folder->isCreatable()) {
+			throw new \RuntimeException('you may not write to the folder ' . $folderPath);
+		}
+		$file = $folder->newFile($this->freeName($folder, $name), $data);
+		$this->share($room, $userId, $file);
+		return $file;
+	}
+
+	/** Shares a file of the person into the conversation (read only), without Talk's "shared a file" message. */
+	public function share(object $room, string $userId, File $file): void {
+		QuietFolderShareListener::$quietFor = $room->getToken();
+		try {
+			$share = $this->shareManager->newShare();
+			$share->setNode($file)->setShareType(\OCP\Share\IShare::TYPE_ROOM)->setSharedWith($room->getToken())
+				->setSharedBy($userId)->setShareOwner($file->getOwner()?->getUID() ?? $userId)->setPermissions(\OCP\Constants::PERMISSION_READ);
+			$this->shareManager->createShare($share);
+		} finally {
+			QuietFolderShareListener::$quietFor = null;
+		}
+	}
+
+	/** Whether document jobs in this conversation show a preview before delivering (on unless turned off). */
+	public function previewsOn(string $token): bool {
+		return Server::get(\OCP\IAppConfig::class)->getValueString(Application::APP_ID, 'preview_off_' . $token, '', lazy: true) === '';
+	}
+
+	public function setPreviews(string $token, bool $on): void {
+		$config = Server::get(\OCP\IAppConfig::class);
+		if ($on) {
+			$config->deleteKey(Application::APP_ID, 'preview_off_' . $token);
+		} else {
+			$config->setValueString(Application::APP_ID, 'preview_off_' . $token, '1', lazy: true);
+		}
 	}
 
 	/**
@@ -119,6 +187,11 @@ class Conversation {
 	 * folder"), under the name or "name (2)" when that is taken.
 	 */
 	public function saveFile(object $room, string $userId, string $name, string $data): File {
+		$config = Server::get('OCA\Talk\Config');
+		if (!method_exists($config, 'isConversationSubfoldersEnabled')) {
+			// Talk before conversation subfolders (Nextcloud 32, 33): the attachment folder, the file shared on its own.
+			return $this->deliver($room, $userId, ltrim($config->getAttachmentFolder($userId), '/'), $name, $data);
+		}
 		$folder = $this->sharedFolder($room, $userId);
 		if ($folder === null) {
 			throw new \RuntimeException('Files cannot be sent in this conversation (no conversation folder; is the storage quota full?)');
@@ -205,6 +278,29 @@ class Conversation {
 				return $candidate;
 			}
 		}
+	}
+
+	/**
+	 * The person's files changed in the last days, newest first; a part of the name
+	 * narrows them.
+	 *
+	 * @return list<array{id: int, path: string, mime: string, size: int, modified: string}>
+	 */
+	public function recentFiles(string $userId, int $days, string $name = '', int $limit = 30): array {
+		$userFolder = $this->rootFolder->getUserFolder($userId);
+		$since = time() - max(1, $days) * 86400;
+		$found = [];
+		foreach ($userFolder->getRecent(200) as $node) {
+			if (!$node instanceof File || $node->getMTime() < $since || ($name !== '' && mb_stripos($node->getName(), $name) === false)) {
+				continue;
+			}
+			$found[] = ['id' => $node->getId(), 'path' => $userFolder->getRelativePath($node->getPath()) ?? $node->getName(), 'mime' => $node->getMimetype(),
+				'size' => $node->getSize(), 'modified' => date('Y-m-d H:i', $node->getMTime())];
+			if (count($found) >= $limit) {
+				break;
+			}
+		}
+		return $found;
 	}
 
 	/** A file the person can read, by its id, or null. */

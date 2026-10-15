@@ -184,6 +184,38 @@ class Web {
 		return [$data, $mime];
 	}
 
+		/**
+	 * Freely licensed photos and illustrations from Wikimedia Commons: an image
+	 * link (1600 px) to use in documents and slides, with the attribution its
+	 * license asks for.
+	 */
+	public function images(string $query, int $count = 6): array {
+		$data = json_decode((string)$this->clients->newClient()->get('https://commons.wikimedia.org/w/api.php?' . http_build_query([
+			'action' => 'query', 'generator' => 'search', 'gsrsearch' => 'filetype:bitmap ' . $query, 'gsrnamespace' => 6,
+			'gsrlimit' => max(1, min(10, $count)), 'prop' => 'imageinfo', 'iiprop' => 'url|size|mime|extmetadata', 'iiurlwidth' => 1600,
+			'iiextmetadatafilter' => 'Artist|LicenseShortName|ImageDescription|Credit', 'format' => 'json', 'formatversion' => 2,
+		]), ['timeout' => 20, 'headers' => ['User-Agent' => self::AGENT]])->getBody(), true);
+		$out = [];
+		foreach ($data['query']['pages'] ?? [] as $page) {
+			$info = $page['imageinfo'][0] ?? null;
+			if (!is_array($info) || !in_array($info['mime'] ?? '', ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+				continue;
+			}
+			$meta = $info['extmetadata'] ?? [];
+			$clean = fn (string $key) => trim(html_entity_decode(strip_tags((string)($meta[$key]['value'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+			$author = mb_strimwidth(preg_replace('/\s+/', ' ', $clean('Artist')) ?? '', 0, 60, '…');
+			$license = $clean('LicenseShortName');
+			$out[] = array_filter([
+				'image' => preg_replace('/\?utm_.*$/', '', (string)($info['thumburl'] ?? $info['url'])),
+				'size' => ($info['thumbwidth'] ?? $info['width']) . '×' . ($info['thumbheight'] ?? $info['height']),
+				'description' => mb_strimwidth($clean('ImageDescription'), 0, 160, '…'),
+				'attribution' => trim(($author !== '' ? $author . ', ' : '') . $license . ', Wikimedia Commons', ', '),
+				'page' => $info['descriptionurl'] ?? null,
+			], fn ($v) => $v !== null && $v !== '');
+		}
+		return ['images' => $out, 'note' => 'Use an image as ![caption · attribution](image link). The attribution is required by the license.'];
+	}
+
 		/** A place from OpenStreetMap (Nominatim): coordinates, kind, country, population and elevation where known. */
 	public function place(string $query, string $language = 'en'): array {
 		$found = json_decode((string)$this->clients->newClient()->get('https://nominatim.openstreetmap.org/search?' . http_build_query([

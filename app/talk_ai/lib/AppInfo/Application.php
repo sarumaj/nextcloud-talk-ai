@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\AppInfo;
 
+use OCA\TalkAi\Listener\BotEnabledListener;
 use OCA\TalkAi\Listener\BotInvokeListener;
 use OCA\TalkAi\Listener\QuietFolderShareListener;
 use OCP\AppFramework\App;
@@ -28,6 +29,7 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		// Talk's classes by name: the app installs without Talk.
 		$context->registerEventListener('OCA\Talk\Events\BotInvokeEvent', BotInvokeListener::class);
+		$context->registerEventListener('OCA\Talk\Events\BotEnabledEvent', BotEnabledListener::class);
 		// Before Talk's own listeners (priority 0): no "shared a folder" for the folder share a sent file needs.
 		$context->registerEventListener(ShareCreatedEvent::class, QuietFolderShareListener::class, 100);
 		$context->registerEventListener('OCA\Talk\Events\BeforeDuplicateShareSentEvent', QuietFolderShareListener::class, 100);

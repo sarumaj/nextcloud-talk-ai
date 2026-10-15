@@ -10,6 +10,7 @@ use OCA\TalkAi\Document\Code;
 use OCA\TalkAi\Document\Figures;
 use OCA\TalkAi\Document\OdpWriter;
 use OCA\TalkAi\Document\OdtWriter;
+use OCA\TalkAi\Document\Theme;
 use PHPUnit\Framework\TestCase;
 
 class DesignTest extends TestCase {
@@ -58,7 +59,7 @@ class DesignTest extends TestCase {
 		$files = $this->unzip($odp);
 		$this->assertNotFalse(simplexml_load_string($files['content.xml']));
 		$this->assertSame(2, substr_count($files['content.xml'], '<draw:image '));
-		$this->assertStringContainsString('#e15759', $files['content.xml']);
+		$this->assertStringContainsString('#ef476f', $files['content.xml']);
 	}
 
 	public function testHeadingNumbers(): void {
@@ -76,10 +77,27 @@ class DesignTest extends TestCase {
 		$content = $files['content.xml'];
 		$this->assertNotFalse(simplexml_load_string($content));
 		$this->assertStringContainsString('Gliederung', $content);
-		$this->assertSame(2, substr_count($content, 'draw:style-name="dpSection"'));
-		$this->assertStringContainsString('<text:list text:style-name="L2">', $content);
-		$this->assertStringContainsString('>Part A</text:p></text:list-item>', $content);
+		$this->assertSame(3, substr_count($content, 'draw:style-name="dpGradient"'));
+		// The agenda: the sections, each by a numbered circle.
+		$this->assertMatchesRegularExpression('/>1<\/text:p>.*>Part A<\/text:p>.*>2<\/text:p>.*>Part B<\/text:p>/s', $content);
 		$this->assertStringContainsString('presentation:class="page-number"', $files['styles.xml']);
+	}
+
+	public function testCustomThemes(): void {
+		$t = Theme::resolve(['base' => 'dark', 'accent' => '#FF6600', 'heading' => 'Caprasimo', 'body' => 'Comic Sans', 'gradient' => ['#000000', '#ff6600'], 'decoration' => 'zigzag']);
+		$this->assertSame('#ff6600', $t['accent']);
+		$this->assertSame('Caprasimo', $t['heading']);
+		$this->assertSame('Open Sans', $t['body']);
+		$this->assertSame(['#000000', '#ff6600'], $t['gradient']);
+		$this->assertSame('corner', $t['decoration']);
+		$this->assertTrue($t['dark']);
+		$this->assertFalse(Theme::forPrint($t)['dark']);
+		$this->assertSame('Karla', Theme::resolve('minimal')['heading']);
+		$this->assertSame(Theme::resolve('modern'), Theme::resolve('nonsense'));
+		$odp = $this->unzip((new OdpWriter())->write("# T\n\n## Numbers {stats}\n- 97 % | ocean\n\n## Steps {steps}\n- **A**: a\n- **B**: b", 'T', null, $t));
+		$this->assertStringContainsString('Caprasimo', $odp['content.xml']);
+		$this->assertStringContainsString('draw:start-color="#000000" draw:end-color="#ff6600"', $odp['styles.xml']);
+		$this->assertStringContainsString('>97 %</text:p>', $odp['content.xml']);
 	}
 
 	public function testChatAnswersAreSplitAroundPictures(): void {

@@ -49,12 +49,23 @@ class Office {
 			if (!$converted instanceof File) {
 				throw new \RuntimeException('the converted file was not written');
 			}
-			$source->delete();
-			return $converted;
 		} catch (\Throwable $e) {
 			$this->logger->warning('AI bot: no ' . $extension . ' from ' . $source->getName() . ': ' . $e->getMessage());
 			return null;
 		}
+		// The source may still be locked a moment (previews, the share): the conversion counts anyway.
+		for ($attempt = 0; $attempt < 3; $attempt++) {
+			try {
+				$source->delete();
+				break;
+			} catch (\OCP\Lock\LockedException $e) {
+				usleep(500000);
+			} catch (\Throwable $e) {
+				$this->logger->info('AI bot: the source of a conversion stays: ' . $e->getMessage());
+				break;
+			}
+		}
+		return $converted;
 	}
 
 	/** An SVG image as PNG (LibreOffice renders SVG well; Imagick's own renderer does not); null without Collabora. */

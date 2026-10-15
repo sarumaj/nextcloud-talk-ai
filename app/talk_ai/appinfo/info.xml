@@ -14,10 +14,11 @@
 - **Subjects**: curve sketching, linear algebra and vectors, chemistry, physics units and constants, genetics and DNA, statistics and hypothesis tests, geography and climate diagrams, music theory, interest and loans, sport science, truth tables and SQL, timelines and mind maps
 - **Art**: the palette of a painting, colour harmonies, value studies and composition grids
 - **Planning**: events, reminders and tasks in your calendar, and .ics files from dates in a PDF or a photo
+- **Presentations** with 15 layouts, modern themes or its own design, and free photos from Wikimedia Commons; research on the web by default
 - Everything runs **with the asking person's rights**: the bot sees only what they may see
 
 Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@Claude) or replied to. Office formats need Nextcloud Office (Collabora); reading PDFs needs pdftotext, OCR needs Tesseract on the server.]]></description>
-    <version>0.3.0</version>
+    <version>0.5.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAi</namespace>
@@ -33,6 +34,8 @@ Enable the bot in a conversation (conversation settings, Bots). In a conversatio
     </dependencies>
     <background-jobs>
         <job>OCA\TalkAi\BackgroundJob\SyncName</job>
+        <job>OCA\TalkAi\BackgroundJob\CleanTraces</job>
+        <job>OCA\TalkAi\BackgroundJob\RunQueue</job>
     </background-jobs>
     <repair-steps>
         <post-migration>
@@ -45,4 +48,14 @@ Enable the bot in a conversation (conversation settings, Bots). In a conversatio
             <step>OCA\TalkAi\Migration\UninstallBot</step>
         </uninstall>
     </repair-steps>
+    <commands>
+        <command>OCA\TalkAi\Command\Check</command>
+        <command>OCA\TalkAi\Command\Jobs</command>
+        <command>OCA\TalkAi\Command\Stop</command>
+        <command>OCA\TalkAi\Command\Start</command>
+        <command>OCA\TalkAi\Command\Golden</command>
+    </commands>
+    <settings>
+        <admin>OCA\TalkAi\Settings\Admin</admin>
+    </settings>
 </info>

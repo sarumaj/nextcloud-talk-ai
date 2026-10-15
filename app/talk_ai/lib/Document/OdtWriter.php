@@ -15,23 +15,13 @@ namespace OCA\TalkAi\Document;
  * objects, corrections (~~deleted~~, ++inserted++, ==highlighted==), footnotes
  * ([^1] and "[^1]: text"), and code blocks highlighted by language.
  *
- * Design: a theme (modern, classic, academic with numbered headings, minimal,
- * playful), a cover page, a footer with the title and page numbers, landscape
+ * Design: a theme (a preset or the model's own, see Theme), a cover page, a footer with the title and page numbers, landscape
  * pages, callout boxes ("> [!NOTE] Title", also TIP, IMPORTANT, WARNING, CAUTION,
  * DEFINITION, THEOREM, EXAMPLE, SUMMARY, QUESTION), a table of contents ([TOC]),
  * page breaks (\pagebreak), columns (::: columns 2 … :::) and pictures (```chart
  * blocks and images ![caption](source) on their own lines).
  */
 class OdtWriter {
-	/** Themes: body font, heading font, size, accent, heading colour, light shade, justified, numbered headings, line height. */
-	public const THEMES = [
-		'modern' => ['body' => 'Carlito', 'heading' => 'Carlito', 'size' => 11, 'accent' => '#2e75b6', 'headings' => '#1f3864', 'light' => '#eaf1fb', 'justify' => false, 'numbered' => false, 'line' => 120],
-		'classic' => ['body' => 'Liberation Serif', 'heading' => 'Liberation Serif', 'size' => 12, 'accent' => '#7b1e1e', 'headings' => '#3a2a1a', 'light' => '#f6efe6', 'justify' => true, 'numbered' => false, 'line' => 125],
-		'academic' => ['body' => 'Liberation Serif', 'heading' => 'Liberation Sans', 'size' => 12, 'accent' => '#333333', 'headings' => '#000000', 'light' => '#efefef', 'justify' => true, 'numbered' => true, 'line' => 150],
-		'minimal' => ['body' => 'Liberation Sans', 'heading' => 'Liberation Sans', 'size' => 10.5, 'accent' => '#555555', 'headings' => '#222222', 'light' => '#f4f4f4', 'justify' => false, 'numbered' => false, 'line' => 125],
-		'playful' => ['body' => 'DejaVu Sans', 'heading' => 'DejaVu Sans', 'size' => 10.5, 'accent' => '#e15759', 'headings' => '#4e3a8f', 'light' => '#fff3e0', 'justify' => false, 'numbered' => false, 'line' => 125],
-	];
-
 	/** Callouts: border colour, background, label. */
 	private const CALLOUTS = [
 		'note' => ['#2e75b6', '#eaf1fb', 'ℹ Note'], 'info' => ['#2e75b6', '#eaf1fb', 'ℹ Info'], 'tip' => ['#2e8b57', '#e8f5ec', '✔ Tip'],
@@ -49,7 +39,7 @@ class OdtWriter {
 	/** @var array<string, string> footnotes by their label */
 	private static array $notes = [];
 	private static int $noteCount = 0;
-	private static array $theme = self::THEMES['modern'];
+	private static array $theme = [];
 	/** The text width in cm (pictures, tables). */
 	private static float $width = 17.0;
 	/** @var list<int> heading numbers (academic theme) */
@@ -60,7 +50,7 @@ class OdtWriter {
 
 	/**
 	 * @param (callable(string): ?array)|null $images an image's data, mime, width and height by its source
-	 * @param array{theme?: string, cover?: array{title?: string, subtitle?: string, author?: string, date?: string}|null, landscape?: bool, footer?: bool} $options
+	 * @param array{theme?: string|array, cover?: array{title?: string, subtitle?: string, author?: string, date?: string}|null, landscape?: bool, footer?: bool} $options
 	 */
 	public function write(string $markdown, string $title = '', ?callable $images = null, array $options = []): string {
 		self::reset($images, $options);
@@ -76,7 +66,7 @@ class OdtWriter {
 	 *
 	 * @param list<array{front: string, back: string}> $cards
 	 */
-	public function cards(array $cards, string $title, string $theme = 'modern'): string {
+	public function cards(array $cards, string $title, string|array $theme = 'modern'): string {
 		self::reset(null, ['theme' => $theme]);
 		$body = $title === '' ? '' : '<text:h text:style-name="Heading_20_1" text:outline-level="1">' . self::inline($title) . '</text:h>';
 		$body .= '<table:table table:style-name="Table"><table:table-column table:style-name="Half" table:number-columns-repeated="2"/>';
@@ -102,7 +92,7 @@ class OdtWriter {
 		self::$numbers = [];
 		self::$topLevel = 1;
 		self::$numbering = true;
-		self::$theme = self::THEMES[strtolower((string)($options['theme'] ?? 'modern'))] ?? self::THEMES['modern'];
+		self::$theme = Theme::forPrint(Theme::resolve($options['theme'] ?? 'modern'));
 		self::$width = !empty($options['landscape']) ? 25.7 : 17.0;
 	}
 
@@ -480,7 +470,7 @@ class OdtWriter {
 			. ($paragraph !== '' ? '<style:paragraph-properties ' . $paragraph . '/>' : '') . ($text !== '' ? '<style:text-properties ' . $text . '/>' : '') . '</style:style>';
 		$heading = fn (int $level, float $size, string $extra = '') => $p('Heading_20_' . $level, 'Heading', $level === 1 && !$t['numbered'] && $t['headings'] !== '#000000'
 			? 'fo:padding-bottom="0.08cm" fo:border-bottom="1pt solid ' . $t['accent'] . '"' : '', 'fo:font-size="' . $size . 'pt" ' . $extra, 'Heading ' . $level, ' style:default-outline-level="' . $level . '"');
-		$styles = '<style:default-style style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.2cm"/><style:text-properties style:font-name="' . $t['body'] . '" fo:font-size="' . $t['size'] . 'pt" fo:language="de" fo:country="DE" fo:hyphenate="' . ($t['justify'] ? 'true' : 'false') . '"/></style:default-style>'
+		$styles = '<style:default-style style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.2cm"/><style:text-properties style:font-name="' . $t['body'] . '" fo:font-size="' . $t['size'] . 'pt" fo:color="' . $t['text'] . '" fo:language="de" fo:country="DE" fo:hyphenate="' . ($t['justify'] ? 'true' : 'false') . '"/></style:default-style>'
 			. '<style:style style:name="Standard" style:family="paragraph"/>'
 			. $p('Text_20_body', 'Standard', 'fo:margin-bottom="0.25cm" fo:line-height="' . $t['line'] . '%" fo:text-align="' . $align . '"', '', 'Text body')
 			. $p('Heading', 'Standard', 'fo:margin-top="0.45cm" fo:margin-bottom="0.2cm" fo:keep-with-next="always"', 'style:font-name="' . $t['heading'] . '" fo:font-weight="bold" fo:color="' . $t['headings'] . '"')
@@ -540,7 +530,7 @@ class OdtWriter {
 			. implode('', array_map(fn (string $f) => '<style:font-face style:name="' . $f . '" svg:font-family="&apos;' . $f . '&apos;"/>', $fonts))
 			. '</office:font-face-decls><office:styles>' . $styles . '</office:styles>'
 			. '<office:automatic-styles>'
-			. '<style:page-layout style:name="Page"><style:page-layout-properties fo:page-width="' . $w . '" fo:page-height="' . $h . '" style:print-orientation="' . ($landscape ? 'landscape' : 'portrait') . '" fo:margin-top="2cm" fo:margin-bottom="1.5cm" fo:margin-left="2cm" fo:margin-right="2cm"/>'
+			. '<style:page-layout style:name="Page"><style:page-layout-properties fo:page-width="' . $w . '" fo:page-height="' . $h . '" style:print-orientation="' . ($landscape ? 'landscape' : 'portrait') . '" fo:margin-top="2cm" fo:margin-bottom="1.5cm" fo:margin-left="2cm" fo:margin-right="2cm"' . ($t['background'] !== '#ffffff' ? ' fo:background-color="' . $t['background'] . '"' : '') . '/>'
 			. '<style:footer-style><style:header-footer-properties fo:min-height="0.6cm" fo:margin-top="0.4cm"/></style:footer-style></style:page-layout>'
 			. '<style:page-layout style:name="CoverPage"><style:page-layout-properties fo:page-width="' . $w . '" fo:page-height="' . $h . '" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2cm" fo:margin-right="2cm"/></style:page-layout>'
 			. '</office:automatic-styles><office:master-styles>'

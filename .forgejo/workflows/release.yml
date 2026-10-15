@@ -82,3 +82,30 @@ jobs:
                 -H 'Content-Type: application/json' -d @- https://apps.nextcloud.com/api/v1/apps/releases > /tmp/status
           cat /tmp/answer; echo
           case $(cat /tmp/status) in 200|201) echo "Published $VERSION";; *) exit 1;; esac
+
+  # The document sandbox's image in the registry beside the code (N-08):
+  # <registry>/<owner>/talk-ai-sandbox:X.Y.Z and :latest. Secret REGISTRY_TOKEN: a token
+  # with package write access; without it the image is not published (servers build it
+  # from sandbox/ themselves).
+  sandbox-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Check out
+        run: |
+          git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+
+      - name: Build and push the image
+        env:
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$REGISTRY_TOKEN" ]; then echo "::warning::No REGISTRY_TOKEN: the sandbox image is not published"; exit 0; fi
+          registry="${{ github.server_url }}"; registry="${registry#https://}"
+          image="$registry/${{ github.repository_owner }}/talk-ai-sandbox"
+          docker build -t "$image:${TAG#v}" -t "$image:latest" sandbox/
+          echo "$REGISTRY_TOKEN" | docker login "$registry" -u "${{ github.repository_owner }}" --password-stdin
+          docker push "$image:${TAG#v}" && docker push "$image:latest"

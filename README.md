@@ -14,8 +14,14 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   playful), cover pages, a table of contents, page numbers, footnotes, callout boxes (note,
   tip, warning, definition, theorem, example …), striped tables, columns, LaTeX formulas,
   highlighted code (Python, Java, SQL, pseudocode …), and charts and images embedded in
-  documents, slides and chat answers. Presentations get an agenda, section slides and slide
-  numbers.
+  documents, slides and chat answers.
+- **Designed presentations:** 15 slide layouts (stats, steps, timeline, comparison, cards,
+  quote, full-bleed photo, image beside text, chart, table …), an agenda, section slides,
+  slide numbers, and themes with gradients, decorations and font pairings (modern, dark,
+  gradient, bold, nature, elegant, playful, classic, academic, minimal, accessible), or a
+  design of the bot's own. Photos come from Wikimedia Commons with their attribution.
+- **Researches by default:** documents, presentations and factual answers build on a web
+  search, Wikipedia and scholarly papers, with the sources named.
 - **Learning:** summaries, quizzes, and flash cards, to print (question and answer side by side,
   to fold) or to import into Anki or Quizlet.
 - **Maths:** solves step by step and calculates exactly (a calculator tool, not the model's
@@ -58,6 +64,8 @@ an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is n
 - For OCR, Tesseract with the languages you need (`apt install tesseract-ocr tesseract-ocr-deu`).
 - PHP with the `zip` extension. The web (links, citations) is reached through Nextcloud's HTTP
   client.
+- Optional, for documents built with code (below): Docker or Podman on the server, ideally
+  rootless, and Python 3 for the runner.
 
 ## Installing
 
@@ -69,6 +77,29 @@ an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is n
 The bot takes the name of the AI that answers, as AI-Hub is set up for this app, and is renamed
 when that changes (within ten minutes, or at its next answer). For a fixed name:
 `occ config:app:set talk_ai name --value Assistant`.
+
+### The document sandbox (optional)
+
+For demanding office files the bot can hand the work to a sandbox: the AI writes code
+(python-docx, openpyxl, python-pptx; docx, exceljs, pptxgenjs), builds the file, renders it
+with LibreOffice, looks at the pages and corrects it, then delivers it. Each job runs in its
+own container: no network, read-only, non-root, without capabilities, limited in CPU, memory,
+processes and time, writable only `/work` (in memory); it is removed afterwards.
+
+1. Build the image: `docker build -t talk-ai-sandbox:latest sandbox/`.
+2. Copy `skills/` (read-only for all) and `sandbox/runner.py` to the server, write a random
+   token to a file readable only by the runner's user, and run the runner as a service with
+   `RUNNER_SOCKET`, `RUNNER_TOKEN_FILE`, `RUNNER_IMAGE`, `RUNNER_SKILLS` and the limits
+   (`RUNNER_MAX_JOBS`, `RUNNER_CPUS`, `RUNNER_MEMORY_MB`, `RUNNER_DISK_MB`,
+   `RUNNER_MAX_SECONDS`; see the file's header).
+3. Make the socket reachable from Nextcloud (a bind mount for containers) and tell the app:
+   `occ config:app:set talk_ai sandbox_socket --value /run/talk-ai-sandbox/runner.sock` and
+   `occ config:app:set talk_ai sandbox_token --value … --lazy --sensitive`.
+
+Settings: `document_groups` (a JSON list of groups that may use it; empty: everyone),
+`document_max_tools` (60), `document_max_seconds` (900), `document_corrections` (3),
+`document_folder` (`Talk-AI`), `trace_days` (14). The AI connection must call tools; one that
+does not is refused. Without the sandbox, the bot writes documents itself as before.
 
 ## Using it
 
@@ -94,6 +125,9 @@ For example:
 - "Curve sketching of f(x) = x³ − 3x" or "solve 2x + y − z = 8, −3x − y + 2z = −11, −2x + y + 2z = −3".
 - Share a painting and ask for "a value study in three tones and the thirds grid".
 - Share a photo of the blackboard and ask "@Claude what does it say?"
+- With the sandbox: share a `.ott` template and notes and ask for "the meeting minutes on this
+  template as .docx"; share a CSV and ask for "an Excel file with monthly sums as formulas and
+  a chart"; share a report and ask "add a chapter on costs after chapter 2".
 
 ## How it works
 
@@ -128,13 +162,32 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   file is saved in the person's folder for the conversation and sent as Talk's file message,
   as Talk 25's attachments are. If that folder doesn't exist yet, it's created and shared like
   for a first attachment, without Talk's "shared a folder" message.
+- **Documents in the sandbox:** `create_document` hands a job to the process route's sibling
+  `/document`. `lib/Service/DocumentJob.php` runs it: the model works with `bash`, `read_file`,
+  `write_file`, `edit_file`, `list_files`, `render_document`, `deliver_file` and `finish` in its
+  container (`lib/Service/Sandbox.php` talks to `sandbox/runner.py`). AI-Hub runs up to eight
+  tool calls per question, so the job asks in rounds, with its history and a summary of the
+  steps, until `finish` or a limit. Rendered pages (a contact sheet and single pages) go to the
+  model as images with the next round. A status message follows the phases; the steps are
+  saved as a protocol in the person's files (`Traces/`, removed after `trace_days` by
+  `lib/BackgroundJob/CleanTraces.php`). The skills (`skills/<format>/SKILL.md` and scripts)
+  tell the model how to build each format.
 - **Name:** `lib/Service/Bot.php` installs the bot and renames it (Talk updates a bot installed
   again with the same address and secret) when the AI or the setting changes.
+
+## Documentation
+
+- [Administrator's guide](docs/admin.md): requirements, the sandbox, settings, privacy, evaluating a model.
+- [Short guides for users](docs/user.md) (English, Deutsch, Polski).
+- [Developer's guide](docs/developer.md): layout, the document job's tools, skills, tests.
+- [Changelog](CHANGELOG.md).
 
 ## Developing
 
 ```bash
 composer install && vendor/bin/phpunit
+docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-sandbox:test
+python3 tests/compat/talk_api.py
 ```
 
 The tests need neither Nextcloud nor network. CI lints the PHP, checks `appinfo/info.xml`

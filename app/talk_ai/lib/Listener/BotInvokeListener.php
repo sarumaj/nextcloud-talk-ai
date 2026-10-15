@@ -8,27 +8,45 @@ namespace OCA\TalkAi\Listener;
 
 use OCA\TalkAi\AppInfo\Application;
 use OCA\TalkAi\Service\Bot;
+use OCA\TalkAi\Service\Confirmations;
 use OCA\TalkAi\Service\Conversation;
 use OCA\TalkAi\Service\Dispatcher;
+use OCA\TalkAi\Service\Jobs;
+use OCA\TalkAi\Service\Switches;
+use OCA\TalkAi\Service\Texts;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
+use OCP\IAppConfig;
 use Psr\Log\LoggerInterface;
 
 /**
- * Talk's call for each message in a conversation where the bot is enabled
- * (BotInvokeEvent), while the message is still being posted: nothing slow
- * happens here. A message the bot answers gets 👀 at once and goes to the
- * Dispatcher. It answers people only, never bots, and in a conversation with one
- * person every message; with more, a message that names it ("@Claude …", "Claude, …") or
- * replies to it.
+ * Talk's call for each message and reaction in a conversation where the bot is
+ * enabled (BotInvokeEvent), while it is still being posted: nothing slow happens
+ * here.
+ *
+ * A message the bot answers gets 👀 at once and goes to the Dispatcher. It answers
+ * people only, never bots, and in a conversation with one person every message;
+ * with more, a message that names it ("@Claude …", "Claude, …"), replies to it, or
+ * answers its open question (a confirmation, a preview). Without being named it
+ * also takes "stop" for the person's running document job.
+ *
+ * Reactions: ❌ ✋ 🛑 on a job's status message cancel the job; 👍 👎 on a delivered
+ * document are kept as feedback.
  *
  * @template-implements IEventListener<Event>
  */
 class BotInvokeListener implements IEventListener {
+	private const STOP = '/^\s*(@\S+\s+)?(stop+|halt|abbrechen|abbruch|cancel|przerwij|anuluj|stój)\s*[!.]*\s*$/iu';
+	private const CANCEL_REACTIONS = ['❌', '✋', '🛑', '⛔', '✖️'];
+
 	public function __construct(
 		private Dispatcher $dispatcher,
 		private Conversation $conversation,
 		private Bot $bot,
+		private Jobs $jobs,
+		private Switches $switches,
+		private IAppConfig $appConfig,
+		private Texts $texts,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -38,40 +56,114 @@ class BotInvokeListener implements IEventListener {
 			return;
 		}
 		$activity = $event->getMessage();
+		// Nothing may escape into Talk's posting of the message.
+		try {
+			match ($activity['type'] ?? '') {
+				'Create' => $this->message($event, $activity),
+				'Like' => $this->reaction($activity),
+				default => null,
+			};
+		} catch (\Throwable $e) {
+			$this->logger->error('AI bot: the message could not be handed on: ' . $e->getMessage(), ['exception' => $e]);
+		}
+	}
+
+	private function message(Event $event, array $activity): void {
 		$object = $activity['object'] ?? [];
 		$actorId = (string)($activity['actor']['id'] ?? '');
-		if (($activity['type'] ?? '') !== 'Create' || !is_array($object) || ($object['name'] ?? '') !== 'message'
-			|| !str_starts_with($actorId, 'users/')) {
+		if (!is_array($object) || ($object['name'] ?? '') !== 'message') {
 			return;
 		}
-		$userId = substr($actorId, strlen('users/'));
+		$userId = self::userOf($actorId);
 		$token = (string)($activity['target']['id'] ?? '');
 		$messageId = (int)($object['id'] ?? 0);
 		$text = self::plainText((string)($object['content'] ?? ''));
 		if ($token === '' || $userId === '' || $messageId === 0 || trim($text) === '') {
 			return;
 		}
-		// Nothing may escape into Talk's posting of the message.
-		try {
-			$repliesToBot = str_starts_with((string)($activity['inReplyTo']['actor']['id'] ?? ''), 'bots/');
-			if (!$repliesToBot && !self::names($text, $this->name()) && $this->conversation->numberOfPeople($token) > 1) {
+		$repliesToBot = str_starts_with((string)($activity['object']['inReplyTo']['actor']['id'] ?? $activity['inReplyTo']['actor']['id'] ?? ''), 'bots/');
+		$named = self::names($text, $this->bot->name());
+		$guest = !str_starts_with($actorId, 'users/');
+		if (!$guest) {
+			// The person's running job: "stop" cancels it, and a waiting preview takes this as its answer.
+			$job = $this->jobs->active($token, $userId);
+			if ($job !== null && preg_match(self::STOP, $text) === 1) {
+				$this->jobs->cancel($job['id']);
+				$event->addReaction('✋');
 				return;
 			}
-			$event->addReaction('👀');
-			$this->dispatcher->dispatch($token, $userId, $messageId, $text);
-		} catch (\Throwable $e) {
-			$this->logger->error('AI bot: the message could not be handed on: ' . $e->getMessage(), ['exception' => $e]);
+			if ($job !== null && ($job['feedback'] ?? null) === '') {
+				$this->jobs->setFeedback($job['id'], self::withoutName($text, $this->bot->name()));
+				$event->addReaction(Confirmations::answer($text) === 'yes' ? '👍' : '✍️');
+				return;
+			}
+		}
+		$open = !$guest && $this->confirmationOpen($token, $userId);
+		if (!$repliesToBot && !$named && !$open && $this->conversation->numberOfPeople($token) > 1) {
+			return;
+		}
+		if ($guest && !$this->switches->guestsAllowed()) {
+			$event->addAnswer('ℹ️ ' . $this->texts->t('', '%s answers only members of this Nextcloud; an administrator can allow guests.', [$this->bot->name()]), $messageId);
+			return;
+		}
+		$off = $this->switches->off($token, $userId);
+		if ($off !== '') {
+			$event->addAnswer('⏸️ ' . $this->texts->t($userId, match ($off) {
+				'room' => '%s is switched off in this conversation by the administrator.',
+				'user' => '%s is switched off for you by the administrator.',
+				default => '%s is switched off on this server for now by the administrator.',
+			}, [$this->bot->name()]), $messageId);
+			return;
+		}
+		$event->addReaction('👀');
+		$this->dispatcher->dispatch($token, $userId, $messageId, $text);
+	}
+
+	/** A reaction: cancel by ❌ on a status message, feedback by 👍 or 👎 on a delivered document. */
+	private function reaction(array $activity): void {
+		$userId = self::userOf((string)($activity['actor']['id'] ?? ''));
+		$token = (string)($activity['target']['id'] ?? '');
+		$messageId = (int)($activity['object']['id'] ?? 0);
+		$emoji = (string)($activity['content'] ?? '');
+		if ($userId === '' || $token === '' || $messageId === 0) {
+			return;
+		}
+		$content = json_decode((string)($activity['object']['content'] ?? ''), true);
+		$fileId = (int)($content['parameters']['file']['id'] ?? 0);
+		$job = $this->jobs->byMessage($token, $fileId, $messageId);
+		if ($job === null || $job['user_id'] !== $userId) {
+			return;
+		}
+		if (in_array($emoji, self::CANCEL_REACTIONS, true)) {
+			$this->jobs->cancel($job['id']);
+		} elseif (in_array($emoji, ['👍', '👎'], true) && $fileId > 0) {
+			// Feedback: the job (task, model, protocol) is the example, this the rating.
+			$this->jobs->setOption($job['id'], 'rating', ['value' => $emoji === '👍' ? 1 : -1, 'by' => $userId, 'file' => $fileId, 'time' => time()]);
 		}
 	}
 
-	private function name(): string {
-		return $this->bot->name();
+	private function confirmationOpen(string $token, string $userId): bool {
+		return $this->appConfig->getValueString(Application::APP_ID, 'confirm_' . sha1($token . '|' . $userId), '', lazy: true) !== '';
+	}
+
+	/** The asking person's id: a user's id; guests and federated participants get one marked as such ('' for others). */
+	public static function userOf(string $actorId): string {
+		return match (true) {
+			str_starts_with($actorId, 'users/') => substr($actorId, 6),
+			str_starts_with($actorId, 'guests/') => 'guest:' . substr($actorId, 7),
+			str_starts_with($actorId, 'federated_users/') => 'federated:' . substr($actorId, 16),
+			default => '',
+		};
 	}
 
 	/** Whether the text addresses the bot by name: "@AI …", or "AI, …" / "AI: …" at its start. */
 	public static function names(string $text, string $name): bool {
 		$quoted = preg_quote($name, '/');
 		return preg_match('/(^|\s)@"?' . $quoted . '"?(?![\p{L}\p{N}])|^\s*' . $quoted . '\s*[,:]/iu', $text) === 1;
+	}
+
+	public static function withoutName(string $text, string $name): string {
+		return trim(preg_replace('/^\s*@?"?' . preg_quote($name, '/') . '"?\s*[,:]?\s*/iu', '', $text) ?? $text);
 	}
 
 	/** The message's text: Talk sends a JSON document with the text and its mentions ({mention-user1}). */

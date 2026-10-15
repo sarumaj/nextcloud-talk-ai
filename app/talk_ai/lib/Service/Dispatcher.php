@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Service;
 
 use OCA\TalkAi\AppInfo\Application;
+use OCA\TalkAi\BackgroundJob\DocumentQueueJob;
 use OCA\TalkAi\BackgroundJob\ReplyJob;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
@@ -39,14 +40,28 @@ class Dispatcher {
 	}
 
 	public function dispatch(string $token, string $userId, int $messageId, string $text): void {
-		$body = json_encode([
-			'token' => $token, 'userId' => $userId, 'messageId' => $messageId, 'text' => $text,
+		$this->handOff('process', ['token' => $token, 'userId' => $userId, 'messageId' => $messageId, 'text' => $text], function () use ($token, $userId, $messageId, $text): void {
+			// The job's arguments are limited to 4000 bytes: the text waits in the app config.
+			$ref = $this->park($text);
+			$this->jobList->add(ReplyJob::class, ['token' => $token, 'userId' => $userId, 'messageId' => $messageId, 'ref' => $ref]);
+		});
+	}
+
+	/** A queued document job (talk_ai_jobs), run by the document route or, failing that, a background job. */
+	public function dispatchDocument(int $id): void {
+		$this->handOff('document', ['job' => $id], function () use ($id): void {
+			$this->jobList->add(DocumentQueueJob::class, ['job' => $id]);
+		});
+	}
+
+	private function handOff(string $route, array $payload, callable $fallback): void {
+		$body = json_encode($payload + [
 			'time' => $this->time->getTime(), 'nonce' => $this->random->generate(24, ISecureRandom::CHAR_ALPHANUMERIC),
 		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 		try {
 			// The path itself: linkToRoute knows the app's routes only once they are loaded,
 			// and an unknown route gives the start page, which answers 200.
-			$response = $this->clientService->newClient()->post($this->urlGenerator->getAbsoluteURL('/index.php/apps/' . Application::APP_ID . '/process'), [
+			$response = $this->clientService->newClient()->post($this->urlGenerator->getAbsoluteURL('/index.php/apps/' . Application::APP_ID . '/' . $route), [
 				'headers' => ['Content-Type' => 'application/json', 'X-Talk-AI-Signature' => $this->sign($body)],
 				'body' => $body,
 				'timeout' => self::HANDOFF_TIMEOUT,
@@ -55,18 +70,22 @@ class Dispatcher {
 			]);
 			// An answer within the wait is the route's own only if it says so.
 			if (!str_contains((string)$response->getBody(), '"answered":true')) {
-				throw new \RuntimeException('the process route did not take the question (HTTP ' . $response->getStatusCode() . ')');
+				throw new \RuntimeException('the ' . $route . ' route did not take the job (HTTP ' . $response->getStatusCode() . ')');
 			}
 		} catch (\Throwable $e) {
 			if (self::stillWorking($e)) {
 				return;
 			}
-			$this->logger->warning('AI bot: no hand-off over HTTP, answering in a background job: ' . $e->getMessage());
-			// The job's arguments are limited to 4000 bytes: the text waits in the app config.
-			$ref = $this->time->getTime() . '_' . $this->random->generate(16, ISecureRandom::CHAR_ALPHANUMERIC);
-			$this->appConfig->setValueString(Application::APP_ID, 'pending_' . $ref, $text, lazy: true);
-			$this->jobList->add(ReplyJob::class, ['token' => $token, 'userId' => $userId, 'messageId' => $messageId, 'ref' => $ref]);
+			$this->logger->warning('AI bot: no hand-off over HTTP, working in a background job: ' . $e->getMessage());
+			$fallback();
 		}
+	}
+
+	/** Text waiting in the app config for a background job; its reference. */
+	private function park(string $text): string {
+		$ref = $this->time->getTime() . '_' . $this->random->generate(16, ISecureRandom::CHAR_ALPHANUMERIC);
+		$this->appConfig->setValueString(Application::APP_ID, 'pending_' . $ref, $text, lazy: true);
+		return $ref;
 	}
 
 	public function sign(string $body): string {

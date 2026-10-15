@@ -1,6 +1,9 @@
 ---
-# The app's PHP must parse, its info.xml must pass the app
-# store's schema, and the tests (PHPUnit, no Nextcloud and no network) must pass.
+# The app's PHP must parse, its info.xml must pass the app store's schema, and the
+# tests (PHPUnit, no Nextcloud and no network) must pass against each supported
+# Nextcloud's public API; Talk's bot and chat API must still have what the app uses;
+# and the document golden set must pass with the sandbox image and the skills.
+# A failure blocks the merge (branch protection: all checks required).
 name: CI
 "on":
   push:
@@ -18,6 +21,11 @@ jobs:
     runs-on: docker
     container: docker.io/library/composer:2
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # The Nextcloud versions info.xml supports (min-version to max-version).
+        ocp: [dev-stable32, dev-stable33, dev-stable34, dev-stable35, dev-master]
     steps:
       - name: Check out
         run: &checkout |
@@ -34,8 +42,43 @@ jobs:
           wget -q -O /tmp/info.xsd https://apps.nextcloud.com/schema/apps/info.xsd
           xmllint --noout --schema /tmp/info.xsd app/talk_ai/appinfo/info.xml
 
-      - name: Run the tests
+      - name: Run the tests against Nextcloud's API (${{ matrix.ocp }})
         run: |
           composer install -q --no-interaction --no-progress
+          composer require -q --dev --no-interaction -W "nextcloud/ocp:${{ matrix.ocp }}"
           vendor/bin/phpunit
+
+  talk-api:
+    runs-on: docker
+    container: docker.io/library/python:3.12-slim
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        run: |
+          apt-get update -qq && apt-get install -qq -y --no-install-recommends git ca-certificates >/dev/null
+          git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+
+      - name: Check Talk's API on its supported branches
+        run: python3 tests/compat/talk_api.py
+
+  golden:
+    # A whole Ubuntu with rootless Docker, to build the sandbox image.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        run: *checkout
+
+      - name: Build the sandbox image
+        run: docker build -t talk-ai-sandbox:ci sandbox/
+
+      - name: Run the document golden set
+        run: tests/golden/run.sh talk-ai-sandbox:ci
+
+      - name: Check the skill scripts parse
+        run: |
+          for f in skills/*/scripts/*.py; do python3 -m py_compile "$f"; done
+          for f in skills/*/scripts/*.sh; do bash -n "$f"; done
 

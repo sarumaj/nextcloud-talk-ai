@@ -19,8 +19,8 @@ use OCP\Server;
  * a bot when it is installed again with the same address and secret.
  */
 class Bot {
-	/** Talk's bot features: 4, events in-process (BotInvokeEvent), with their reactions and answers. */
-	private const FEATURES = 4;
+	/** Talk's bot features: events in-process (4: BotInvokeEvent, with its reactions and answers) and reactions (8). */
+	private const FEATURES = 4 | 8;
 	private const DESCRIPTION = 'Answers with AI: reads the files shared here, writes documents, slides, spreadsheets and flash cards, does maths and searches the web.';
 
 	/** Names by AI-Hub provider, and for OpenAI-compatible servers by the model's family. */
@@ -78,7 +78,25 @@ class Bot {
 		$name = $this->wanted($status);
 		$this->dispatcher->dispatchTyped(new $class($name, $secret, Application::BOT_URL, self::DESCRIPTION, self::FEATURES));
 		$this->appConfig->setValueString(Application::APP_ID, 'installed_name', $name);
+		$this->ensureFeatures();
 		return true;
+	}
+
+	/**
+	 * Talk keeps the features of a bot installed before (it updates only name and
+	 * description), so newer features (reactions) are set here, as occ talk:bot:state does.
+	 */
+	private function ensureFeatures(): void {
+		try {
+			$mapper = Server::get('OCA\Talk\Model\BotServerMapper');
+			$bot = $mapper->findByUrl(Application::BOT_URL);
+			if (($bot->getFeatures() & self::FEATURES) !== self::FEATURES) {
+				$bot->setFeatures($bot->getFeatures() | self::FEATURES);
+				$mapper->update($bot);
+			}
+		} catch (\Throwable) {
+			// Without Talk, or not installed yet: Talk sets them when it installs the bot.
+		}
 	}
 
 	/** Renames the bot when the wanted name changed (a new setting, another AI). */

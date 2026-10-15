@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+#talk-ai-admin fieldset { margin: 1em 0; border: 0; padding: 0; }
+#talk-ai-admin legend h3 { margin: 0; }
+#talk-ai-admin .talk-ai-field { margin: .6em 0; max-width: 46em; }
+#talk-ai-admin .talk-ai-field label { display: block; font-weight: 600; }
+#talk-ai-admin .talk-ai-field input[type="checkbox"] + label { display: inline; }
+#talk-ai-admin .talk-ai-field input[type="text"], #talk-ai-admin .talk-ai-field input[type="number"], #talk-ai-admin textarea { width: 100%; max-width: 40em; }
+#talk-ai-admin .talk-ai-error { color: var(--color-error-text, var(--color-error)); }
+#talk-ai-admin .talk-ai-style { border: 1px solid var(--color-border); border-radius: var(--border-radius-large); padding: .5em 1em; margin: .5em 0; }
+#talk-ai-admin .talk-ai-table { border-collapse: collapse; margin: .5em 0 1.5em; width: 100%; }
+#talk-ai-admin .talk-ai-table th, #talk-ai-admin .talk-ai-table td { border-bottom: 1px solid var(--color-border); padding: .3em .5em; text-align: start; vertical-align: top; }
+#talk-ai-admin .talk-ai-table caption { text-align: start; font-weight: 600; }
+#talk-ai-admin pre { white-space: pre-wrap; font-size: .9em; }
