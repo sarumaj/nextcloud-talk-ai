@@ -18,7 +18,7 @@ class Application extends App implements IBootstrap {
 	public const APP_ID = 'talk_ai';
 	/** The bot's address for Talk: an app bot, called in-process (BotInvokeEvent). */
 	public const BOT_URL = 'nextcloudapp://' . self::APP_ID;
-	/** The name the bot has unless the app setting "name" says otherwise (set before installing). */
+	/** The bot's name when neither the app setting "name" nor the AI that answers gives one (see Service\Bot). */
 	public const DEFAULT_NAME = 'AI';
 
 	public function __construct(array $urlParams = []) {

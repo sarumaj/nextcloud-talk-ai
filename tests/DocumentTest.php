@@ -75,12 +75,21 @@ class DocumentTest extends TestCase {
 		$docx = $this->zip(['word/document.xml' => '<w:document><w:body><w:p><w:r><w:t>Hello</w:t></w:r><w:r><w:tab/><w:t xml:space="preserve"> world &amp; co</w:t></w:r></w:p><w:p><w:r><w:t>Second</w:t></w:r></w:p></w:body></w:document>']);
 		$this->assertSame("Hello\t world & co\nSecond", $extract->extract($docx, '', 'a.docx'));
 		$xlsx = $this->zip([
+			'xl/workbook.xml' => '<workbook><sheets><sheet name="Totals" sheetId="2" r:id="rId2"/><sheet name="People &amp; Co" sheetId="1" r:id="rId1"/></sheets></workbook>',
+			'xl/_rels/workbook.xml.rels' => '<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Target="/xl/worksheets/sheet2.xml"/></Relationships>',
 			'xl/sharedStrings.xml' => '<sst><si><t>Name</t></si><si><t>Ewa</t></si></sst>',
-			'xl/worksheets/sheet1.xml' => '<worksheet><sheetData><row><c r="A1" t="s"><v>0</v></c><c r="B1"><v>42</v></c></row><row><c t="s"><v>1</v></c><c t="inlineStr"><is><t>x</t></is></c></row></sheetData></worksheet>',
+			'xl/worksheets/sheet1.xml' => '<worksheet><sheetData><row><c r="A1" t="s"><v>0</v></c><c r="C1"><v>42</v></c></row><row><c t="s"><v>1</v></c><c t="inlineStr"><is><t>x</t></is></c></row></sheetData></worksheet>',
+			'xl/worksheets/sheet2.xml' => '<worksheet><sheetData><row><c r="B1"><f>SUM(A1:A2)</f><v>7</v></c></row></sheetData></worksheet>',
 		]);
-		$this->assertSame("# sheet1\nName\t42\nEwa\tx", $extract->extract($xlsx, '', 'a.xlsx'));
-		$pptx = $this->zip(['ppt/slides/slide2.xml' => '<p:sld><a:p><a:t>Two</a:t></a:p></p:sld>', 'ppt/slides/slide1.xml' => '<p:sld><a:p><a:t>One</a:t></a:p></p:sld>']);
-		$this->assertSame("# Slide 1\nOne\n\n# Slide 2\nTwo", $extract->extract($pptx, '', 'a.pptx'));
+		// In the workbook's order, with names; an empty cell (B1) keeps its column.
+		$this->assertSame("# Sheet: Totals\n\t7\n\n# Sheet: People & Co\nName\t\t42\nEwa\tx", $extract->extract($xlsx, '', 'a.xlsx'));
+		$pptx = $this->zip([
+			'ppt/slides/slide2.xml' => '<p:sld><a:p><a:t>Two</a:t></a:p></p:sld>',
+			'ppt/slides/slide1.xml' => '<p:sld><a:p><a:t>One</a:t></a:p></p:sld>',
+			'ppt/slides/_rels/slide1.xml.rels' => '<Relationships><Relationship Id="rId2" Target="../notesSlides/notesSlide7.xml"/></Relationships>',
+			'ppt/notesSlides/notesSlide7.xml' => '<p:notes><p:sp><p:nvSpPr><p:nvPr><p:ph type="sldImg"/></p:nvPr></p:nvSpPr></p:sp><p:sp><p:txBody><a:p><a:t>Say hello</a:t></a:p></p:txBody></p:sp><p:sp><p:nvSpPr><p:nvPr><p:ph type="sldNum"/></p:nvPr></p:nvSpPr><p:txBody><a:p><a:t>1</a:t></a:p></p:txBody></p:sp></p:notes>',
+		]);
+		$this->assertSame("# Slide 1\nOne\n\nNotes: Say hello\n\n# Slide 2\nTwo", $extract->extract($pptx, '', 'a.pptx'));
 		$this->assertSame("Title\nText & more", $extract->extract('<html><style>x{}</style><h1>Title</h1><p>Text &amp; more</p></html>', 'text/html', 'a.html'));
 		$this->assertSame('plain', $extract->extract('plain', 'text/plain', 'a.txt'));
 		$this->assertNull($extract->extract('%PDF-1.4', 'application/pdf', 'a.pdf'));

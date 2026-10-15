@@ -50,15 +50,15 @@ class Conversation {
 	 * The recent messages, oldest first, as the person sees them:
 	 * [{id, actor (name), bot (bool), text, files: [{id, name, mime, size}], replyTo}].
 	 *
-	 * @return list<array{id: int, actor: string, bot: bool, text: string, files: list<array{id: int, name: string, mime: string, size: int}>}>
+	 * @return list<array{id: int, actor: string, time: string, bot: bool, text: string, files: list<array{id: int, name: string, mime: string, size: int}>}>
 	 */
-	public function history(object $room, string $userId): array {
+	public function history(object $room, string $userId, int $limit = self::HISTORY): array {
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parser = Server::get('OCA\Talk\Chat\MessageParser');
 		$participant = Server::get('OCA\Talk\Service\ParticipantService')->getParticipant($room, $userId);
 		$l = $this->l10nFactory->get('spreed', $this->l10nFactory->getUserLanguage(Server::get(\OCP\IUserManager::class)->get($userId)));
 		$messages = [];
-		foreach ($chat->getHistory($room, 0, self::HISTORY, false) as $comment) {
+		foreach ($chat->getHistory($room, 0, $limit, false) as $comment) {
 			try {
 				$message = $parser->createMessage($room, $participant, $comment, $l);
 				$parser->parseMessage($message);
@@ -83,6 +83,7 @@ class Conversation {
 			$messages[] = [
 				'id' => (int)$comment->getId(),
 				'actor' => $message->getActorDisplayName(),
+				'time' => $comment->getCreationDateTime()->format('Y-m-d H:i'),
 				'bot' => $message->getActorType() === 'bots',
 				'text' => self::render($message->getMessage(), $parameters),
 				'files' => $files,

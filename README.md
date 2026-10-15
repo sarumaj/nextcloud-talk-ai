@@ -1,53 +1,83 @@
 # AI in Talk
 
-A bot for [Nextcloud Talk](https://apps.nextcloud.com/apps/spreed) that answers with AI. It
-reads the files you share in the conversation, searches the web, and sends files back, such as
-a PDF it wrote for you.
+A bot for [Nextcloud Talk](https://apps.nextcloud.com/apps/spreed) that answers with AI: an
+assistant for work and school in your conversations. It reads the files you share, writes
+documents, slides, spreadsheets and flash cards, does maths and cites sources.
 
-- **Reads what you share:** images, text, Markdown, CSV, Word, ODT, Excel, PowerPoint and PDF
-  files in the conversation.
-- **Finds your files** by name, when you ask about one.
-- **Sends files into the chat:** Markdown, text, CSV, HTML, JSON, ODT, or PDF.
-- **Searches the web**, when the AI connection can.
+- **Reads what you share:** Word, Excel (every sheet), PowerPoint (with speaker notes),
+  OpenDocument, old `.doc`/`.xls`/`.ppt`, PDF, Markdown, CSV and text, and images. Text in photos
+  and scanned PDFs is read with OCR. It also finds your files by name, reads web pages, and
+  reads further back in the conversation (summaries, minutes).
+- **Writes files into the chat:** PDF, Word, Excel (with formulas), PowerPoint (with speaker
+  notes), OpenDocument, Markdown, CSV, HTML.
+- **Learning:** summaries, quizzes, and flash cards, to print (question and answer side by side,
+  to fold) or to import into Anki or Quizlet.
+- **Maths:** solves step by step and calculates exactly (a calculator tool, not the model's
+  guess), with statistics and linear regression. Formulas in LaTeX become real formulas in
+  documents and readable Unicode in the chat (x², √, ∑). Graphs of functions and line, bar,
+  scatter and pie charts arrive as images.
+- **Sources:** searches the web, looks things up in Wikipedia and finds scholarly papers
+  (OpenAlex), and cites by DOI, ISBN or URL in APA, MLA, Chicago, Harvard, IEEE, Vancouver,
+  DIN 1505-2, ISO 690 or any CSL style, also as BibTeX or RIS.
+- **Subjects, computed rather than guessed:** chemistry (molar masses, balancing equations,
+  elements), physics (units and constants), biology (crosses with Punnett squares, DNA to
+  protein), statistics and probability (normal, binomial, Poisson), physical education
+  (heart-rate zones, pace, race times, BMI, calories), informatics (truth tables, encodings,
+  SQL on example tables), history (timelines), and mind maps for any topic.
+- **Art:** the palette of a painting or photo, colour harmonies, colour names (pigments too),
+  and help with exhibition texts and statements.
+- **Planning:** reads and adds events and tasks in your calendar, with reminders (exams,
+  deadlines, exhibitions, a study plan).
+- **Writing:** feedback as a document with marked corrections (deleted, inserted, highlighted).
 - **Uses your rights:** the bot sees only what the asking person may see, and the files it sends
   are saved in their folder for the conversation.
 
 It answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), your server's connection to
-an AI (Claude, Gemini, OpenAI-compatible, or their command line tools).
+an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is named after it:
+*Claude*, *Gemini*, *ChatGPT*, …
 
 ## Requirements
 
 - Nextcloud 32 to 36, with Talk 25 or later and AI-Hub set up (Admin settings → AI-Hub).
-- To read PDFs, `pdftotext` (Poppler, `apt install poppler-utils`) on the server.
-- To send PDFs, Collabora Online (Nextcloud Office): it converts the document the bot writes.
-- PHP with the `zip` extension.
+- For Word, Excel, PowerPoint and PDF files it writes, for charts, and to read old Office files:
+  Nextcloud Office (Collabora). Without it, it sends OpenDocument files and SVG charts.
+- To read PDFs, `pdftotext`; for scanned PDFs also `pdftoppm` (Poppler,
+  `apt install poppler-utils`).
+- For OCR, Tesseract with the languages you need (`apt install tesseract-ocr tesseract-ocr-deu`).
+- PHP with the `zip` extension. The web (links, citations) is reached through Nextcloud's HTTP
+  client.
 
 ## Installing
 
 1. Install **AI in Talk** from the app store (*Apps*, *Social & communication*). Or unpack a
    release's `talk_ai-X.Y.Z.tar.gz` into `custom_apps/` and run `occ app:enable talk_ai`.
    This installs the bot in Talk.
-2. In a conversation, open the conversation settings, then *Bots*, and enable **AI**.
+2. In a conversation, open the conversation settings, then *Bots*, and enable the bot.
 
-The bot's name is `AI`. For another name, set it before installing the app:
-`occ config:app:set talk_ai name --value Claude`.
+The bot takes the name of the AI that answers, as AI-Hub is set up for this app, and is renamed
+when that changes (within ten minutes, or at its next answer). For a fixed name:
+`occ config:app:set talk_ai name --value Assistant`.
 
 ## Using it
 
 - **In a conversation with only you,** the bot answers every message.
-- **With more people,** it answers when you name it (`@AI what does this say?`, or `AI, …` at
-  the start) or reply to one of its messages.
+- **With more people,** it answers when you name it (`@Claude what does this say?`, or
+  `Claude, …` at the start) or reply to one of its messages.
 - It reacts with 👀 at once, then answers in a few seconds to a minute.
 
 For example:
 
-- Share a PDF and ask "@AI summarize this".
-- "Make me a packing list for the trip as a PDF."
-- "What's the weather in Berlin this weekend?"
-- Share a photo of a receipt and ask "@AI what did we pay for the bread?"
-
-Images you shared since the bot last answered go with your question. Files shared earlier in
-the conversation, and your own files, the bot reads when it needs them.
+- Share a PDF and ask "@Claude summarize this for year 9".
+- "Make 20 flash cards about the French Revolution for Anki."
+- "Turn my notes into a presentation" (after sharing them), "as PowerPoint".
+- "Solve x² − 5x + 6 = 0 step by step and plot it."
+- "A budget for the class trip as an Excel file."
+- "Cite 10.1038/nature14539 in APA and as BibTeX."
+- "Balance KMnO4 + HCl → KCl + MnCl2 + H2O + Cl2."
+- Share a painting and ask "@Claude what is its palette, and what would complement it?"
+- "Put my maths exam on 12 November at 9:00 in my calendar, with a reminder the day before."
+- "A mind map of the causes of the First World War."
+- Share a photo of the blackboard and ask "@Claude what does it say?"
 
 ## How it works
 
@@ -59,17 +89,27 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   wait. When that fails, a background job answers instead.
 - **Answering:** `lib/Service/Reply.php` reads the conversation's recent messages through Talk's
   message parser, as the asking person sees them. It then asks AI-Hub, scenario `chat`, with
-  web search and four tools that run in PHP with that person's rights:
-    - `list_files` lists the files shared in the conversation;
-    - `read_file` reads one (`lib/Document/TextExtractor.php`);
-    - `find_files` finds the person's files by name;
-    - `send_file` writes Markdown, text, CSV, HTML or JSON as is, and ODT from Markdown
-      (`lib/Document/OdtWriter.php`). For a PDF it writes the ODT and converts it with
-      Nextcloud's file conversion (Collabora).
+  web search and tools that run in PHP with that person's rights:
+    - files: `list_files`, `read_file` (`lib/Document/TextExtractor.php`; old formats converted
+      by Collabora, OCR by Tesseract), `find_files`;
+    - writing: `send_file` (`lib/Document/OdtWriter.php`, `OdsWriter.php`, `OdpWriter.php`,
+      converted to Word, Excel, PowerPoint or PDF by Nextcloud's file conversion) and
+      `send_flashcards`;
+    - maths: `calculate` (`Calculator.php`, a parser, no code is run), `statistics`, `plot`
+      (`Chart.php`, SVG rendered to PNG by Collabora); LaTeX formulas become MathML formula
+      objects in documents and Unicode in the chat (`Math.php`);
+    - subjects: `convert_units` (`Units.php`), `chemistry` (`Chemistry.php`, balancing by the
+      exact null space), `biology`, `sport`, `informatics` (SQL in an in-memory SQLite without
+      files or recursion), `colors` (palettes by Imagick);
+    - planning: `calendar` (`lib/Service/Calendar.php`, through Nextcloud's calendar API);
+    - context and the web: `read_chat`, `read_url`, `lookup` and `cite` (`lib/Service/Web.php`;
+      Wikipedia, OpenAlex; DOIs are formatted by doi.org, books come from Open Library).
 - **Posting:** the bot's messages and files are posted as the bot, as Talk's bot API does. A
   file is saved in the person's folder for the conversation and sent as Talk's file message,
   as Talk 25's attachments are. If that folder doesn't exist yet, it's created and shared like
   for a first attachment, without Talk's "shared a folder" message.
+- **Name:** `lib/Service/Bot.php` installs the bot and renames it (Talk updates a bot installed
+  again with the same address and secret) when the AI or the setting changes.
 
 ## Developing
 

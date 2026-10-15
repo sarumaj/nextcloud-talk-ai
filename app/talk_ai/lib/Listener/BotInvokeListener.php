@@ -7,11 +7,11 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Listener;
 
 use OCA\TalkAi\AppInfo\Application;
+use OCA\TalkAi\Service\Bot;
 use OCA\TalkAi\Service\Conversation;
 use OCA\TalkAi\Service\Dispatcher;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
-use OCP\IAppConfig;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -19,7 +19,7 @@ use Psr\Log\LoggerInterface;
  * (BotInvokeEvent), while the message is still being posted: nothing slow
  * happens here. A message the bot answers gets 👀 at once and goes to the
  * Dispatcher. It answers people only, never bots, and in a conversation with one
- * person every message; with more, a message that names it ("@AI …", "AI, …") or
+ * person every message; with more, a message that names it ("@Claude …", "Claude, …") or
  * replies to it.
  *
  * @template-implements IEventListener<Event>
@@ -28,7 +28,7 @@ class BotInvokeListener implements IEventListener {
 	public function __construct(
 		private Dispatcher $dispatcher,
 		private Conversation $conversation,
-		private IAppConfig $appConfig,
+		private Bot $bot,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -65,7 +65,7 @@ class BotInvokeListener implements IEventListener {
 	}
 
 	private function name(): string {
-		return $this->appConfig->getValueString(Application::APP_ID, 'name', Application::DEFAULT_NAME) ?: Application::DEFAULT_NAME;
+		return $this->bot->name();
 	}
 
 	/** Whether the text addresses the bot by name: "@AI …", or "AI, …" / "AI: …" at its start. */

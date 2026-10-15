@@ -3,17 +3,21 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>talk_ai</id>
     <name>AI in Talk</name>
-    <summary>An AI bot for Talk that reads the files you share, searches the web and sends files back</summary>
-    <description><![CDATA[A bot for Nextcloud Talk that answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), the AI connection of your server.
+    <summary>An AI assistant in Talk for work and school: reads files, writes documents and flash cards, does maths, cites sources</summary>
+    <description><![CDATA[A bot for Nextcloud Talk that answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), the AI connection of your server. It is named after the AI that answers (Claude, Gemini, …).
 
-- **Reads what you share** in the conversation: images, text, Markdown, CSV, Word, ODT, Excel, PowerPoint and PDF files
-- **Finds your files** by name, when you ask about one
-- **Sends files back**: Markdown, text, CSV, HTML, ODT, or PDF (with Collabora)
-- **Searches the web**, when the AI connection can
+- **Reads what you share**: Word, Excel, PowerPoint (with speaker notes), OpenDocument, old .doc/.xls/.ppt, PDF, text, and images, with OCR for photos and scans
+- **Writes files into the chat**: PDF, Word, Excel (with formulas), PowerPoint, OpenDocument, Markdown, CSV
+- **Learning**: summaries, quizzes, and flash cards to print or to import into Anki or Quizlet
+- **Maths**: step by step, with exact calculation, formulas in documents, statistics, and graphs and charts as images
+- **Sources**: reads web pages, searches the web, Wikipedia and scholarly papers, and cites by DOI, ISBN or URL in APA, MLA, Chicago, Harvard, IEEE, DIN 1505-2 and other styles
+- **Subjects**: chemistry (molar masses, balancing equations), physics units and constants, genetics and DNA, probability, sport science, truth tables and SQL, timelines and mind maps
+- **Art**: the palette of a painting, colour harmonies and names
+- **Planning**: events, reminders and tasks in your calendar
 - Everything runs **with the asking person's rights**: the bot sees only what they may see
 
-Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@AI) or replied to.]]></description>
-    <version>0.1.0</version>
+Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@Claude) or replied to. Office formats need Nextcloud Office (Collabora); reading PDFs needs pdftotext, OCR needs Tesseract on the server.]]></description>
+    <version>0.2.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAi</namespace>
@@ -27,7 +31,13 @@ Enable the bot in a conversation (conversation settings, Bots). In a conversatio
         <lib>zip</lib>
         <nextcloud min-version="32" max-version="36"/>
     </dependencies>
+    <background-jobs>
+        <job>OCA\TalkAi\BackgroundJob\SyncName</job>
+    </background-jobs>
     <repair-steps>
+        <post-migration>
+            <step>OCA\TalkAi\Migration\InstallBot</step>
+        </post-migration>
         <install>
             <step>OCA\TalkAi\Migration\InstallBot</step>
         </install>

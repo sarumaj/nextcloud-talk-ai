@@ -47,6 +47,7 @@ class ProcessController extends Controller {
 		ignore_user_abort(true);
 		set_time_limit(0);
 		$this->reply->answer((string)$job['token'], (string)$job['userId'], (int)$job['messageId'], (string)$job['text']);
-		return new DataResponse([]);
+		// The Dispatcher's sign that the question was taken here.
+		return new DataResponse(['answered' => true]);
 	}
 }

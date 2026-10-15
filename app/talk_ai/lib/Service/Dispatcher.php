@@ -44,13 +44,19 @@ class Dispatcher {
 			'time' => $this->time->getTime(), 'nonce' => $this->random->generate(24, ISecureRandom::CHAR_ALPHANUMERIC),
 		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 		try {
-			$this->clientService->newClient()->post($this->urlGenerator->linkToRouteAbsolute(Application::APP_ID . '.process.run'), [
+			// The path itself: linkToRoute knows the app's routes only once they are loaded,
+			// and an unknown route gives the start page, which answers 200.
+			$response = $this->clientService->newClient()->post($this->urlGenerator->getAbsoluteURL('/index.php/apps/' . Application::APP_ID . '/process'), [
 				'headers' => ['Content-Type' => 'application/json', 'X-Talk-AI-Signature' => $this->sign($body)],
 				'body' => $body,
 				'timeout' => self::HANDOFF_TIMEOUT,
 				'connect_timeout' => 10,
 				'nextcloud' => ['allow_local_address' => true],
 			]);
+			// An answer within the wait is the route's own only if it says so.
+			if (!str_contains((string)$response->getBody(), '"answered":true')) {
+				throw new \RuntimeException('the process route did not take the question (HTTP ' . $response->getStatusCode() . ')');
+			}
 		} catch (\Throwable $e) {
 			if (self::stillWorking($e)) {
 				return;
