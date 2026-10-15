@@ -54,8 +54,20 @@ without new privileges, writable only `/work` (in memory) and `/tmp`, the CPU, m
 process and time limits; removed when the job ends or its time is up. It sees nothing of
 Nextcloud: the app copies the chosen files in and the result out.
 
-Without container runtime: not supported yet (the runner needs Docker or Podman); the
-bot then writes documents with its built-in writers.
+Without container runtime: `RUNNER_BACKEND=bwrap` runs each job with Bubblewrap
+(unprivileged user namespaces must be allowed) in a folder below `RUNNER_JOBS_DIR`,
+without network, with the skills read-only. Its root is `RUNNER_ROOTFS` (the sandbox
+image unpacked once, e.g. `podman export $(podman create talk-ai-sandbox) | tar -xC
+/var/lib/talk-ai-sandbox/rootfs`; then everything works) or the host's `/usr` and `/etc`
+(the host then needs the image's packages). Memory, processes and CPU time are limited
+by `prlimit`, the working space is checked after each command; CPUs are not limited and
+the isolation is weaker than a container's (no cgroups). Without either, the bot writes
+documents with its built-in writers.
+
+Package mirror (optional): give the job containers a network that reaches only your
+mirror (`RUNNER_NETWORK`, made by you, e.g. an internal Docker network with a proxy) and
+`RUNNER_PIP_INDEX_URL` / `RUNNER_NPM_REGISTRY`; the model may then install missing
+Python and Node packages from it. By default there is no network at all.
 
 ## Settings (Administration → Artificial intelligence → AI in Talk)
 

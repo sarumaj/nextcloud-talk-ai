@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- The document sandbox without a container runtime: the runner's Bubblewrap backend
+  (`RUNNER_BACKEND=bwrap`, with an unpacked image as root or the host's packages).
+- An optional package mirror for the sandbox (`RUNNER_NETWORK`, `RUNNER_PIP_INDEX_URL`,
+  `RUNNER_NPM_REGISTRY`).
+- An edited question is answered again, a deleted one takes its answer along.
+
+### Fixed
+- Tests and CI with Nextcloud 35 and later (`IUserFolder`, PHP 8.3).
+
 ## 0.5.0 – 2026-10
 
 ### Added

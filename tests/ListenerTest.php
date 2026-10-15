@@ -51,6 +51,8 @@ class ListenerTest extends TestCase {
 	private array $cancelled = [];
 	private array $feedback = [];
 	private int $people = 3;
+	private array $released = [];
+	private array $removed = [];
 
 	private function listener(): BotInvokeListener {
 		$dispatcher = $this->createMock(Dispatcher::class);
@@ -73,7 +75,19 @@ class ListenerTest extends TestCase {
 		$appConfig = $this->createMock(IAppConfig::class);
 		$appConfig->method('getValueString')->willReturnCallback(fn ($app, $key, $default = '') => $this->config[$key] ?? $default);
 		$switches = new Switches($appConfig, $jobs);
-		return new BotInvokeListener($dispatcher, $conversation, $bot, $jobs, $switches, $appConfig, new EnglishTexts(), new NullLogger());
+		$requests = $this->createMock(\OCA\TalkAi\Service\Requests::class);
+		$requests->method('answeredAt')->willReturnCallback(fn ($token, $id) => $id === 100 ? time() - 60 : 0);
+		$requests->method('release')->willReturnCallback(function ($token, $id) {
+			$this->released[] = $id;
+		});
+		$conversation->method('room')->willReturn(new \stdClass());
+		$conversation->method('editedMessage')->willReturnCallback(fn ($room, $system) => ['id' => 100, 'author' => 'users/ewa',
+			'text' => '{"message":"@Claude what about Tuesday?","parameters":[]}', 'time' => time() - 120]);
+		$conversation->method('removeBotReplies')->willReturnCallback(function ($room, $id) {
+			$this->removed[] = $id;
+			return 1;
+		});
+		return new BotInvokeListener($dispatcher, $conversation, $bot, $jobs, $switches, $appConfig, new EnglishTexts(), $requests, new NullLogger());
 	}
 
 	private static function message(string $text, string $actor = 'users/ewa', int $id = 100, array $extra = []): array {
@@ -152,5 +166,29 @@ class ListenerTest extends TestCase {
 			'target' => ['type' => 'Collection', 'id' => 'room1', 'name' => 'Family']];
 		$this->listener()->handle(new FakeBotEvent($reaction));
 		$this->assertSame([9], $this->cancelled);
+	}
+
+	private static function system(string $name, string $actor = 'users/ewa'): array {
+		return ['type' => 'Activity', 'actor' => ['type' => 'Person', 'id' => $actor, 'name' => 'Ewa'],
+			'object' => ['type' => 'Note', 'id' => '300', 'name' => $name, 'content' => '{"message":"","parameters":[]}', 'mediaType' => 'text/markdown'],
+			'target' => ['type' => 'Collection', 'id' => 'room1', 'name' => 'Family']];
+	}
+
+	public function testAnEditedQuestionIsAnsweredAgain(): void {
+		$this->listener()->handle(new FakeBotEvent(self::system('message_edited')));
+		$this->assertSame([100], $this->removed);
+		$this->assertSame([100], $this->released);
+		$this->assertSame(['room1', 'ewa', 100, '@Claude what about Tuesday?'], $this->dispatched[0]);
+	}
+
+	public function testOnlyTheAuthorsEditCounts(): void {
+		$this->listener()->handle(new FakeBotEvent(self::system('message_edited', 'users/maciej')));
+		$this->assertSame([], $this->dispatched);
+	}
+
+	public function testADeletedQuestionTakesItsAnswerAlong(): void {
+		$this->listener()->handle(new FakeBotEvent(self::system('message_deleted', 'users/maciej')));
+		$this->assertSame([100], $this->removed);
+		$this->assertSame([], $this->dispatched);
 	}
 }

@@ -12,6 +12,7 @@ use OCA\TalkAi\Service\Confirmations;
 use OCA\TalkAi\Service\Conversation;
 use OCA\TalkAi\Service\Dispatcher;
 use OCA\TalkAi\Service\Jobs;
+use OCA\TalkAi\Service\Requests;
 use OCA\TalkAi\Service\Switches;
 use OCA\TalkAi\Service\Texts;
 use OCP\EventDispatcher\Event;
@@ -31,7 +32,8 @@ use Psr\Log\LoggerInterface;
  * also takes "stop" for the person's running document job.
  *
  * Reactions: ❌ ✋ 🛑 on a job's status message cancel the job; 👍 👎 on a delivered
- * document are kept as feedback.
+ * document are kept as feedback. Edits and deletions of a message it answered: see
+ * changed().
  *
  * @template-implements IEventListener<Event>
  */
@@ -47,6 +49,7 @@ class BotInvokeListener implements IEventListener {
 		private Switches $switches,
 		private IAppConfig $appConfig,
 		private Texts $texts,
+		private Requests $requests,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -61,6 +64,7 @@ class BotInvokeListener implements IEventListener {
 			match ($activity['type'] ?? '') {
 				'Create' => $this->message($event, $activity),
 				'Like' => $this->reaction($activity),
+				'Activity' => $this->changed($activity),
 				default => null,
 			};
 		} catch (\Throwable $e) {
@@ -117,6 +121,39 @@ class BotInvokeListener implements IEventListener {
 		}
 		$event->addReaction('👀');
 		$this->dispatcher->dispatch($token, $userId, $messageId, $text);
+	}
+
+	/**
+	 * A message the bot answered was edited (within an hour, by its author): the
+	 * answer goes and the new text is answered. Deleted: the answer goes too.
+	 */
+	private function changed(array $activity): void {
+		$kind = (string)($activity['object']['name'] ?? '');
+		if (!in_array($kind, ['message_edited', 'message_deleted'], true)) {
+			return;
+		}
+		$token = (string)($activity['target']['id'] ?? '');
+		$actor = (string)($activity['actor']['id'] ?? '');
+		$room = $this->conversation->room($token);
+		$target = $this->conversation->editedMessage($room, (int)($activity['object']['id'] ?? 0));
+		if ($target === null || $this->requests->answeredAt($token, $target['id']) === 0) {
+			return;
+		}
+		if ($kind === 'message_deleted') {
+			$this->conversation->removeBotReplies($room, $target['id']);
+			return;
+		}
+		if ($target['author'] !== $actor || time() - $target['time'] > 3600) {
+			return;
+		}
+		$userId = self::userOf($actor);
+		$text = self::plainText($target['text']);
+		if ($userId === '' || trim($text) === '' || $this->switches->off($token, $userId) !== '') {
+			return;
+		}
+		$this->conversation->removeBotReplies($room, $target['id']);
+		$this->requests->release($token, $target['id']);
+		$this->dispatcher->dispatch($token, $userId, $target['id'], $text);
 	}
 
 	/** A reaction: cancel by ❌ on a status message, feedback by 👍 or 👎 on a delivered document. */

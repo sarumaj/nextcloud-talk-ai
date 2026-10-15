@@ -116,6 +116,50 @@ class Conversation {
 		return $chat->sendMessage($room, null, 'bots', Application::botActorId(), $text, new \DateTime(), $parent, '', false, false);
 	}
 
+	/**
+	 * The message a system message is about (an edit or a deletion: its "message"
+	 * parameter), with its author and current text; null if gone.
+	 *
+	 * @return array{id: int, author: string, text: string, time: int}|null
+	 */
+	public function editedMessage(object $room, int $systemMessageId): ?array {
+		$system = $this->comment($room, $systemMessageId);
+		$data = $system === null ? null : json_decode($system->getMessage(), true);
+		$id = (int)($data['parameters']['message'] ?? 0);
+		$target = $id > 0 ? $this->comment($room, $id) : null;
+		if ($target === null) {
+			return $id > 0 ? ['id' => $id, 'author' => '', 'text' => '', 'time' => 0] : null;
+		}
+		return ['id' => $id, 'author' => $target->getActorType() . '/' . $target->getActorId(), 'text' => $target->getMessage(),
+			'time' => $target->getCreationDateTime()->getTimestamp()];
+	}
+
+	/** Removes what the bot posted in reply to a message (its answer, pictures, files); how many. */
+	public function removeBotReplies(object $room, int $messageId): int {
+		$chat = Server::get('OCA\Talk\Chat\ChatManager');
+		$removed = 0;
+		foreach ($chat->getHistory($room, 0, 100, false) as $comment) {
+			if ($comment->getActorType() === 'bots' && $comment->getActorId() === Application::botActorId()
+				&& (int)$comment->getParentId() === $messageId && $comment->getVerb() !== 'comment_deleted') {
+				try {
+					$chat->deleteMessage($room, $comment, $this->botParticipant($room), new \DateTime());
+					$removed++;
+				} catch (\Throwable $e) {
+					$this->logger->info('AI bot: an answer could not be removed: ' . $e->getMessage());
+				}
+			}
+		}
+		return $removed;
+	}
+
+	private function botParticipant(object $room): object {
+		$attendee = new \OCA\Talk\Model\Attendee();
+		$attendee->setActorType('bots');
+		$attendee->setActorId(Application::botActorId());
+		$attendee->setRoomId($room->getId());
+		return new \OCA\Talk\Participant($room, $attendee, null);
+	}
+
 	/** Changes a message the bot posted (a status that moves on); false when Talk refuses. */
 	public function editText(object $room, object $comment, string $text): bool {
 		try {

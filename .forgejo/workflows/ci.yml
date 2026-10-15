@@ -45,6 +45,8 @@ jobs:
       - name: Run the tests against Nextcloud's API (${{ matrix.ocp }})
         run: |
           composer install -q --no-interaction --no-progress
+          # Newer Nextcloud needs a newer PHP than the lowest one composer.json resolves for.
+          composer config --unset platform.php
           composer require -q --dev --no-interaction -W "nextcloud/ocp:${{ matrix.ocp }}"
           vendor/bin/phpunit
 

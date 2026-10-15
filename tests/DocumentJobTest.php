@@ -193,7 +193,8 @@ class DocumentJobTest extends TestCase {
 		$config->method('getUserValue')->willReturn('en');
 		$root = $this->createMock(IRootFolder::class);
 		if ($files) {
-			$folder = $this->createMock(Folder::class);
+			// Newer Nextcloud returns IUserFolder (a Folder) from getUserFolder().
+			$folder = $this->createMock(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
 			$folder->method('nodeExists')->willReturn(false);
 			$folder->method('newFolder')->willReturn($folder);
 			$folder->method('getDirectoryListing')->willReturn([]);

@@ -45,6 +45,25 @@ class Requests {
 		}
 	}
 
+	/** When a message was answered ('' if never). */
+	public function answeredAt(string $token, int $messageId): int {
+		$qb = $this->db->getQueryBuilder();
+		$row = $qb->select('created_at')->from('talk_ai_requests')
+			->where($qb->expr()->eq('token', $qb->createNamedParameter($token)))
+			->andWhere($qb->expr()->eq('message_id', $qb->createNamedParameter($messageId, IQueryBuilder::PARAM_INT)))
+			->executeQuery()->fetch();
+		return $row === false ? 0 : (int)$row['created_at'];
+	}
+
+	/** Frees a message to be answered again (after it was edited). */
+	public function release(string $token, int $messageId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete('talk_ai_requests')
+			->where($qb->expr()->eq('token', $qb->createNamedParameter($token)))
+			->andWhere($qb->expr()->eq('message_id', $qb->createNamedParameter($messageId, IQueryBuilder::PARAM_INT)))
+			->executeStatement();
+	}
+
 	/** The outcome of an answer. */
 	public function done(string $requestId, string $status, string $model, int $tokensIn, int $tokensOut, int $ms, array $tools, string $error = ''): void {
 		$qb = $this->db->getQueryBuilder();
