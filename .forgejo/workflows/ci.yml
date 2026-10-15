@@ -76,6 +76,9 @@ jobs:
       - name: Build the sandbox image
         run: docker build -t talk-ai-sandbox:ci sandbox/
 
+      - name: Build the External App's image
+        run: docker build --build-arg BASE=talk-ai-sandbox:ci -t talk-ai-sandbox-exapp:ci -f sandbox/exapp/Dockerfile .
+
       - name: Run the document golden set
         run: tests/golden/run.sh talk-ai-sandbox:ci
 

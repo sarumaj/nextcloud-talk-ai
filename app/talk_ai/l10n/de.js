@@ -204,6 +204,7 @@ OC.L10N.register(
         "Already gone: %s": "Schon nicht mehr da: %s",
         "Nothing to undo: only the assistant's changes of the last 24 hours can be undone.": "Nichts rückgängig zu machen: nur Änderungen des Assistenten der letzten 24 Stunden lassen sich zurücknehmen.",
         "Done.": "Erledigt.",
-        "Make a to-do list from this conversation: task, who, by when.": "Mach aus dieser Unterhaltung eine To-do-Liste: Aufgabe, wer, bis wann."
+        "Make a to-do list from this conversation: task, who, by when.": "Mach aus dieser Unterhaltung eine To-do-Liste: Aufgabe, wer, bis wann.",
+        "/summary, /todo, /event, /minutes · \"stop\" · \"undo\"": "/zusammenfassen, /todo, /termin, /protokoll · „stop“ · „rückgängig“"
     },
 "nplurals=2; plural=(n != 1);");

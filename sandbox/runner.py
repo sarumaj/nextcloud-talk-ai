@@ -22,6 +22,13 @@ Configuration by environment: RUNNER_SOCKET, RUNNER_TOKEN_FILE, RUNNER_IMAGE,
 RUNNER_SKILLS, RUNNER_MAX_JOBS, RUNNER_MAX_SECONDS, RUNNER_CPUS, RUNNER_MEMORY_MB,
 RUNNER_DISK_MB, DOCKER (the client binary, docker or podman).
 
+Inside an ExApp (AppAPI, sandbox/exapp/): RUNNER_BACKEND=process. A container
+there may not use Docker or namespaces, so each job runs as a user ID of its own
+(setpriv, no capabilities, no new privileges) under a seccomp filter that refuses
+network sockets, ptrace, mount and namespaces (exapp/jobexec.py), with the limits
+above, in /work; one job at a time. The runner then speaks HTTP for AppAPI instead
+of the socket protocol (RUNNER_HTTP=1, set by the ExApp's start script).
+
 Package mirror (optional): RUNNER_NETWORK, a network for the job containers that
 reaches only the mirror (made by the administrator; default "none": no network), and
 RUNNER_PIP_INDEX_URL / RUNNER_NPM_REGISTRY, given to pip and npm in the container.
@@ -37,6 +44,8 @@ limited there (less isolation than a container: no cgroups, and the host's kerne
 
 import base64
 import hmac
+import http.server
+import urllib.request
 import json
 import os
 import posixpath
@@ -49,7 +58,8 @@ import threading
 import time
 
 SOCKET = os.environ.get("RUNNER_SOCKET", "/var/lib/talk-ai-sandbox/run/runner.sock")
-TOKEN = open(os.environ.get("RUNNER_TOKEN_FILE", "/var/lib/talk-ai-sandbox/token")).read().strip()
+TOKEN_FILE = os.environ.get("RUNNER_TOKEN_FILE", "/var/lib/talk-ai-sandbox/token")
+TOKEN = open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else ""
 IMAGE = os.environ.get("RUNNER_IMAGE", "talk-ai-sandbox:latest")
 SKILLS = os.environ.get("RUNNER_SKILLS", "/var/lib/talk-ai-sandbox/skills")
 MAX_JOBS = int(os.environ.get("RUNNER_MAX_JOBS", "3"))
@@ -64,6 +74,9 @@ NPM_REGISTRY = os.environ.get("RUNNER_NPM_REGISTRY", "")
 BACKEND = os.environ.get("RUNNER_BACKEND", "docker")
 JOBS_DIR = os.environ.get("RUNNER_JOBS_DIR", "/var/lib/talk-ai-sandbox/jobs")
 ROOTFS = os.environ.get("RUNNER_ROOTFS", "")
+JOBEXEC = os.environ.get("RUNNER_JOBEXEC", "/opt/exapp/jobexec.py")
+if BACKEND == "process":
+    MAX_JOBS = 1  # one /work, one job
 OUTPUT_LIMIT = 30 * 1024
 FILE_LIMIT = 25 * 1024 * 1024
 
@@ -103,7 +116,7 @@ def create(req):
     disk = min(int(req.get("disk_mb", DISK_MB)), DISK_MB)
     with lock:
         jobs[job].update({"memory": memory, "disk": disk})
-    if BACKEND == "bwrap":
+    if BACKEND in ("bwrap", "process"):
         return bw_create(job)
     env = []
     if PIP_INDEX:
@@ -132,7 +145,7 @@ def create(req):
 
 
 def run_exec(req):
-    if BACKEND == "bwrap":
+    if BACKEND in ("bwrap", "process"):
         return bw_exec(req)
     name = container(req["job"])
     timeout = max(1, min(int(req.get("timeout", 120)), 600))
@@ -151,7 +164,7 @@ def run_exec(req):
 
 
 def put(req):
-    if BACKEND == "bwrap":
+    if BACKEND in ("bwrap", "process"):
         return bw_put(req)
     name = container(req["job"])
     path = work_path(req["path"])
@@ -165,7 +178,7 @@ def put(req):
 
 
 def get(req):
-    if BACKEND == "bwrap":
+    if BACKEND in ("bwrap", "process"):
         return bw_get(req)
     name = container(req["job"])
     path = work_path(req["path"])
@@ -181,7 +194,7 @@ def get(req):
 
 
 def listing(req):
-    if BACKEND == "bwrap":
+    if BACKEND in ("bwrap", "process"):
         return bw_list(req)
     name = container(req["job"])
     path = work_path(req.get("path", "."))
@@ -198,7 +211,11 @@ def delete(req):
     with lock:
         entry = jobs.pop(req["job"], None)
     if entry is not None:
-        if BACKEND == "bwrap":
+        if BACKEND == "process":
+            uid = str(entry["uid"])
+            subprocess.run(["pkill", "-KILL", "-U", uid])
+            subprocess.run(["sh", "-c", 'rm -rf /work/* /work/.[!.]* 2>/dev/null; find /tmp /var/tmp /dev/shm -xdev -user "$1" -delete 2>/dev/null', "sh", uid])
+        elif BACKEND == "bwrap":
             subprocess.run(["rm", "-rf", "--one-file-system", os.path.join(JOBS_DIR, req["job"])])
         else:
             docker("rm", "--force", entry["container"])
@@ -208,7 +225,7 @@ def delete(req):
 def health(_req):
     with lock:
         count = len(jobs)
-    return {"ok": True, "jobs": count, "max_jobs": MAX_JOBS, "image": IMAGE if BACKEND == "docker" else "bwrap:" + (ROOTFS or "host"),
+    return {"ok": True, "jobs": count, "max_jobs": MAX_JOBS, "image": IMAGE if BACKEND == "docker" else BACKEND + ":" + (ROOTFS or "host"),
             "max_seconds": MAX_SECONDS, "backend": BACKEND, "network": NETWORK if BACKEND == "docker" else "none"}
 
 
@@ -216,7 +233,7 @@ def health(_req):
 
 def bw_dir(job):
     container(job)  # the job must exist
-    return os.path.join(JOBS_DIR, job)
+    return "/work" if BACKEND == "process" else os.path.join(JOBS_DIR, job)
 
 
 def bw_host(path):
@@ -225,9 +242,19 @@ def bw_host(path):
 
 
 def bw_create(job):
-    root = os.path.join(JOBS_DIR, job)
-    for sub in ("", ".home", "input", "output"):
+    root = bw_dir(job)
+    uid = None
+    if BACKEND == "process":
+        # The image's unprivileged user (LibreOffice needs one with a home); one job at a time, and what a
+        # job leaves (processes, files in /tmp) is removed before the next one starts.
+        uid = 10001
+        with lock:
+            jobs[job]["uid"] = uid
+        subprocess.run(["sh", "-c", "rm -rf /work/* /work/.[!.]* 2>/dev/null"])
+    for sub in ("", ".home", ".tmp", "input", "output"):
         os.makedirs(os.path.join(root, sub), mode=0o700, exist_ok=True)
+        if uid is not None:
+            os.chown(os.path.join(root, sub), uid, uid)
     return {"job": job}
 
 
@@ -248,17 +275,32 @@ def bw_command(job, command, timeout):
             "bash", "-lc", command]
 
 
+def process_command(job, command, timeout):
+    """A job's command as its own user, without capabilities, under the seccomp filter (no network)."""
+    with lock:
+        entry = jobs[job]
+    uid = str(entry["uid"])
+    return ["prlimit", "--as=%d" % (entry["memory"] * 1024 * 1024 * 4), "--nproc=256", "--cpu=%d" % (timeout * 2), "--",
+            "timeout", "--kill-after=5", str(timeout),
+            "setpriv", "--reuid", uid, "--regid", uid, "--clear-groups", "--inh-caps=-all", "--bounding-set=-all", "--no-new-privs", "--",
+            "env", "-i", "HOME=/work/.home", "TMPDIR=/work/.tmp", "PATH=/opt/venv/bin:/usr/local/bin:/usr/bin:/bin",
+            "NODE_PATH=/opt/node/node_modules", "LANG=C.UTF-8", "LC_ALL=C.UTF-8",
+            "/usr/bin/python3", "-I", JOBEXEC, "bash", "-lc", command]
+
+
 def bw_exec(req):
     job = req["job"]
     bw_dir(job)
     timeout = max(1, min(int(req.get("timeout", 120)), 600))
+    argv = process_command(job, req["command"], timeout) if BACKEND == "process" else bw_command(job, req["command"], timeout)
     try:
-        done = subprocess.run(bw_command(job, req["command"], timeout), capture_output=True, timeout=timeout + 15)
+        done = subprocess.run(argv, capture_output=True, timeout=timeout + 15, cwd="/work" if BACKEND == "process" else None)
     except subprocess.TimeoutExpired:
         return {"exit_code": 124, "stdout": "", "stderr": "timed out", "truncated": False, "timed_out": True}
     out, err = done.stdout, done.stderr
     # The working space: over its size, the job's newest files are what broke it; it ends.
-    used = int(subprocess.run(["du", "-sm", os.path.join(JOBS_DIR, job)], capture_output=True, text=True).stdout.split()[0] or 0)
+    du = subprocess.run(["du", "-sm", bw_dir(job)], capture_output=True, text=True).stdout.split()
+    used = int(du[0]) if du and du[0].isdigit() else 0
     with lock:
         limit = jobs.get(job, {}).get("disk", DISK_MB)
     if used > limit:
@@ -281,6 +323,15 @@ def bw_put(req):
         raise ValueError("paths must stay inside /work")
     with open(target, "wb") as f:
         f.write(data)
+    if BACKEND == "process":
+        with lock:
+            uid = jobs[req["job"]]["uid"]
+        base = os.path.realpath(bw_dir(req["job"]))
+        folder = os.path.dirname(os.path.realpath(target))
+        while folder.startswith(base):
+            os.chown(folder, uid, uid)
+            folder = os.path.dirname(folder)
+        os.chown(target, uid, uid)
     return {"ok": True}
 
 
@@ -334,7 +385,9 @@ class Server(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
 
 def reaper():
     """Removes jobs past their time, and leftover containers or job folders of an earlier run."""
-    if BACKEND == "bwrap":
+    if BACKEND == "process":
+        subprocess.run(["sh", "-c", "rm -rf /work/* /work/.[!.]* 2>/dev/null"])
+    elif BACKEND == "bwrap":
         os.makedirs(JOBS_DIR, mode=0o700, exist_ok=True)
         for leftover in os.listdir(JOBS_DIR):
             subprocess.run(["rm", "-rf", "--one-file-system", os.path.join(JOBS_DIR, leftover)])
@@ -352,7 +405,101 @@ def reaper():
             delete({"job": job})
 
 
+class ExAppHandler(http.server.BaseHTTPRequestHandler):
+    """The runner for AppAPI: heartbeat, init, enabled, and the operations at /op (JSON), each
+    request signed by AppAPI with the ExApp's secret."""
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, fmt, *args):
+        pass
+
+    def address_string(self):
+        return "harp"
+
+    def reply(self, code, body):
+        data = json.dumps(body).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def authorized(self):
+        try:
+            secret = base64.b64decode(self.headers.get("AUTHORIZATION-APP-API", "")).decode().split(":", 1)[1]
+        except Exception:
+            return False
+        return hmac.compare_digest(secret, os.environ.get("APP_SECRET", "")) and self.headers.get("EX-APP-ID") == os.environ.get("APP_ID")
+
+    def do_GET(self):
+        if self.path.startswith("/heartbeat"):
+            return self.reply(200, {"status": "ok"})
+        self.reply(404, {"error": "not found"})
+
+    def do_PUT(self):
+        if not self.authorized():
+            return self.reply(401, {"error": "unauthorized"})
+        if self.path.startswith("/enabled"):
+            return self.reply(200, {"error": ""})
+        self.reply(404, {"error": "not found"})
+
+    def do_POST(self):
+        if not self.authorized():
+            return self.reply(401, {"error": "unauthorized"})
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b"{}"
+        if self.path.startswith("/init"):
+            threading.Thread(target=report_init, daemon=True).start()
+            return self.reply(200, {})
+        if self.path.startswith("/op"):
+            try:
+                req = json.loads(body)
+                answer = OPERATIONS[req["op"]](req)
+            except Exception as e:
+                answer = {"error": "%s: %s" % (type(e).__name__, e)}
+            return self.reply(200, answer)
+        self.reply(404, {"error": "not found"})
+
+
+def report_init():
+    """Tells AppAPI the ExApp is ready (it has nothing to download)."""
+    url = os.environ.get("NEXTCLOUD_URL", "").rstrip("/") + "/ocs/v1.php/apps/app_api/ex-app/status"
+    request = urllib.request.Request(url, data=json.dumps({"progress": 100}).encode(), method="PUT", headers={
+        "Content-Type": "application/json", "OCS-APIRequest": "true", "AA-VERSION": os.environ.get("AA_VERSION", "2.0.0"),
+        "EX-APP-ID": os.environ.get("APP_ID", ""), "EX-APP-VERSION": os.environ.get("APP_VERSION", ""),
+        "AUTHORIZATION-APP-API": base64.b64encode((":" + os.environ.get("APP_SECRET", "")).encode()).decode()})
+    try:
+        urllib.request.urlopen(request, timeout=30)
+    except Exception as e:
+        print("init report failed: %s" % e, flush=True)
+
+
+class UnixHTTPServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
+    daemon_threads = True
+
+    def get_request(self):
+        request, _ = super().get_request()
+        return request, ("harp", 0)
+
+
+def serve_http():
+    """Under HaRP on a unix socket (frpc tunnels it), else on APP_HOST:APP_PORT."""
+    threading.Thread(target=reaper, daemon=True).start()
+    if os.environ.get("HP_SHARED_KEY"):
+        path = os.environ.get("HP_EXAPP_SOCK", "/tmp/exapp.sock")
+        if os.path.exists(path):
+            os.unlink(path)
+        server = UnixHTTPServer(path, ExAppHandler)
+        print("listening on %s for AppAPI (HaRP), backend %s" % (path, BACKEND), flush=True)
+    else:
+        server = http.server.ThreadingHTTPServer((os.environ.get("APP_HOST", "127.0.0.1"), int(os.environ.get("APP_PORT", "23000"))), ExAppHandler)
+        print("listening on %s:%s for AppAPI, backend %s" % (os.environ.get("APP_HOST"), os.environ.get("APP_PORT"), BACKEND), flush=True)
+    server.serve_forever()
+
+
 def main():
+    if os.environ.get("RUNNER_HTTP") == "1":
+        return serve_http()
     if os.path.exists(SOCKET):
         os.unlink(SOCKET)
     threading.Thread(target=reaper, daemon=True).start()

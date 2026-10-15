@@ -90,6 +90,8 @@ class FakeSandbox extends Sandbox {
 class FakeHub {
 	public array $scenarios = [];
 	public array $asks = [];
+	/** @var list<string> errors to answer with first, one per question */
+	public array $errors = [];
 
 	/** @param list<callable(array $tools): string> $segments */
 	public function __construct(public array $segments, public bool $toolsWork = true, public bool $images = true) {
@@ -112,6 +114,9 @@ class FakeHub {
 			return ['state' => 'done', 'text' => 'done'];
 		}
 		$this->asks[] = ['messages' => $messages, 'options' => $options];
+		if ($this->errors !== []) {
+			return ['state' => 'error', 'error' => array_shift($this->errors)];
+		}
 		$segment = array_shift($this->segments);
 		$call = fn (string $name, array $args) => ($tools[$name]['run'])($user, $args);
 		return ['state' => 'done', 'text' => $segment === null ? 'nothing to do' : $segment($call)];
@@ -120,6 +125,13 @@ class FakeHub {
 
 class TestDocumentJob extends DocumentJob {
 	public ?object $fakeHub = null;
+	public bool $noSleep = false;
+
+	protected function pause(int $seconds): void {
+		if (!$this->noSleep) {
+			parent::pause($seconds);
+		}
+	}
 
 	protected function hub(): ?object {
 		return $this->fakeHub;
@@ -304,6 +316,27 @@ class DocumentJobTest extends TestCase {
 		$this->assertContains('python3 build.py', $this->sandbox->commands);
 		$this->assertStringContainsString('came as plain text', $hub->asks[1]['messages'][2]['text']);
 		$this->assertSame('done', $this->row['status']);
+	}
+
+	public function testAModelThatDoesNotAnswerInTimeIsAskedAgain(): void {
+		$hub = new FakeHub([
+			function ($call) {
+				$this->sandbox->files['/work/output/x.docx'] = 'DOCX';
+				$call('render_document', ['path' => '/work/output/x.docx']);
+				return 'Looking.';
+			},
+			function ($call) {
+				$call('deliver_file', ['path' => '/work/output/x.docx']);
+				$call('finish', ['summary' => 'ok']);
+				return 'Done.';
+			},
+		]);
+		$hub->errors = ['The command line tool did not answer in time.'];
+		$job = $this->job($hub);
+		$job->noSleep = true;
+		$job->run(7);
+		$this->assertSame('done', $this->row['status']);
+		$this->assertCount(3, $hub->asks);
 	}
 
 	public function testRefusesAnEngineWithoutTools(): void {

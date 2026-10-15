@@ -204,6 +204,7 @@ OC.L10N.register(
         "Already gone: %s": "Już tego nie ma: %s",
         "Nothing to undo: only the assistant's changes of the last 24 hours can be undone.": "Nie ma czego cofać: cofnąć można tylko zmiany asystenta z ostatnich 24 godzin.",
         "Done.": "Gotowe.",
-        "Make a to-do list from this conversation: task, who, by when.": "Zrób z tej rozmowy listę zadań: zadanie, kto, do kiedy."
+        "Make a to-do list from this conversation: task, who, by when.": "Zrób z tej rozmowy listę zadań: zadanie, kto, do kiedy.",
+        "/summary, /todo, /event, /minutes · \"stop\" · \"undo\"": "/podsumuj, /zadania, /spotkanie, /protokol · „stop” · „cofnij”"
     },
 "nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);");

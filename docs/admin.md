@@ -54,6 +54,17 @@ without new privileges, writable only `/work` (in memory) and `/tmp`, the CPU, m
 process and time limits; removed when the job ends or its time is up. It sees nothing of
 Nextcloud: the app copies the chosen files in and the result out.
 
+As an External App (no runner of your own): install **talk_ai_sandbox** with AppAPI
+(Administration → External Apps, or `occ app_api:app:register talk_ai_sandbox <daemon>
+--info-xml https://git.ciepiela.org/dawid/nextcloud-talk-ai/raw/branch/main/sandbox/exapp/appinfo/info.xml`).
+AI in Talk uses it by itself when no runner socket is set (`sandbox_exapp` names
+another ExApp, empty switches this off). An ExApp's container may neither start
+containers nor use namespaces, so each job runs there as an unprivileged user without
+capabilities under a seccomp filter that refuses network sockets, ptrace, mount and
+namespaces, with limits for memory, processes, time and space, one job at a time:
+weaker isolation than a container per job, which is why the runner of your own comes
+first when both exist.
+
 Without container runtime: `RUNNER_BACKEND=bwrap` runs each job with Bubblewrap
 (unprivileged user namespaces must be allowed) in a folder below `RUNNER_JOBS_DIR`,
 without network, with the skills read-only. Its root is `RUNNER_ROOTFS` (the sandbox

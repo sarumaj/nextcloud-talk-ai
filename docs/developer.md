@@ -15,7 +15,10 @@
   - `lib/Service/Capabilities.php`, `Policy.php`, `Switches.php`, `Confirmations.php`,
     `Texts.php`, `Health.php`, `Settings.php`, `Golden.php`.
   - `lib/Document/`: the built-in writers and readers, maths and subject tools.
-- `sandbox/`: the image (`Dockerfile`) and the runner (`runner.py`).
+- `sandbox/`: the image (`Dockerfile`) and the runner (`runner.py`: backends docker,
+  bwrap and process; the socket protocol, or HTTP for AppAPI); `sandbox/exapp/` the
+  External App (Dockerfile, start, HaRP tunnel, the seccomp wrapper `jobexec.py`,
+  `appinfo/info.xml`).
 - `skills/`: the guides and scripts for the model, mounted read-only at `/skills`.
 - `tests/`: PHPUnit (no Nextcloud, no network: a fake AI-Hub replays tool calls, a fake
   sandbox answers like the real one, Talk's events come as fixtures),

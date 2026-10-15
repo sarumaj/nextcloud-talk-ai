@@ -54,6 +54,13 @@ It answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), your server
 an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is named after it:
 *Claude*, *Gemini*, *ChatGPT*, …
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Help](screenshots/1-help.png) | ![A letter from the document workshop, with its preview](screenshots/2-document-workshop.png) |
+| ![Exact maths and a calendar entry to confirm](screenshots/3-maths-and-calendar.png) | ![Administration](screenshots/4-administration.png) |
+
 ## Requirements
 
 - Nextcloud 32 to 36, with Talk 25 or later and AI-Hub set up (Admin settings → AI-Hub).

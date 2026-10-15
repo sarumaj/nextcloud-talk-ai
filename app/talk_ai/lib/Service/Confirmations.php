@@ -29,8 +29,8 @@ class Confirmations {
 		$this->appConfig->setValueString(Application::APP_ID, self::key($token, $userId), json_encode([
 			'tool' => $tool, 'args' => $args, 'summary' => $summary, 'expires' => $this->time->getTime() + self::VALID,
 		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), lazy: true);
-		return 'Not done yet: this needs the person\'s confirmation. Ask them in one short question whether to do it ("' . $summary
-			. '"), in their language, and say they can answer yes or no. Do not call the tool again; their yes runs it.';
+		return 'Not done yet: this needs the person\'s confirmation. Ask them in one short question, in the language of their message, whether to do it ("' . $summary
+			. '"), and say they can answer yes or no (in that language). Do not call the tool again; their yes runs it.';
 	}
 
 	/**

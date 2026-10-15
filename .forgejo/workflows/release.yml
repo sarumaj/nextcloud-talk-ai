@@ -88,13 +88,14 @@ jobs:
           cat /tmp/answer; echo
           case $(cat /tmp/status) in 200|201) echo "Published $VERSION";; *) exit 1;; esac
 
-  # The document sandbox's image in the registry beside the code (N-08):
-  # <registry>/<owner>/talk-ai-sandbox:X.Y.Z and :latest. Secret REGISTRY_TOKEN: a token
-  # with package write access; without it the image is not published (servers build it
-  # from sandbox/ themselves).
+  # The document sandbox's images in the registry beside the code (N-08):
+  # <registry>/<owner>/talk-ai-sandbox:X.Y.Z (for the runner) and
+  # <registry>/<owner>/talk-ai-sandbox-exapp:X.Y.Z (the External App, which AppAPI
+  # pulls), each also :latest. Pushed with REGISTRY_TOKEN when set, else with the job's
+  # own token, which may publish the owner's packages.
   sandbox-image:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       TAG: ${{ github.ref_name }}
     steps:
@@ -104,13 +105,23 @@ jobs:
           git fetch -q --depth 1 origin "${{ github.sha }}"
           git checkout -q FETCH_HEAD
 
-      - name: Build and push the image
+      - name: Build the images
+        run: |
+          docker build -t talk-ai-sandbox:build sandbox/
+          docker build --build-arg BASE=talk-ai-sandbox:build -t talk-ai-sandbox-exapp:build -f sandbox/exapp/Dockerfile .
+
+      - name: Push the images
         env:
           REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$REGISTRY_TOKEN" ]; then echo "::warning::No REGISTRY_TOKEN: the sandbox image is not published"; exit 0; fi
           registry="${{ github.server_url }}"; registry="${registry#https://}"
-          image="$registry/${{ github.repository_owner }}/talk-ai-sandbox"
-          docker build -t "$image:${TAG#v}" -t "$image:latest" sandbox/
-          echo "$REGISTRY_TOKEN" | docker login "$registry" -u "${{ github.repository_owner }}" --password-stdin
-          docker push "$image:${TAG#v}" && docker push "$image:latest"
+          owner="${{ github.repository_owner }}"
+          token="${REGISTRY_TOKEN:-$JOB_TOKEN}"
+          echo "$token" | docker login "$registry" -u "$owner" --password-stdin
+          for name in talk-ai-sandbox talk-ai-sandbox-exapp; do
+            for tag in "${TAG#v}" latest; do
+              docker tag "$name:build" "$registry/$owner/$name:$tag"
+              docker push "$registry/$owner/$name:$tag"
+            done
+          done

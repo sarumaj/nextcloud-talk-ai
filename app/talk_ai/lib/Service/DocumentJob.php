@@ -108,6 +108,11 @@ class DocumentJob {
 	) {
 	}
 
+	/** Waits before asking again (tests skip it). */
+	protected function pause(int $seconds): void {
+		sleep($seconds);
+	}
+
 	/** AI-Hub's service, or null when it is not installed. */
 	protected function hub(): ?object {
 		return class_exists('OCA\AIHub\Service\HubService') ? Server::get('OCA\AIHub\Service\HubService') : null;
@@ -293,9 +298,9 @@ class DocumentJob {
 			if ($this->cancelled) {
 				return [];
 			}
-			$transient = in_array($error, ['busy', 'rate-limited'], true) || preg_match('/time(d)? ?out|overloaded|unavailable|5\d\d|connection/i', $error) === 1;
+			$transient = in_array($error, ['busy', 'rate-limited'], true) || preg_match('/time(d)? ?out|in time|overloaded|unavailable|5\d\d|connection/i', $error) === 1;
 			if ($transient && $attempt < 3) {
-				sleep(10 * 2 ** $attempt);
+				$this->pause(10 * 2 ** $attempt);
 				continue;
 			}
 			throw new \RuntimeException(Reply::explain($error));

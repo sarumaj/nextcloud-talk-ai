@@ -244,7 +244,7 @@ class Reply {
 			$result = $hub->askNow($userId, Application::APP_ID, self::SCENARIO, $messages, $options);
 			$error = (string)($result['error'] ?? '');
 			if (($result['state'] ?? '') === 'done' || $attempt === 3
-				|| !(in_array($error, ['busy', 'rate-limited'], true) || preg_match('/429|5\d\d|time(d)? ?out|overloaded|unavailable|connection/i', $error) === 1)) {
+				|| !(in_array($error, ['busy', 'rate-limited'], true) || preg_match('/429|5\d\d|time(d)? ?out|in time|overloaded|unavailable|connection/i', $error) === 1)) {
 				return $result;
 			}
 			$this->status('⏳ ' . $this->text($userId, 'Retrying'));
@@ -671,7 +671,7 @@ class Reply {
 	/** The help: what the bot can do here, one example each, and what this AI connection lacks (U-03, P-03). */
 	private function help(string $uid): string {
 		$t = fn (string $en) => $this->texts->t($this->guest ? '' : $uid, $en);
-		$lines = ['**' . $this->bot->name() . '** — ' . $t('AI assistant via') . ' ' . $this->model . "\n"];
+		$lines = ['**' . $this->bot->name() . '** — ' . $t('AI assistant via') . ' ' . ($this->caps['model'] ?? $this->model) . "\n"];
 		$items = [
 			[true, $t('Questions, explanations, summaries'), $t('“Summarize this for year 8”')],
 			[!$this->guest, $t('Reading files (PDF, Office, photos with OCR)'), $t('“What does the PDF say?”')],
@@ -687,7 +687,7 @@ class Reply {
 				$lines[] = '- ' . $what . ' — ' . $example;
 			}
 		}
-		$lines[] = "\n" . $t('Shortcuts') . ': /zusammenfassen, /todo, /termin, /protokoll · „stop“ · „rückgängig“';
+		$lines[] = "\n" . $t('Shortcuts') . ': ' . $t('/summary, /todo, /event, /minutes · "stop" · "undo"');
 		$missing = [];
 		if (!($this->caps['tools'] ?? true)) {
 			$missing[] = $t('no tools (chat, reading files and summaries only)');

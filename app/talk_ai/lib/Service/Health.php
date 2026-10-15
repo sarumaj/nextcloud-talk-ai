@@ -53,7 +53,7 @@ class Health {
 		$health = $this->sandbox->health();
 		$out[] = self::item('Document sandbox', $health !== null ? true : null, $health !== null
 			? 'runner up, ' . $health['jobs'] . ' of ' . $health['max_jobs'] . ' jobs, image ' . $health['image']
-			: ($this->appConfig->getValueString(Application::APP_ID, 'sandbox_socket', '') === '' ? 'not configured' : 'runner not reachable'),
+			: ($this->appConfig->getValueString(Application::APP_ID, 'sandbox_socket', '') === '' ? 'not configured (no runner socket, no External App talk_ai_sandbox)' : 'runner not reachable'),
 			'no documents built with code (create_document); the bot writes simpler documents itself');
 		if ($deep && $health !== null) {
 			$out = [...$out, ...$this->sandboxTools()];

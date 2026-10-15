@@ -14,7 +14,11 @@ use OCP\IAppConfig;
  * connection over its Unix socket, with the shared token. It runs each document job
  * in its own container (no network, read-only, writable only /work).
  *
- * App settings: sandbox_socket (path), sandbox_token.
+ * Without a socket, the runner of the External App talk_ai_sandbox (AppAPI,
+ * sandbox/exapp/) when it is installed and enabled: the same requests over AppAPI.
+ *
+ * App settings: sandbox_socket (path), sandbox_token; sandbox_exapp (the ExApp's id,
+ * default talk_ai_sandbox; empty: not used).
  */
 class Sandbox {
 	public function __construct(
@@ -24,7 +28,7 @@ class Sandbox {
 
 	/** Whether a runner answers; with its state (jobs, max_jobs, image). */
 	public function health(): ?array {
-		if ($this->socket() === '') {
+		if ($this->socket() === '' && $this->exApp() === '') {
 			return null;
 		}
 		try {
@@ -69,7 +73,25 @@ class Sandbox {
 		return $this->appConfig->getValueString(Application::APP_ID, 'sandbox_socket', '');
 	}
 
+	/** The ExApp to use ('' when a socket is set, or it is not installed and enabled). */
+	private function exApp(): string {
+		if ($this->socket() !== '' || !class_exists('OCA\AppAPI\PublicFunctions')) {
+			return '';
+		}
+		$id = $this->appConfig->getValueString(Application::APP_ID, 'sandbox_exapp', 'talk_ai_sandbox');
+		try {
+			$exApp = $id === '' ? null : \OCP\Server::get('OCA\AppAPI\PublicFunctions')->getExApp($id);
+		} catch (\Throwable) {
+			return '';
+		}
+		return is_array($exApp) && !empty($exApp['enabled']) ? $id : '';
+	}
+
 	private function call(string $op, array $params, int $timeout): array {
+		$exApp = $this->exApp();
+		if ($exApp !== '') {
+			return $this->callExApp($exApp, $op, $params, $timeout);
+		}
 		$socket = $this->socket();
 		$connection = @stream_socket_client('unix://' . $socket, $errno, $error, 10);
 		if ($connection === false) {
@@ -94,5 +116,22 @@ class Sandbox {
 		} finally {
 			fclose($connection);
 		}
+	}
+
+	/** One request to the ExApp's runner through AppAPI (which signs it with the ExApp's secret). */
+	private function callExApp(string $exApp, string $op, array $params, int $timeout): array {
+		$response = \OCP\Server::get('OCA\AppAPI\PublicFunctions')->exAppRequest($exApp, '/op', null, 'POST', ['op' => $op] + $params,
+			['timeout' => $timeout, 'connect_timeout' => 10]);
+		if (is_array($response)) {
+			throw new \RuntimeException('the document sandbox (External App) is not reachable (' . ($response['error'] ?? 'unknown') . ')');
+		}
+		$answer = json_decode((string)$response->getBody(), true);
+		if ($response->getStatusCode() !== 200 || !is_array($answer)) {
+			throw new \RuntimeException('the document sandbox (External App) answered HTTP ' . $response->getStatusCode());
+		}
+		if (isset($answer['error'])) {
+			throw new \RuntimeException('sandbox: ' . $answer['error']);
+		}
+		return $answer;
 	}
 }

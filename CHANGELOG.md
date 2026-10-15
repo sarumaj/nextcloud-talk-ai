@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.2 – 2026-10-15
+
+### Added
+- The document sandbox as an External App (`talk_ai_sandbox`, sandbox/exapp/): for
+  servers where Nextcloud cannot run a runner with Docker; AppAPI deploys it, AI in Talk
+  finds it. Jobs run as an unprivileged user under a seccomp filter without network.
+- The release publishes the sandbox's and the External App's images.
+
+### Fixed
+- A model that does not answer in time (AI-Hub's command line connection) is asked
+  again instead of ending the document job.
+
 ## 0.5.1 – 2026-10-15
 
 ### Added
