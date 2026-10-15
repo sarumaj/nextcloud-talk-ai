@@ -35,7 +35,7 @@ use Psr\Log\LoggerInterface;
  * Before delivering, a preview (the first page, or three slides) is posted and the
  * person may answer with a correction (preview_wait seconds; off per conversation).
  *
- * App settings: document_max_tools (60), document_max_seconds (900),
+ * App settings: document_max_tools (60), document_max_seconds (0: no limit; each step is watched instead),
  * document_corrections (3), document_folder ("Talk-AI"), document_cpus,
  * document_memory_mb, document_disk_mb, preview_wait (120), trace_days (14).
  */
@@ -43,6 +43,9 @@ class DocumentJob {
 	public const SCENARIO = 'document';
 	/** The version of the system prompt and tools, in each protocol (with the skills' version). */
 	public const VERSION = '2026-10-15.1';
+	/** Free space the person's files need at least for a job (bytes). */
+	private const MIN_FREE = 262144;
+
 	private const IMAGE_TYPES = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp'];
 	private const TEXT_LIMIT = 30000;
 	private const OFFICE = ['docx', 'odt', 'doc', 'dotx', 'ott', 'rtf', 'xlsx', 'ods', 'xls', 'xltx', 'ots', 'pptx', 'odp', 'ppt', 'potx', 'otp'];
@@ -55,7 +58,8 @@ class DocumentJob {
 	private int $rounds = 0;
 	private int $chars = 0;
 	private int $maxTools = 60;
-	private int $maxSeconds = 900;
+	/** 0: no limit; a job ends when it stops making progress (stalled steps) or has used its tool calls. */
+	private int $maxSeconds = 0;
 	private int $budget = 3;
 	private bool $images = false;
 	private bool $cancelled = false;
@@ -145,7 +149,7 @@ class DocumentJob {
 			'task' => $row['task'], 'format' => $row['format'], 'name' => $row['name'], 'attempts' => $row['attempts']] + $row['options'];
 		$this->started = microtime(true);
 		$this->maxTools = $this->setting('document_max_tools', 60);
-		$this->maxSeconds = $this->setting('document_max_seconds', 900);
+		$this->maxSeconds = max(0, (int)$this->appConfig->getValueString(Application::APP_ID, 'document_max_seconds', '0'));
 		$this->budget = $this->setting('document_corrections', 3);
 		try {
 			$this->room = $this->conversation->room((string)$this->job['token']);
@@ -169,11 +173,21 @@ class DocumentJob {
 			if (!$this->toolsWork($hub, $status)) {
 				throw new \RuntimeException('the AI connection (' . $status['provider'] . ' ' . $status['model'] . ') does not call tools, which building documents needs; an administrator can choose another model in AI-Hub');
 			}
+			// The document goes into the person's files: with no room there, all the work would only fail at the
+			// delivery (2026-10-15: a full test account's jobs spent 66 tool calls before giving up).
+			try {
+				$free = $this->rootFolder->getUserFolder((string)$this->job['userId'])->getFreeSpace();
+			} catch (\Throwable) {
+				$free = -2; // unknown: the delivery says what is wrong
+			}
+			if (is_numeric($free) && $free >= 0 && $free < self::MIN_FREE) {
+				throw new \RuntimeException($this->say('Storage full', self::size((int)$free)));
+			}
 			$this->images = (bool)$status['images'];
 			try {
 				$this->box = $this->sandbox->create([
 					'cpus' => $this->setting('document_cpus', 2), 'memory_mb' => $this->setting('document_memory_mb', 2048),
-					'disk_mb' => $this->setting('document_disk_mb', 1024), 'seconds' => $this->maxSeconds,
+					'disk_mb' => $this->setting('document_disk_mb', 1024), 'seconds' => $this->maxSeconds ?: null,
 				]);
 			} catch (\RuntimeException $e) {
 				if (str_contains($e->getMessage(), 'busy')) {
@@ -252,13 +266,13 @@ class DocumentJob {
 			if ($this->finished) {
 				break;
 			}
-			if ($this->elapsed() > $this->maxSeconds) {
+			if ($this->overTime()) {
 				return [Jobs::FAILED, '⚠️ ' . $this->say('Time is up', $name) . $this->deliveredNote()];
 			}
 			if ($this->tools >= $this->maxTools + 5) {
 				return [Jobs::FAILED, '⚠️ ' . $this->say('Too many steps', $name) . $this->deliveredNote()];
 			}
-			// A tool call written as plain JSON (the model lost AI-Hub's tool format): run it all the same.
+			// A tool call written as plain JSON or <invoke> (the model lost AI-Hub's tool format): run it all the same.
 			$stray = $this->tools === $before ? $this->strayCall($text) : null;
 			if ($stray !== null) {
 				$messages[] = ['role' => 'user', 'text' => 'Your last tool call came as plain text; it was run anyway. Use the tool block format '
@@ -291,6 +305,11 @@ class DocumentJob {
 		$context = $this->traceContext();
 		$this->chars += mb_strlen(json_encode($messages, JSON_UNESCAPED_UNICODE) ?: '') + mb_strlen($context) + 12000;
 		for ($attempt = 0; $attempt < 4; $attempt++) {
+			// Alive between turns too (retries can take a while), and a "stop" is seen before the next one.
+			if (!$this->jobs->beat((int)$this->job['id'], $this->tools, $this->rounds, $this->tokens())) {
+				$this->cancelled = true;
+				return [];
+			}
 			$result = $hub->askNow((string)$this->job['userId'], Application::APP_ID, self::SCENARIO, $messages, [
 				'context' => $context, 'images' => $images, 'search' => false,
 			]);
@@ -304,7 +323,7 @@ class DocumentJob {
 			if ($this->cancelled) {
 				return [];
 			}
-			$transient = in_array($error, ['busy', 'rate-limited'], true) || preg_match('/time(d)? ?out|in time|overloaded|unavailable|5\d\d|connection/i', $error) === 1;
+			$transient = in_array($error, ['busy', 'rate-limited'], true) || preg_match('/time(d)? ?out|in time|stalled|overloaded|unavailable|5\d\d|connection/i', $error) === 1;
 			if ($transient && $attempt < 3) {
 				$this->pause(10 * 2 ** $attempt);
 				continue;
@@ -314,12 +333,25 @@ class DocumentJob {
 		return [];
 	}
 
-	/** A tool call in the text ({"tool": …, "args": …}), run: [tool, result], or null. */
+	/**
+	 * A tool call in the text, run: [tool, result], or null. As JSON ({"tool": …, "args": …}),
+	 * or in the model's own call format (<invoke name="…"><parameter name="…">…</parameter>),
+	 * which it slips into after many rounds (2026-10-15: a job stopped on three of them).
+	 */
 	private function strayCall(string $text): ?array {
-		if (preg_match('/\{\s*"tool"\s*:\s*"(\w+)"\s*,\s*"args"\s*:\s*(\{.*\})\s*\}/s', $text, $m) !== 1 || !isset($this->toolSet[$m[1]])) {
+		if (preg_match('/<invoke name="(\w+)">(.*?)<\/invoke>/s', $text, $m) === 1 && isset($this->toolSet[$m[1]])) {
+			$args = [];
+			preg_match_all('/<parameter name="(\w+)">(.*?)<\/parameter>/s', $m[2], $params, PREG_SET_ORDER);
+			foreach ($params as [, $key, $value]) {
+				// Numbers, lists and objects come as JSON; text as it is.
+				$decoded = json_decode($value, true);
+				$args[$key] = is_array($decoded) || is_int($decoded) || is_float($decoded) || is_bool($decoded) ? $decoded : $value;
+			}
+		} elseif (preg_match('/\{\s*"tool"\s*:\s*"(\w+)"\s*,\s*"args"\s*:\s*(\{.*\})\s*\}/s', $text, $m) === 1 && isset($this->toolSet[$m[1]])) {
+			$args = json_decode($m[2], true);
+		} else {
 			return null;
 		}
-		$args = json_decode($m[2], true);
 		if (!is_array($args)) {
 			return null;
 		}
@@ -347,7 +379,8 @@ class DocumentJob {
 				. 'Check each page for overflow, cut or overlapping text, empty pages, wrong fonts, poor contrast and layout faults; '
 				. 'then correct or deliver.';
 		}
-		$lines[] = sprintf('Continue the job. Tool calls used: %d of %d; time used: %d of %d s.', $this->tools, $this->maxTools, (int)$this->elapsed(), $this->maxSeconds);
+		$lines[] = sprintf('Continue the job. Tool calls used: %d of %d; time used: %d s', $this->tools, $this->maxTools, (int)$this->elapsed())
+			. ($this->maxSeconds > 0 ? sprintf(' of %d s.', $this->maxSeconds) : '.');
 		if ($this->delivered !== []) {
 			$lines[] = 'Delivered: ' . implode(', ', array_map(fn ($d) => $d['name'], $this->delivered)) . '. Call finish when everything is delivered.';
 		}
@@ -377,7 +410,7 @@ class DocumentJob {
 			. 'Language: write the document in the language of the task (German, Polish, English …), not of the interface, with '
 			. 'its conventions: German „…“, decimal comma, 15.10.2026; Polish „…”, decimal comma, 15.10.2026; English “…”, '
 			. "decimal point, 15 October 2026. Set the document's language so that hyphenation and spelling follow it.\n\n"
-			. 'Tool calls: always in the tool block format described above, never as plain JSON in your text; inside a tool\'s '
+			. 'Tool calls: always in the tool block format described above, never as plain JSON or <invoke> tags in your text; inside a tool\'s '
 			. "arguments never write three backticks (fence code in files with tildes or none).\n\n"
 			. 'Turns: each turn allows up to 7 tool calls. Page images from render_document or read_file are shown to you with '
 			. "the next message: after such a call, end your turn with one short sentence (no tool call) to see them. You will "
@@ -392,9 +425,10 @@ class DocumentJob {
 			'bash' => [
 				'description' => 'Runs a shell command in /work (bash -lc) and returns exit code, stdout and stderr (cut to 30 kB). E.g. '
 					. '"python3 build.py", "soffice --headless --convert-to odt --outdir /work/output out.docx", "python3 /skills/docx/scripts/describe.py input/x.docx". '
-					. 'Read the format\'s skill before building.',
-				'input' => ['type' => 'object', 'properties' => ['command' => ['type' => 'string'], 'timeout_s' => ['type' => 'integer', 'description' => 'default 120, at most 600']], 'required' => ['command']],
-				'run' => fn (string $uid, array $args) => $this->tool('bash', $args, fn () => $this->bash((string)$args['command'], (int)($args['timeout_s'] ?? 120))),
+					. 'It runs as long as it works (output or CPU use); after two minutes with neither it is stopped as hung (stalled), '
+					. 'so a long build should print progress now and then. Never wait for input. Read the format\'s skill before building.',
+				'input' => ['type' => 'object', 'properties' => ['command' => ['type' => 'string'], 'timeout_s' => ['type' => 'integer', 'description' => 'the most it may take in all; default 1800, at most 3600']], 'required' => ['command']],
+				'run' => fn (string $uid, array $args) => $this->tool('bash', $args, fn () => $this->bash((string)$args['command'], (int)($args['timeout_s'] ?? 1800))),
 			],
 			'read_file' => [
 				'description' => 'Reads a file in /work or /skills: text with line numbers (offset and limit in lines); a PNG/JPEG is shown to '
@@ -457,7 +491,7 @@ class DocumentJob {
 			$this->trace[] = ['time' => date('H:i:s'), 'tool' => $name, 'input' => '', 'output' => 'cancelled by the person'];
 			return 'The job was cancelled by the person. Stop now: end your turn without further tool calls.';
 		}
-		if ($this->elapsed() > $this->maxSeconds && !in_array($name, ['deliver_file', 'finish'], true)) {
+		if ($this->overTime() && !in_array($name, ['deliver_file', 'finish'], true)) {
 			return 'Time is up. Deliver what you have now (deliver_file), then finish.';
 		}
 		if ($this->tools > $this->maxTools && !in_array($name, ['deliver_file', 'finish', 'render_document'], true)) {
@@ -482,10 +516,27 @@ class DocumentJob {
 	}
 
 	private function bash(string $command, int $timeout): string {
-		$r = $this->sandbox->exec($this->box, $command, max(1, min(600, $timeout)));
-		return 'exit_code: ' . $r['exit_code'] . ($r['timed_out'] ? ' (timed out)' : '') . "\n"
+		$r = $this->command($command, max(1, min(3600, $timeout)));
+		return 'exit_code: ' . $r['exit_code'] . (!empty($r['stalled']) ? ' (stalled: no output and no CPU use for a while; stopped)' : ($r['timed_out'] ? ' (timed out)' : '')) . "\n"
 			. ($r['stdout'] !== '' ? "stdout:\n" . $r['stdout'] . "\n" : '') . ($r['stderr'] !== '' ? "stderr:\n" . $r['stderr'] : '')
 			. ($r['truncated'] ? "\n[output cut]" : '');
+	}
+
+	/**
+	 * A command in the job's sandbox, watched: while it runs, the job's heartbeat goes on (so
+	 * it is not taken for lost), the status shows its last output line, and "stop" ends it.
+	 */
+	private function command(string $command, int $limit): array {
+		return $this->sandbox->exec($this->box, $command, $limit, function (int $seconds, string $last): bool {
+			if (!$this->jobs->beat((int)$this->job['id'], $this->tools, $this->rounds, $this->tokens())) {
+				$this->cancelled = true;
+				return false;
+			}
+			if ($last !== '' && isset($this->job['id'])) {
+				$this->progress->step('job-' . $this->job['id'], '⏳ ' . $this->say($this->phase ?: 'Building', (string)$this->job['name']) . ' · ' . mb_substr($last, 0, 80));
+			}
+			return true;
+		});
 	}
 
 	private function readFile(string $path, int $offset, int $limit): string {
@@ -555,21 +606,21 @@ class DocumentJob {
 	/** Renders, checks (structure, spelling, against the original), and queues the page images for the next segment. */
 	private function render(string $path, string $pages): string {
 		$pages = preg_match('/^\d+(-\d+)?$/', $pages) === 1 ? (str_contains($pages, '-') ? $pages : $pages . '-' . $pages) : '';
-		$r = $this->sandbox->exec($this->box, 'bash /skills/common/scripts/render.sh ' . escapeshellarg($path) . ($pages !== '' ? ' ' . $pages : ''), 240);
+		$r = $this->command('bash /skills/common/scripts/render.sh ' . escapeshellarg($path) . ($pages !== '' ? ' ' . $pages : ''), 1800);
 		if ($r['exit_code'] !== 0) {
 			return 'The file could not be rendered (LibreOffice cannot open it as it is): ' . trim($r['stdout'] . "\n" . $r['stderr']) . "\nFix the file and render again.";
 		}
 		$key = basename($path);
 		$this->renders[$key] = ($this->renders[$key] ?? 0) + 1;
-		$check = $this->sandbox->exec($this->box, 'python3 /skills/common/scripts/check.py ' . escapeshellarg($path)
-			. ($this->wantsFormulas() ? ' --formulas' : '') . ' --lang ' . escapeshellarg($this->language()), 180);
+		$check = $this->command('python3 /skills/common/scripts/check.py ' . escapeshellarg($path)
+			. ($this->wantsFormulas() ? ' --formulas' : '') . ' --lang ' . escapeshellarg($this->language()), 900);
 		preg_match('/^pages: (\d+)/m', $r['stdout'], $count);
 		preg_match_all('#^(/work/.+/page-\d+\.png)$#m', $r['stdout'], $pngs);
 		$sheet = preg_match('#^sheet: (/work/.+)$#m', $r['stdout'], $m) === 1 ? $m[1] : '';
 		$out = 'Rendered ' . $path . ': ' . ($count[1] ?? '?') . " pages.\n" . trim($check['stdout']) . "\n";
 		$original = $this->originalFor($path);
 		if ($original !== '') {
-			$diff = $this->sandbox->exec($this->box, 'python3 /skills/common/scripts/diff.py ' . escapeshellarg($original) . ' ' . escapeshellarg($path), 180);
+			$diff = $this->command('python3 /skills/common/scripts/diff.py ' . escapeshellarg($original) . ' ' . escapeshellarg($path), 900);
 			$this->diff = trim($diff['stdout']);
 			$out .= "\nAgainst the original " . basename($original) . ":\n" . mb_substr($this->diff, 0, 6000) . "\n";
 		}
@@ -610,7 +661,7 @@ class DocumentJob {
 		if (!isset($this->renders[$file])) {
 			return 'Not delivered: render_document ' . $path . ' first and check its pages.';
 		}
-		$check = $this->sandbox->exec($this->box, 'python3 /skills/common/scripts/check.py ' . escapeshellarg($path) . ' --open-only', 180);
+		$check = $this->command('python3 /skills/common/scripts/check.py ' . escapeshellarg($path) . ' --open-only', 900);
 		if ($check['exit_code'] !== 0) {
 			return "Not delivered: the file does not open.\n" . $check['stdout'];
 		}
@@ -647,7 +698,7 @@ class DocumentJob {
 	private function preview(string $file): string {
 		$wait = (int)$this->appConfig->getValueString(Application::APP_ID, 'preview_wait', '120');
 		if ($wait <= 0 || $this->previews >= 2 || $this->pagePaths === [] || !$this->conversation->previewsOn((string)$this->job['token'])
-			|| $this->elapsed() + $wait > $this->maxSeconds - 60) {
+			|| ($this->maxSeconds > 0 && $this->elapsed() + $wait > $this->maxSeconds - 60)) {
 			return '';
 		}
 		$this->previews++;
@@ -959,6 +1010,10 @@ class DocumentJob {
 		return microtime(true) - $this->started;
 	}
 
+	private function overTime(): bool {
+		return $this->maxSeconds > 0 && $this->elapsed() > $this->maxSeconds;
+	}
+
 	/** A house style's folder name in the app data. */
 	public static function slug(string $name): string {
 		return trim(preg_replace('/[^a-z0-9]+/', '-', mb_strtolower($name)) ?? '', '-') ?: 'style';
@@ -985,7 +1040,8 @@ class DocumentJob {
 			'Open' => 'Open: %s', 'Protocol' => 'Protocol: %s', 'Waiting' => '“%s” waits until the workshop is free …',
 			'Cancelled' => '“%s” cancelled', 'Done' => '“%s” is ready', 'Open in Office' => 'open: %s',
 			'Preview' => 'Preview of “%s” above.', 'Preview hint' => 'Answer “ok” or with a correction; without an answer I deliver in %s min.',
-			'Correcting' => 'Correcting “%s”', 'Stop hint' => '(“stop” cancels)'];
+			'Correcting' => 'Correcting “%s”', 'Stop hint' => '(“stop” cancels)',
+			'Storage full' => 'your storage is full (%s free); free some space and ask again'];
 		return trim($this->texts->t((string)($this->job['userId'] ?? ''), $en[$key] ?? $key, [$detail]));
 	}
 }

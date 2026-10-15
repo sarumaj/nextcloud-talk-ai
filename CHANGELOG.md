@@ -1,6 +1,33 @@
 # Changelog
 
-## 0.5.4 – 2026-10-15
+## 0.5.5 - 2026-10-15
+
+### Changed
+- Watched, not timed: a command in the document sandbox runs as long as it makes progress
+  (output or CPU time) and is stopped only when it has had neither for two minutes, or
+  after an hour in all. The runner answers every ten seconds while it runs: the job keeps
+  its heartbeat, its status message shows the command's last line, and "stop" ends the
+  command at once. A document job has no time limit any more by default
+  (`document_max_seconds` 0); it ends when it stops making progress or has used its
+  tool calls. A job's container goes when nobody asked anything of it for half an hour.
+- Every allowed tool goes with every question, always in the same order, and the room,
+  its messages and settings go with the question instead of the system prompt: the
+  system prompt is then the same for all questions, and the provider's prompt cache (an
+  hour) serves it at a tenth of the price. The tool list chosen per question (0.5.4) was
+  shorter but new each time, so it was never read from the cache; `more_tools` is gone.
+- An AI turn that stalled (AI-Hub's command line stopped by its watcher) is asked again,
+  like one that timed out.
+
+### Fixed
+- A document job no longer stops when the model writes a tool call in its own format
+  (`<invoke name="bash">…`) after many rounds: the call is run, as a call written as plain
+  JSON already was.
+- A document job for a person whose storage is full ends at once with that reason,
+  instead of failing at the delivery after all the work (66 tool calls in a test).
+- The admin guide names the settings page as Nextcloud shows it: Administration →
+  Assistant → AI in Talk.
+
+## 0.5.4 - 2026-10-15
 
 ### Added
 - A status message for every slow answer and document job: from ten seconds on it shows
@@ -13,12 +40,12 @@
 - The system prompt and the tools' list are the same for every conversation and person,
   so the provider's prompt cache can serve them; what differs is in the context.
 
-## 0.5.3 – 2026-10-15
+## 0.5.3 - 2026-10-15
 
 ### Fixed
 - The release publishes the sandbox images with the repository secret `PACKAGES_TOKEN`.
 
-## 0.5.2 – 2026-10-15
+## 0.5.2 - 2026-10-15
 
 ### Added
 - The document sandbox as an External App (`talk_ai_sandbox`, sandbox/exapp/): for
@@ -30,7 +57,7 @@
 - A model that does not answer in time (AI-Hub's command line connection) is asked
   again instead of ending the document job.
 
-## 0.5.1 – 2026-10-15
+## 0.5.1 - 2026-10-15
 
 ### Added
 - The document sandbox without a container runtime: the runner's Bubblewrap backend
@@ -42,7 +69,7 @@
 ### Fixed
 - Tests and CI with Nextcloud 35 and later (`IUserFolder`, PHP 8.3).
 
-## 0.5.0 – 2026-10
+## 0.5.0 - 2026-10
 
 ### Added
 - Documents built with code in a sandbox (`create_document`): the model writes code

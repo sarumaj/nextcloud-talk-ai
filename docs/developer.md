@@ -32,7 +32,7 @@ of the steps; page images go with the next round.
 
 | Tool | Arguments | Result |
 |---|---|---|
-| `bash` | `command`, `timeout_s` (120, at most 600) | exit code, stdout, stderr (30 kB) |
+| `bash` | `command`, `timeout_s` (in all; 1800, at most 3600) | exit code, stdout, stderr (30 kB); stopped as stalled after 120 s without output and CPU use |
 | `read_file` | `path`, `offset`, `limit` | text with line numbers; images as image input; PDF text |
 | `write_file` | `path`, `content` | written |
 | `edit_file` | `path`, `old_string`, `new_string`, `replace_all` | changed / not unique |

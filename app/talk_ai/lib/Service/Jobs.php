@@ -28,7 +28,8 @@ class Jobs {
 	public const CANCELLED = 'cancelled';
 	/**
 	 * A running job whose heartbeat is older is taken as lost (a restart, a crash):
-	 * longer than one tool call may take (600 s) and a model's turn.
+	 * longer than a model's turn (AI-Hub waits at most 600 s). It beats before each turn,
+	 * with each tool call, and every few seconds while a sandbox command runs.
 	 */
 	public const STALE = 900;
 

@@ -26,7 +26,7 @@ administration page show each part: present, version, and what is lost without i
 2. Set up AI-Hub for the app; `occ talk_ai:check` should show tool calling.
 3. Moderators enable the bot per conversation (conversation settings → Bots). It then
    posts a notice of who processes the messages (set the text or the provider's
-   location under Administration → Artificial intelligence → AI in Talk).
+   location under Administration → Assistant → AI in Talk).
 4. Background jobs should run by cron, better every minute (systemd timer) or with a
    worker (`occ background-job:worker`): queued answers and document jobs wait for
    them when the direct hand-off fails.
@@ -44,7 +44,10 @@ Documents built with code run in a container per job, started by a small runner
 - Write a random token to a file only the runner's user can read.
 - Run the runner as a service with `RUNNER_SOCKET`, `RUNNER_TOKEN_FILE`, `RUNNER_IMAGE`,
   `RUNNER_SKILLS`, `RUNNER_MAX_JOBS` (jobs at once, default 3), `RUNNER_CPUS`,
-  `RUNNER_MEMORY_MB`, `RUNNER_DISK_MB`, `RUNNER_MAX_SECONDS`.
+  `RUNNER_MEMORY_MB`, `RUNNER_DISK_MB`, `RUNNER_MAX_SECONDS` (a job's container at most,
+  default 4 hours), `RUNNER_JOB_IDLE_SECONDS` (a job nobody asks anything of is removed,
+  default 30 minutes), `RUNNER_EXEC_IDLE` (a command without output and CPU use is stopped,
+  default 120 s), `RUNNER_EXEC_MAX_SECONDS` (a command at most, default 3600).
 - Make the socket's folder visible to Nextcloud (a bind mount into its containers) and
   set `occ config:app:set talk_ai sandbox_socket --value /run/talk-ai-sandbox/runner.sock`
   and `occ config:app:set talk_ai sandbox_token --value … --lazy --sensitive`.
@@ -80,7 +83,7 @@ mirror (`RUNNER_NETWORK`, made by you, e.g. an internal Docker network with a pr
 `RUNNER_PIP_INDEX_URL` / `RUNNER_NPM_REGISTRY`; the model may then install missing
 Python and Node packages from it. By default there is no network at all.
 
-## Settings (Administration → Artificial intelligence → AI in Talk)
+## Settings (Administration → Assistant → AI in Talk)
 
 Every setting has an explanation on the page; the same keys work with
 `occ config:app:set talk_ai <key> --value …`.

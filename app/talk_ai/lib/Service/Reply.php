@@ -86,7 +86,6 @@ class Reply {
 	private bool $progressDone = false;
 	private string $lastQuestion = '';
 	/** The question and the last messages: which tools go with it (tools()). */
-	private string $recentText = '';
 	private string $lastUser = '';
 
 	public function __construct(
@@ -213,11 +212,12 @@ class Reply {
 			$question = trim(preg_replace('/\{file\}|\[file "[^"]*", id \d+\]/', '', $question) . "\n" . $spoken);
 		}
 		$this->canBuild = $caps['tools'] && $this->features['sandbox'] && $this->features['documents'] && $this->sandbox->health() !== null;
-		// The system prompt and the tools' list are the same for every room and person (so the
-		// provider's prompt cache serves them); what differs goes into the context after them.
+		// The system prompt and the tools' list are the same for every room and person, so the
+		// provider's prompt cache serves them. What differs (the room, its messages) goes with the
+		// question: AI-Hub adds a context to the system prompt, and the prompt then differed
+		// from question to question and was written to the cache anew each time (2026-10-15).
 		$profile = Capabilities::profile((string)($caps['family'] ?? 'open'));
 		$system = $this->systemPrompt($room) . ($profile !== '' ? "\n\n" . $profile : '');
-		$this->recentText = $question . "\n" . implode("\n", array_map(fn ($m) => $m['text'], array_slice($history, -4)));
 		$tools = $caps['tools'] ? $this->tools() : [];
 		$hub->registerScenario(Application::APP_ID, self::SCENARIO, [
 			'system' => $system,
@@ -230,8 +230,8 @@ class Reply {
 		$about = 'This conversation: "' . $room->getName() . '".' . $this->extras($userId, $caps) . "\n\n";
 		$context = $about . $this->budget($caps, $system, $this->memory($room), $this->transcript($history, $messageId), $ocr);
 		$this->debug('question', ['system' => $system, 'context' => $context, 'question' => $question]);
-		$result = $this->ask($hub, $userId, [['role' => 'user', 'text' => $question !== '' ? $question : $text]], [
-			'context' => $context,
+		$asked = $question !== '' ? $question : $text;
+		$result = $this->ask($hub, $userId, [['role' => 'user', 'text' => "Context:\n" . $context . "\n\nThe message to answer (>>>):\n" . $asked]], [
 			'search' => $this->features['web'] && (bool)$status['search'],
 			'images' => $images,
 		]);
@@ -260,7 +260,7 @@ class Reply {
 			$result = $hub->askNow($userId, Application::APP_ID, self::SCENARIO, $messages, $options);
 			$error = (string)($result['error'] ?? '');
 			if (($result['state'] ?? '') === 'done' || $attempt === 3
-				|| !(in_array($error, ['busy', 'rate-limited'], true) || preg_match('/429|5\d\d|time(d)? ?out|in time|overloaded|unavailable|connection/i', $error) === 1)) {
+				|| !(in_array($error, ['busy', 'rate-limited'], true) || preg_match('/429|5\d\d|time(d)? ?out|in time|stalled|overloaded|unavailable|connection/i', $error) === 1)) {
 				return $result;
 			}
 			$this->status('⏳ ' . $this->text($userId, 'Retrying'));
@@ -623,16 +623,10 @@ class Reply {
 				}
 			}
 		}
-		// The core goes with every question, the rest when the question or the last messages
-		// point to it; all others are reachable through more_tools (one line each).
-		$catalog = [];
-		foreach ($tools as $name => $tool) {
-			if (!in_array($name, self::CORE_TOOLS, true) && !self::wanted($name, $this->recentText)) {
-				$catalog[$name] = $tool;
-				unset($tools[$name]);
-			}
-		}
-		// The core first, in a fixed order, then the chosen others: the same prefix for every question.
+		// Every allowed tool with every question, the core first and all in a fixed order: the
+		// system prompt is then the same from question to question and person to person, and
+		// the provider's prompt cache (an hour) serves it at a tenth of the price. A list chosen
+		// per question was shorter but new each time, so it was never served from the cache.
 		$ordered = [];
 		foreach (self::CORE_TOOLS as $name) {
 			if (isset($tools[$name])) {
@@ -640,9 +634,6 @@ class Reply {
 			}
 		}
 		$tools = $ordered + $tools;
-		if ($catalog !== []) {
-			$tools['more_tools'] = $this->moreTools($catalog);
-		}
 		$wrapped = [];
 		foreach ($tools as $name => $tool) {
 			$run = $tool['run'];
@@ -661,76 +652,9 @@ class Reply {
 		return $wrapped;
 	}
 
-	/** The tools that go with every question, in this order (a stable prefix for the prompt cache). */
+	/** The tools listed first, in this order. */
 	public const CORE_TOOLS = ['list_files', 'read_file', 'find_files', 'send_file', 'read_chat', 'read_url', 'lookup', 'cite',
 		'calculate', 'calendar', 'create_document'];
-
-	/** Words that call for a tool beyond the core (German, Polish, English). */
-	private const TOOL_WORDS = [
-		'redo_document' => 'nochmal|noch einmal|again|jeszcze raz|ponownie|ändere|change|zmień|kapitel|chapter|rozdział|ergänze|add to|dodaj',
-		'document_status' => 'status|läuft|running|fertig|done|gotowe|job|auftrag|zlecen|abbrech|cancel|anuluj',
-		'room_settings' => 'einstellung|setting|ustawien|persona|vorschau|preview|podgląd|sprache hier|language here|język',
-		'my_profile' => 'merk dir|remember|zapamiętaj|vorlieb|preference|preferenc|vergiss|forget|zapomnij|profil',
-		'undo' => 'rückgängig|undo|cofnij|zurück',
-		'create_poll' => 'umfrage|abstimm|poll|vote|ankiet|głosow',
-		'share_file' => 'teile|freigeb|share|udostępn',
-		'delete_my_data' => 'lösch|delete|usuń|dsgvo|gdpr|rodo|meine daten|my data|moje dane',
-		'send_flashcards' => 'karteikart|lernkart|flash ?card|fiszk|anki|quizlet|vokabel|vocab|słówk',
-		'plot' => 'plot|graph|diagramm|chart|zeichne|draw|wykres|kurve|curve|skizz',
-		'statistics' => 'statist|mittelwert|average|median|varian|standardabw|deviation|t-test|chi|regression|korrelation|correlat|średni|odchyl',
-		'convert_units' => 'einheit|unit|umrechn|convert|jednost|przelicz|°c|°f|fahrenheit|kelvin|meile|mile|zoll|inch|liter|gallon',
-		'chemistry' => 'chem|molar|mol\b|reaktion|reaction|reakcj|element|säure|acid|kwas|base|oxid|redox|ion',
-		'biology' => 'bio|gen\b|gene|dna|rna|kreuzung|cross|punnett|allel|erbgang|codon|protein|białk|krzyżów',
-		'sport' => 'sport|puls|herzfrequenz|heart ?rate|tętno|pace|tempo|marathon|lauf|run|bmi|training|trening',
-		'informatics' => 'binär|binary|binarn|hex|sql|wahrheitstabelle|truth table|tabel[a-z]* prawdy|boolean|logik|logic|informatik|computer science|base64|ascii|unicode|algorith',
-		'colors' => 'farb|colou?r|kolor|palette|palet|harmon',
-		'image_study' => 'gemälde|painting|obraz|bild|image|zdjęc|foto|photo|wertstudie|value study|komposition|composition|kompozyc|raster|grid',
-		'analyze_function' => 'funktion|function|funkcj|kurvendiskussion|ableitung|derivative|pochodn|extrem|nullstelle|root|wendepunkt|asymptot',
-		'linear_algebra' => 'matrix|matriz|macierz|vektor|vector|wektor|gleichungssystem|system of equations|układ równań|determinant|eigen',
-		'music' => 'musik|music|muzyk|tonleiter|scale|gam[ay]|akkord|chord|akord|intervall|interval|tonart|key signature|quintenzirkel',
-		'finance' => 'zins|interest|odsetk|kredit|kredyt|loan|darlehen|tilgung|rate|rata|annuit|spar|saving|oszczędz|rendite|inflation|finanz|financ',
-		'geo' => 'wo liegt|where is|gdzie|entfernung|distance|odległ|karte|map|mapa|klima|climate|klimat|koordinat|coordinat|stadt|city|miasto|land\b|country|kraj',
-		'find_images' => 'präsentation|presentation|prezentac|folie|slide|slajd|bild|image|zdjęc|foto|photo|illustr',
-	];
-
-	/** Whether the text points to the tool. */
-	public static function wanted(string $tool, string $text): bool {
-		$words = self::TOOL_WORDS[$tool] ?? '';
-		return $words !== '' && preg_match('/(' . $words . ')/iu', $text) === 1;
-	}
-
-	/** One tool for the tools not sent with this question: their names in one line each, run by name. */
-	private function moreTools(array $catalog): array {
-		$lines = [];
-		foreach ($catalog as $name => $tool) {
-			$first = preg_split('/(?<=[.:;])\s/u', (string)$tool['description'], 2)[0] ?? '';
-			$lines[] = $name . ': ' . mb_substr($first, 0, 110);
-		}
-		return [
-			'description' => 'Further tools, not listed above; call one by name with its arguments (on a missing or wrong argument you get its '
-				. 'full description and try again): ' . implode('; ', $lines) . '.',
-			'input' => ['type' => 'object', 'properties' => ['name' => ['type' => 'string', 'enum' => array_keys($catalog)], 'args' => ['type' => 'object']], 'required' => ['name']],
-			'run' => function (string $uid, array $args) use ($catalog) {
-				$name = (string)($args['name'] ?? '');
-				$tool = $catalog[$name] ?? null;
-				if ($tool === null) {
-					return 'No such tool. Tools: ' . implode(', ', array_keys($catalog));
-				}
-				$params = is_array($args['args'] ?? null) ? $args['args'] : [];
-				$missing = array_diff((array)($tool['input']['required'] ?? []), array_keys($params));
-				if ($missing !== []) {
-					return 'Missing ' . implode(', ', $missing) . '. The tool ' . $name . ': ' . $tool['description'] . ' Arguments (JSON Schema): '
-						. json_encode($tool['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-				}
-				try {
-					return ($tool['run'])($uid, $params);
-				} catch (\Throwable $e) {
-					return 'The tool ' . $name . ' failed (' . $e->getMessage() . '). Its arguments (JSON Schema): '
-						. json_encode($tool['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-				}
-			},
-		];
-	}
 
 	/** Adds the confirmed events and tasks, each one recorded to undo within a day. */
 	private function addToCalendar(string $uid, array $args): string {

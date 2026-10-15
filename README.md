@@ -98,15 +98,21 @@ processes and time, writable only `/work` (in memory); it is removed afterwards.
    token to a file readable only by the runner's user, and run the runner as a service with
    `RUNNER_SOCKET`, `RUNNER_TOKEN_FILE`, `RUNNER_IMAGE`, `RUNNER_SKILLS` and the limits
    (`RUNNER_MAX_JOBS`, `RUNNER_CPUS`, `RUNNER_MEMORY_MB`, `RUNNER_DISK_MB`,
-   `RUNNER_MAX_SECONDS`; see the file's header).
+   `RUNNER_MAX_SECONDS`, `RUNNER_EXEC_IDLE`; see the file's header).
 3. Make the socket reachable from Nextcloud (a bind mount for containers) and tell the app:
    `occ config:app:set talk_ai sandbox_socket --value /run/talk-ai-sandbox/runner.sock` and
    `occ config:app:set talk_ai sandbox_token --value … --lazy --sensitive`.
 
 Settings: `document_groups` (a JSON list of groups that may use it; empty: everyone),
-`document_max_tools` (60), `document_max_seconds` (900), `document_corrections` (3),
+`document_max_tools` (60), `document_max_seconds` (0: no limit), `document_corrections` (3),
 `document_folder` (`Talk-AI`), `trace_days` (14). The AI connection must call tools; one that
 does not is refused. Without the sandbox, the bot writes documents itself as before.
+
+Nothing in a job is cut off by the clock: a command in the sandbox runs as long as it
+makes progress (output or CPU time) and is stopped when it has neither for two minutes
+(`RUNNER_EXEC_IDLE`); the job beats while it waits, shows the command's last line in its
+status message, and "stop" ends the command at once. A job ends when it is done, has used
+its tool calls, or stops making progress; `document_max_seconds` adds a limit in all.
 
 ## Using it
 

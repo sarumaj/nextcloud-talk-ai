@@ -4,7 +4,7 @@ set -uo pipefail
 /opt/exapp/harp_connect.sh &
 tunnel=$!
 RUNNER_HTTP=1 RUNNER_BACKEND=process RUNNER_SKILLS=/skills RUNNER_TOKEN_FILE=/dev/null \
-	RUNNER_MAX_SECONDS="${RUNNER_MAX_SECONDS:-900}" RUNNER_MEMORY_MB="${RUNNER_MEMORY_MB:-2048}" RUNNER_DISK_MB="${RUNNER_DISK_MB:-1024}" \
+	RUNNER_MAX_SECONDS="${RUNNER_MAX_SECONDS:-14400}" RUNNER_MEMORY_MB="${RUNNER_MEMORY_MB:-2048}" RUNNER_DISK_MB="${RUNNER_DISK_MB:-1024}" \
 	python3 -I /opt/exapp/runner.py &
 runner=$!
 trap 'kill -TERM $tunnel $runner 2>/dev/null' INT TERM

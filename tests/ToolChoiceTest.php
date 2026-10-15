@@ -27,9 +27,9 @@ use OCA\TalkAi\Service\Web;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
-/** Which tools go with a question, and how much smaller the prompt gets. */
+/** Which tools go with a question: all that are allowed, always the same, for the prompt cache. */
 class ToolChoiceTest extends TestCase {
-	private function tools(string $text): array {
+	private function tools(array $features = []): array {
 		$reply = new Reply($this->createMock(Conversation::class), $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class),
 			$this->createMock(OdsWriter::class), $this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class),
 			$this->createMock(Web::class), $this->createMock(Calendar::class), $this->createMock(Requests::class), $this->createMock(Actions::class),
@@ -40,9 +40,8 @@ class ToolChoiceTest extends TestCase {
 			$p = new \ReflectionProperty(Reply::class, $name);
 			$p->setValue($reply, $value);
 		};
-		$set('features', ['documents' => true, 'sandbox' => true, 'web' => true, 'calendar' => true]);
+		$set('features', $features + ['documents' => true, 'sandbox' => true, 'web' => true, 'calendar' => true]);
 		$set('canBuild', true);
-		$set('recentText', $text);
 		$set('room', new class {
 			public function getToken(): string {
 				return 'room1';
@@ -51,38 +50,32 @@ class ToolChoiceTest extends TestCase {
 		return (new \ReflectionMethod(Reply::class, 'tools'))->invoke($reply);
 	}
 
-	private static function chars(array $tools): int {
-		return array_sum(array_map(fn ($t) => mb_strlen($t['description']) + mb_strlen((string)json_encode($t['input'])), $tools));
+	/** What the model reads of the tools: their names, descriptions and arguments, in order. */
+	private static function listing(array $tools): string {
+		return implode("\n", array_map(fn ($name, $t) => $name . ': ' . $t['description'] . json_encode($t['input']), array_keys($tools), $tools));
 	}
 
-	public function testAPlainQuestionGetsTheCoreAndMoreTools(): void {
-		$tools = $this->tools('What is the capital of France?');
-		$this->assertSame([...Reply::CORE_TOOLS, 'more_tools'], array_keys($tools));
-		$this->assertContains('chemistry', $tools['more_tools']['input']['properties']['name']['enum']);
-	}
-
-	public function testWordsBringTheirTools(): void {
-		$this->assertArrayHasKey('chemistry', $this->tools('Gleiche die Reaktion Fe + O2 aus'));
-		$this->assertArrayHasKey('create_poll', $this->tools('Zrób ankietę: pizza czy makaron?'));
-		$this->assertArrayHasKey('finance', $this->tools('How much interest on a loan of 10,000 EUR?'));
-		$tools = $this->tools('Mach eine Präsentation über den Wasserkreislauf');
-		$this->assertArrayHasKey('find_images', $tools);
-		// The core keeps its place in front.
+	public function testEveryQuestionGetsTheSameTools(): void {
+		$tools = $this->tools();
 		$this->assertSame(Reply::CORE_TOOLS, array_slice(array_keys($tools), 0, count(Reply::CORE_TOOLS)));
+		foreach (['chemistry', 'create_poll', 'finance', 'find_images', 'redo_document', 'my_profile'] as $name) {
+			$this->assertArrayHasKey($name, $tools);
+		}
+		$this->assertArrayNotHasKey('more_tools', $tools);
+		// Built twice, the same to the byte: the system prompt stays cacheable.
+		$this->assertSame(self::listing($tools), self::listing($this->tools()));
 	}
 
-	public function testThePromptsToolsShrink(): void {
-		$all = self::chars($this->tools(implode(' ', ['chem', 'dna', 'sport', 'binary', 'colour', 'painting', 'function', 'matrix', 'music',
-			'loan', 'map', 'presentation', 'umfrage', 'undo', 'teile', 'lösch', 'flashcard', 'plot', 'statistik', 'einheit', 'nochmal', 'status', 'einstellung', 'merk dir'])));
-		$plain = self::chars($this->tools('What is the capital of France?'));
-		fwrite(STDERR, sprintf("\ntools: %d characters with all, %d for a plain question (%d %%)\n", $all, $plain, round(100 * $plain / $all)));
-		$this->assertLessThan($all * 0.7, $plain);
+	public function testSwitchedOffFeaturesTakeTheirTools(): void {
+		$tools = $this->tools(['web' => false, 'calendar' => false]);
+		foreach (['read_url', 'lookup', 'cite', 'calendar'] as $name) {
+			$this->assertArrayNotHasKey($name, $tools);
+		}
+		$this->assertArrayHasKey('read_file', $tools);
 	}
 
-	public function testMoreToolsRunsATool(): void {
-		$tools = $this->tools('hello');
-		$out = ($tools['more_tools']['run'])('ewa', ['name' => 'convert_units', 'args' => ['value' => 5, 'from' => 'km', 'to' => 'mi']]);
+	public function testAToolRuns(): void {
+		$out = ($this->tools()['convert_units']['run'])('ewa', ['value' => 5, 'from' => 'km', 'to' => 'mi']);
 		$this->assertStringContainsString('3.1', is_string($out) ? $out : json_encode($out));
-		$this->assertStringContainsString('Missing', ($tools['more_tools']['run'])('ewa', ['name' => 'convert_units', 'args' => []]));
 	}
 }

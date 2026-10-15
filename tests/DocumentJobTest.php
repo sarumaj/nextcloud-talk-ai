@@ -48,7 +48,7 @@ class FakeSandbox extends Sandbox {
 		return 'job1';
 	}
 
-	public function exec(string $job, string $command, int $timeout = 120): array {
+	public function exec(string $job, string $command, int $timeout = 120, ?callable $waiting = null): array {
 		$this->commands[] = $command;
 		$out = '';
 		if (str_contains($command, 'render.sh')) {
@@ -139,6 +139,8 @@ class TestDocumentJob extends DocumentJob {
 }
 
 class DocumentJobTest extends TestCase {
+	/** Free space of the person's files (-3: unlimited). */
+	private float|int $freeSpace = -3;
 	private FakeSandbox $sandbox;
 	private array $posted = [];
 	private array $delivered = [];
@@ -208,6 +210,7 @@ class DocumentJobTest extends TestCase {
 			// Newer Nextcloud returns IUserFolder (a Folder) from getUserFolder().
 			$folder = $this->createMock(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
 			$folder->method('nodeExists')->willReturn(false);
+			$folder->method('getFreeSpace')->willReturnCallback(fn () => $this->freeSpace);
 			$folder->method('newFolder')->willReturn($folder);
 			$folder->method('getDirectoryListing')->willReturn([]);
 			$folder->method('newFile')->willReturnCallback(function ($name, $data) {
@@ -316,6 +319,35 @@ class DocumentJobTest extends TestCase {
 		$this->assertContains('python3 build.py', $this->sandbox->commands);
 		$this->assertStringContainsString('came as plain text', $hub->asks[1]['messages'][2]['text']);
 		$this->assertSame('done', $this->row['status']);
+	}
+
+	public function testAToolCallInTheModelsOwnFormatIsRunAnyway(): void {
+		$hub = new FakeHub([
+			fn ($call) => "<invoke name=\"bash\">\n<parameter name=\"command\">ls -la /work/output</parameter>\n<parameter name=\"timeout_s\">60</parameter>\n</invoke>",
+			function ($call) {
+				$this->sandbox->files['/work/output/x.docx'] = 'DOCX';
+				$call('render_document', ['path' => '/work/output/x.docx']);
+				return 'Looking.';
+			},
+			function ($call) {
+				$call('deliver_file', ['path' => '/work/output/x.docx']);
+				$call('finish', ['summary' => 'ok']);
+				return 'Done.';
+			},
+		]);
+		$this->job($hub)->run(7);
+		$this->assertContains('ls -la /work/output', $this->sandbox->commands);
+		$this->assertSame('done', $this->row['status']);
+	}
+
+	public function testAFullStorageEndsTheJobBeforeAnyWork(): void {
+		$this->freeSpace = 0;
+		$hub = new FakeHub([fn ($call) => 'never asked']);
+		$this->job($hub, true)->run(7);
+		$this->assertSame('failed', $this->row['status']);
+		$this->assertStringContainsString('storage is full', $this->row['outcome']);
+		$this->assertSame([], $hub->asks);
+		$this->assertSame(0, $this->sandbox->created);
 	}
 
 	public function testAModelThatDoesNotAnswerInTimeIsAskedAgain(): void {

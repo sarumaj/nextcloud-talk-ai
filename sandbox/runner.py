@@ -7,19 +7,33 @@ with one JSON line. Each job gets its own container from the sandbox image:
 read-only, without network, non-root, without capabilities, limited in CPU,
 memory, processes and time, writable only /work (a tmpfs) and /tmp. The skills
 are mounted read-only at /skills. Containers are removed when the job ends, and
-by a reaper when their time is up.
+by a reaper when the job is abandoned or its time is up.
 
 Requests carry the shared token. Operations:
   health                                   -> {ok, jobs, max_jobs, image}
   create {cpus?, memory_mb?, disk_mb?, seconds?} -> {job}
-  exec {job, command, timeout?}            -> {exit_code, stdout, stderr, truncated, timed_out}
+  exec {job, command, timeout?, idle?, wait?} -> {exit_code, stdout, stderr, truncated, timed_out, stalled, seconds}
+                                              or, with wait and still running: {running, run, seconds, last}
+  exec_wait {job, run, wait?}              -> either answer of exec
+  exec_stop {job, run}                     -> the result of the stopped command
   put {job, path, data (base64)}           -> {ok}
   get {job, path}                          -> {data (base64)}
   list {job, path?}                        -> {files: [{path, size}]}
   delete {job}                             -> {ok}
 
+A command runs as long as it makes progress: output, or CPU time of its processes. It
+is stopped after `idle` seconds without either (default RUNNER_EXEC_IDLE, 120: hung,
+or waiting on something that never comes), or after `timeout` seconds in all (at
+most RUNNER_EXEC_MAX_SECONDS, 3600). With `wait`, exec answers after that many
+seconds at the latest, while the command goes on; exec_wait asks again, so the
+caller can show progress and stop it (exec_stop). Without, exec waits for the end.
+
+A job ends with delete, after RUNNER_MAX_SECONDS in all (14400), or when nothing
+was asked of it for RUNNER_JOB_IDLE_SECONDS (1800) and no command is running.
+
 Configuration by environment: RUNNER_SOCKET, RUNNER_TOKEN_FILE, RUNNER_IMAGE,
-RUNNER_SKILLS, RUNNER_MAX_JOBS, RUNNER_MAX_SECONDS, RUNNER_CPUS, RUNNER_MEMORY_MB,
+RUNNER_SKILLS, RUNNER_MAX_JOBS, RUNNER_MAX_SECONDS, RUNNER_JOB_IDLE_SECONDS,
+RUNNER_EXEC_IDLE, RUNNER_EXEC_MAX_SECONDS, RUNNER_CPUS, RUNNER_MEMORY_MB,
 RUNNER_DISK_MB, DOCKER (the client binary, docker or podman).
 
 Inside an ExApp (AppAPI, sandbox/exapp/): RUNNER_BACKEND=process. A container
@@ -43,6 +57,7 @@ limited there (less isolation than a container: no cgroups, and the host's kerne
 """
 
 import base64
+import collections
 import hmac
 import http.server
 import urllib.request
@@ -50,6 +65,7 @@ import json
 import os
 import posixpath
 import secrets
+import signal
 import socket
 import socketserver
 import subprocess
@@ -63,7 +79,10 @@ TOKEN = open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else ""
 IMAGE = os.environ.get("RUNNER_IMAGE", "talk-ai-sandbox:latest")
 SKILLS = os.environ.get("RUNNER_SKILLS", "/var/lib/talk-ai-sandbox/skills")
 MAX_JOBS = int(os.environ.get("RUNNER_MAX_JOBS", "3"))
-MAX_SECONDS = int(os.environ.get("RUNNER_MAX_SECONDS", "900"))
+MAX_SECONDS = int(os.environ.get("RUNNER_MAX_SECONDS", "14400"))
+JOB_IDLE = int(os.environ.get("RUNNER_JOB_IDLE_SECONDS", "1800"))
+EXEC_IDLE = int(os.environ.get("RUNNER_EXEC_IDLE", "120"))
+EXEC_MAX = int(os.environ.get("RUNNER_EXEC_MAX_SECONDS", "3600"))
 CPUS = float(os.environ.get("RUNNER_CPUS", "2"))
 MEMORY_MB = int(os.environ.get("RUNNER_MEMORY_MB", "2048"))
 DISK_MB = int(os.environ.get("RUNNER_DISK_MB", "1024"))
@@ -80,7 +99,7 @@ if BACKEND == "process":
 OUTPUT_LIMIT = 30 * 1024
 FILE_LIMIT = 25 * 1024 * 1024
 
-jobs = {}  # job id -> {"container": name, "deadline": time}
+jobs = {}  # job id -> {"container": name, "deadline": time, "seen": time, "run": Run or None}
 lock = threading.Lock()
 
 
@@ -99,6 +118,8 @@ def work_path(path):
 def container(job):
     with lock:
         entry = jobs.get(job)
+        if entry is not None:
+            entry["seen"] = time.time()
     if entry is None:
         raise ValueError("no such job (finished or timed out)")
     return entry["container"]
@@ -109,8 +130,8 @@ def create(req):
         if len(jobs) >= MAX_JOBS:
             raise RuntimeError("busy: %d document jobs are running; try again in a few minutes" % MAX_JOBS)
         job = secrets.token_hex(8)
-        seconds = min(int(req.get("seconds", MAX_SECONDS)), MAX_SECONDS)
-        jobs[job] = {"container": "talkai-" + job, "deadline": time.time() + seconds}
+        seconds = min(int(req.get("seconds") or MAX_SECONDS), MAX_SECONDS)
+        jobs[job] = {"container": "talkai-" + job, "deadline": time.time() + seconds, "seen": time.time(), "run": None}
     cpus = min(float(req.get("cpus", CPUS)), CPUS)
     memory = min(int(req.get("memory_mb", MEMORY_MB)), MEMORY_MB)
     disk = min(int(req.get("disk_mb", DISK_MB)), DISK_MB)
@@ -144,23 +165,217 @@ def create(req):
     return {"job": job}
 
 
+class Capture:
+    """The output of a stream: the beginning and the end (errors are usually at the end), and its size."""
+
+    def __init__(self):
+        self.head = bytearray()
+        self.tail = collections.deque()
+        self.tail_size = 0
+        self.size = 0
+
+    def add(self, data):
+        self.size += len(data)
+        room = OUTPUT_LIMIT // 4 - len(self.head)
+        if room > 0:
+            self.head += data[:room]
+            data = data[room:]
+        if data:
+            self.tail.append(bytes(data))
+            self.tail_size += len(data)
+            while self.tail_size - len(self.tail[0]) >= OUTPUT_LIMIT // 4:
+                self.tail_size -= len(self.tail.popleft())
+
+    def text(self):
+        tail = b"".join(self.tail)
+        if self.cut():
+            return (bytes(self.head) + b"\n[... cut ...]\n" + tail[-OUTPUT_LIMIT // 4:]).decode(errors="replace")
+        return (bytes(self.head) + tail).decode(errors="replace")
+
+    def cut(self):
+        return self.size > len(self.head) + self.tail_size
+
+    def last(self):
+        tail = b"".join(self.tail) or bytes(self.head)
+        lines = [l for l in tail[-2000:].decode(errors="replace").splitlines() if l.strip()]
+        return lines[-1][-200:] if lines else ""
+
+
+def tree_cpu(pid):
+    """CPU seconds of a process and all below it (those that ended count with their parent)."""
+    parents, cpu = {}, {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open("/proc/%s/stat" % entry) as f:
+                fields = f.read().rsplit(")", 1)[1].split()
+        except OSError:
+            continue
+        parents[int(entry)] = int(fields[1])
+        cpu[int(entry)] = sum(int(x) for x in fields[11:15])
+    total, todo = 0, [pid]
+    while todo:
+        p = todo.pop()
+        total += cpu.get(p, 0)
+        todo += [c for c, parent in parents.items() if parent == p]
+    return total / os.sysconf("SC_CLK_TCK")
+
+
+class Run:
+    """One command of a job, watched: it goes on while it makes progress (output, CPU time)."""
+
+    def __init__(self, job, argv, cwd, limit, idle):
+        self.job, self.limit, self.idle = job, limit, idle
+        self.id = secrets.token_hex(6)
+        self.out, self.err = Capture(), Capture()
+        self.started = time.time()
+        self.stalled = self.over = self.stopped = False
+        self.done = threading.Event()
+        self.proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                                     cwd=cwd, start_new_session=True)
+        self.readers = [threading.Thread(target=self.read, args=(self.proc.stdout, self.out), daemon=True),
+                        threading.Thread(target=self.read, args=(self.proc.stderr, self.err), daemon=True)]
+        for reader in self.readers:
+            reader.start()
+        threading.Thread(target=self.watch, daemon=True).start()
+
+    @staticmethod
+    def read(stream, capture):
+        for chunk in iter(lambda: stream.read1(65536), b""):
+            capture.add(chunk)
+
+    def cpu(self):
+        if BACKEND != "docker":
+            return tree_cpu(self.proc.pid)
+        # The job's container as a whole (its processes are not ours to see).
+        done = docker("exec", container(self.job), "cat", "/sys/fs/cgroup/cpu.stat", timeout=20)
+        for line in done.stdout.decode(errors="replace").splitlines():
+            if line.startswith("usage_usec "):
+                return int(line.split()[1]) / 1e6
+        return 0.0
+
+    def watch(self):
+        last_progress, seen = time.time(), (0, 0.0)
+        while self.proc.poll() is None:
+            time.sleep(1 if time.time() - self.started < 10 else 5)
+            now = time.time()
+            try:
+                current = (self.out.size + self.err.size, self.cpu())
+            except Exception:
+                current = (self.out.size + self.err.size, seen[1])
+            # Progress: new output, or a tenth of a CPU second more (a sleeping process uses none).
+            if current[0] != seen[0] or current[1] - seen[1] >= 0.1:
+                last_progress, seen = now, current
+            if now - last_progress > self.idle:
+                self.stalled = True
+                self.kill()
+            elif now - self.started > self.limit:
+                self.over = True
+                self.kill()
+        # What the command left running in the background ends with it (it would hold the output open).
+        try:
+            os.killpg(self.proc.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        for reader in self.readers:
+            reader.join(10)
+        self.done.set()
+
+    def kill(self):
+        try:
+            os.killpg(self.proc.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        with lock:
+            entry = jobs.get(self.job) or {}
+        # What escaped the process group: the job's processes (its own user; in a container, all but its init).
+        if BACKEND == "process" and "uid" in entry:
+            subprocess.run(["pkill", "-KILL", "-U", str(entry["uid"])])
+        elif BACKEND == "docker" and "container" in entry:
+            docker("exec", entry["container"], "sh", "-c", "kill -9 -1", timeout=20)
+
+    def status(self):
+        return {"running": True, "run": self.id, "seconds": int(time.time() - self.started), "last": self.err.last() or self.out.last()}
+
+    def result(self):
+        out, err = self.out.text(), self.err.text()
+        if self.stalled:
+            err += "\n[stopped: no output and no CPU use for %d s; the command hung or waited for input]" % self.idle
+        elif self.over:
+            err += "\n[stopped: over the time limit of %d s]" % self.limit
+        elif self.stopped:
+            err += "\n[stopped on request]"
+        code = self.proc.returncode
+        return {"exit_code": 124 if self.stalled or self.over else code, "stdout": out, "stderr": err,
+                "truncated": self.out.cut() or self.err.cut(), "timed_out": self.over or code == 124,
+                "stalled": self.stalled, "seconds": int(time.time() - self.started)}
+
+
+def exec_argv(job, command, limit):
+    if BACKEND == "process":
+        return process_command(job, command, limit), "/work"
+    if BACKEND == "bwrap":
+        return bw_command(job, command, limit), None
+    return [DOCKER, "exec", "--workdir", "/work", container(job), "timeout", "--kill-after=5", str(limit),
+            "bash", "-lc", command], None
+
+
 def run_exec(req):
+    job = req["job"]
+    container(job)
+    limit = max(1, min(int(req.get("timeout") or 120), EXEC_MAX))
+    idle = max(10, min(int(req.get("idle") or EXEC_IDLE), EXEC_MAX))
+    with lock:
+        if jobs[job].get("run") is not None:
+            raise RuntimeError("a command of this job is still running")
     if BACKEND in ("bwrap", "process"):
-        return bw_exec(req)
-    name = container(req["job"])
-    timeout = max(1, min(int(req.get("timeout", 120)), 600))
-    try:
-        done = docker("exec", "--workdir", "/work", name, "timeout", "--kill-after=5", str(timeout),
-                      "bash", "-lc", req["command"], timeout=timeout + 15)
-        timed_out = done.returncode == 124
-    except subprocess.TimeoutExpired:
-        return {"exit_code": 124, "stdout": "", "stderr": "timed out", "truncated": False, "timed_out": True}
-    out, err = done.stdout, done.stderr
-    truncated = len(out) + len(err) > OUTPUT_LIMIT
-    # Keep the beginning and the end of long output: errors are usually at the end.
-    cut = lambda b: b if len(b) <= OUTPUT_LIMIT // 2 else b[: OUTPUT_LIMIT // 4] + b"\n[... cut ...]\n" + b[-OUTPUT_LIMIT // 4:]
-    return {"exit_code": done.returncode, "stdout": cut(out).decode(errors="replace"), "stderr": cut(err).decode(errors="replace"),
-            "truncated": truncated, "timed_out": timed_out}
+        bw_dir(job)
+    argv, cwd = exec_argv(job, req["command"], limit)
+    run = Run(job, argv, cwd, limit, idle)
+    with lock:
+        jobs[job]["run"] = run
+    return answer(job, run, req.get("wait"))
+
+
+def current_run(req):
+    container(req["job"])
+    with lock:
+        run = jobs[req["job"]].get("run")
+    if run is None or run.id != req.get("run"):
+        raise ValueError("no such command (finished, or the job ended)")
+    return run
+
+
+def exec_wait(req):
+    return answer(req["job"], current_run(req), req.get("wait", 30))
+
+
+def exec_stop(req):
+    run = current_run(req)
+    run.stopped = True
+    run.kill()
+    return answer(req["job"], run, None)
+
+
+def answer(job, run, wait):
+    """The result once the command ended; with wait, its status after at most that many seconds."""
+    if not run.done.wait(None if wait is None else max(0, min(float(wait), 60))):
+        return run.status()
+    with lock:
+        if jobs.get(job, {}).get("run") is run:
+            jobs[job]["run"] = None
+    result = run.result()
+    if BACKEND in ("bwrap", "process") and job in jobs:
+        # The working space: over its size, the job's newest files are what broke it; it ends.
+        du = subprocess.run(["du", "-sm", bw_dir(job)], capture_output=True, text=True).stdout.split()
+        used = int(du[0]) if du and du[0].isdigit() else 0
+        with lock:
+            limit = jobs.get(job, {}).get("disk", DISK_MB)
+        if used > limit:
+            delete({"job": job})
+            result["stderr"] += "\nthe working space is over %d MB: the job was ended" % limit
+    return result
 
 
 def put(req):
@@ -209,6 +424,12 @@ def listing(req):
 
 def delete(req):
     with lock:
+        entry = jobs.get(req["job"])
+        run = entry.get("run") if entry is not None else None
+    if run is not None:
+        run.stopped = True
+        run.kill()
+    with lock:
         entry = jobs.pop(req["job"], None)
     if entry is not None:
         if BACKEND == "process":
@@ -226,7 +447,8 @@ def health(_req):
     with lock:
         count = len(jobs)
     return {"ok": True, "jobs": count, "max_jobs": MAX_JOBS, "image": IMAGE if BACKEND == "docker" else BACKEND + ":" + (ROOTFS or "host"),
-            "max_seconds": MAX_SECONDS, "backend": BACKEND, "network": NETWORK if BACKEND == "docker" else "none"}
+            "max_seconds": MAX_SECONDS, "backend": BACKEND, "network": NETWORK if BACKEND == "docker" else "none",
+            "exec_idle": EXEC_IDLE, "exec_max_seconds": EXEC_MAX, "features": ["exec_wait"]}
 
 
 # --- Bubblewrap: a job is a folder, each command a short-lived sandbox over it ---
@@ -288,30 +510,6 @@ def process_command(job, command, timeout):
             "/usr/bin/python3", "-I", JOBEXEC, "bash", "-lc", command]
 
 
-def bw_exec(req):
-    job = req["job"]
-    bw_dir(job)
-    timeout = max(1, min(int(req.get("timeout", 120)), 600))
-    argv = process_command(job, req["command"], timeout) if BACKEND == "process" else bw_command(job, req["command"], timeout)
-    try:
-        done = subprocess.run(argv, capture_output=True, timeout=timeout + 15, cwd="/work" if BACKEND == "process" else None)
-    except subprocess.TimeoutExpired:
-        return {"exit_code": 124, "stdout": "", "stderr": "timed out", "truncated": False, "timed_out": True}
-    out, err = done.stdout, done.stderr
-    # The working space: over its size, the job's newest files are what broke it; it ends.
-    du = subprocess.run(["du", "-sm", bw_dir(job)], capture_output=True, text=True).stdout.split()
-    used = int(du[0]) if du and du[0].isdigit() else 0
-    with lock:
-        limit = jobs.get(job, {}).get("disk", DISK_MB)
-    if used > limit:
-        delete({"job": job})
-        err += ("\nthe working space is over %d MB: the job was ended" % limit).encode()
-    truncated = len(out) + len(err) > OUTPUT_LIMIT
-    cut = lambda b: b if len(b) <= OUTPUT_LIMIT // 2 else b[: OUTPUT_LIMIT // 4] + b"\n[... cut ...]\n" + b[-OUTPUT_LIMIT // 4:]
-    return {"exit_code": done.returncode, "stdout": cut(out).decode(errors="replace"), "stderr": cut(err).decode(errors="replace"),
-            "truncated": truncated, "timed_out": done.returncode == 124}
-
-
 def bw_put(req):
     target = bw_host(req["path"])(req["job"])
     data = base64.b64decode(req["data"])
@@ -363,7 +561,8 @@ def bw_list(req):
     return {"files": files}
 
 
-OPERATIONS = {"health": health, "create": create, "exec": run_exec, "put": put, "get": get, "list": listing, "delete": delete}
+OPERATIONS = {"health": health, "create": create, "exec": run_exec, "exec_wait": exec_wait, "exec_stop": exec_stop,
+              "put": put, "get": get, "list": listing, "delete": delete}
 
 
 class Handler(socketserver.StreamRequestHandler):
@@ -384,7 +583,7 @@ class Server(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
 
 
 def reaper():
-    """Removes jobs past their time, and leftover containers or job folders of an earlier run."""
+    """Removes jobs past their time or abandoned, and leftover containers or job folders of an earlier run."""
     if BACKEND == "process":
         subprocess.run(["sh", "-c", "rm -rf /work/* /work/.[!.]* 2>/dev/null"])
     elif BACKEND == "bwrap":
@@ -399,9 +598,9 @@ def reaper():
         time.sleep(10)
         now = time.time()
         with lock:
-            expired = [j for j, e in jobs.items() if e["deadline"] < now]
+            expired = [j for j, e in jobs.items() if e["deadline"] < now or (e["run"] is None and now - e["seen"] > JOB_IDLE)]
         for job in expired:
-            print("job %s timed out; removing its container" % job, flush=True)
+            print("job %s is over its time or abandoned; removing it" % job, flush=True)
             delete({"job": job})
 
 

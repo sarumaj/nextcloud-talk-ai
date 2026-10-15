@@ -29,7 +29,7 @@ class Settings {
 		'cost_in' => ['quotas', 'float', '0', 0, 1000, 'Cost per million input tokens', 'For the cost estimate in the statistics (in your currency).'],
 		'cost_out' => ['quotas', 'float', '0', 0, 1000, 'Cost per million output tokens', 'For the cost estimate in the statistics.'],
 		'document_max_tools' => ['documents', 'int', '60', 5, 300, 'Tool calls per document job', 'The hard limit of the model\'s steps (F-01).'],
-		'document_max_seconds' => ['documents', 'int', '900', 60, 3600, 'Time per document job (seconds)', 'The container is removed after this; the runner\'s own limit caps it.'],
+		'document_max_seconds' => ['documents', 'int', '0', 0, 14400, 'Time per document job (seconds)', '0: no limit; a job then ends only when it stops making progress or has used its tool calls.'],
 		'document_corrections' => ['documents', 'int', '3', 0, 10, 'Correction rounds after the render check', 'Then the best result is delivered with a note.'],
 		'document_cpus' => ['documents', 'int', '2', 1, 16, 'CPUs per sandbox container', 'Capped by the runner (RUNNER_CPUS).'],
 		'document_memory_mb' => ['documents', 'int', '2048', 256, 16384, 'Memory per sandbox container (MB)', 'Capped by the runner (RUNNER_MEMORY_MB).'],

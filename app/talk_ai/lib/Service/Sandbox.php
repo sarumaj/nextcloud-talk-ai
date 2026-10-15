@@ -43,10 +43,29 @@ class Sandbox {
 		return (string)$this->call('create', $limits, 120)['job'];
 	}
 
-	/** @return array{exit_code: int, stdout: string, stderr: string, truncated: bool, timed_out: bool} */
-	public function exec(string $job, string $command, int $timeout = 120): array {
-		return $this->call('exec', ['job' => $job, 'command' => $command, 'timeout' => $timeout], $timeout + 30);
+	/**
+	 * Runs a command; it goes on as long as it makes progress (output or CPU time) and is
+	 * stopped after the runner's idle time without (stalled) or after $timeout seconds in
+	 * all. Every few seconds $waiting(seconds so far, last output line) is called while it
+	 * runs; false stops it (a cancelled job). A runner older than 0.5.5 answers only at the end.
+	 *
+	 * @param ?callable(int, string): bool $waiting
+	 * @return array{exit_code: int, stdout: string, stderr: string, truncated: bool, timed_out: bool, stalled?: bool}
+	 */
+	public function exec(string $job, string $command, int $timeout = 120, ?callable $waiting = null): array {
+		$r = $this->call('exec', ['job' => $job, 'command' => $command, 'timeout' => $timeout, 'wait' => self::WAIT],
+			max(self::WAIT, min($timeout, 600)) + 30);
+		while (!empty($r['running'])) {
+			if ($waiting !== null && $waiting((int)($r['seconds'] ?? 0), (string)($r['last'] ?? '')) === false) {
+				return $this->call('exec_stop', ['job' => $job, 'run' => $r['run']], 60);
+			}
+			$r = $this->call('exec_wait', ['job' => $job, 'run' => $r['run'], 'wait' => self::WAIT], self::WAIT + 30);
+		}
+		return $r;
 	}
+
+	/** Seconds the runner waits on a command before it reports that it still runs. */
+	private const WAIT = 10;
 
 	public function put(string $job, string $path, string $data): void {
 		$this->call('put', ['job' => $job, 'path' => $path, 'data' => base64_encode($data)], 120);
@@ -65,7 +84,7 @@ class Sandbox {
 		try {
 			$this->call('delete', ['job' => $job], 60);
 		} catch (\Throwable) {
-			// The runner's reaper removes it at the latest when its time is up.
+			// The runner's reaper removes it once it was left alone for half an hour.
 		}
 	}
 
@@ -87,7 +106,7 @@ class Sandbox {
 		return is_array($exApp) && !empty($exApp['enabled']) ? $id : '';
 	}
 
-	private function call(string $op, array $params, int $timeout): array {
+	protected function call(string $op, array $params, int $timeout): array {
 		$exApp = $this->exApp();
 		if ($exApp !== '') {
 			return $this->callExApp($exApp, $op, $params, $timeout);
