@@ -89,7 +89,7 @@ Every setting has an explanation on the page; the same keys work with
 `occ config:app:set talk_ai <key> --value …`.
 
 - **General**: the bot on or off (emergency stop), guests and federated participants,
-  messages per answer (history window), the model's context size, the notice when the
+  the steps shown while answering (`show_steps`), messages per answer (history window), the model's context size, the notice when the
   bot is enabled.
 - **Features per group**: writing files, the document sandbox, the web, the calendar,
   and youth mode (no web search; content for minors), each for named groups or

@@ -8,6 +8,9 @@ Switch the bot on in a conversation (settings → Bots). Alone with it, it answe
 message; with others, when you name it (`@Claude …`) or reply to it. `@Claude help`
 lists what it can do here.
 
+- **While it works**: a slow answer shows a status message that lists what it does and
+  why, a line per step ("I read the timetable to find the exam dates"); the answer then
+  takes its place.
 - **Questions and files**: share a PDF, a Word, Excel or PowerPoint file or a photo
   and ask about it. Long files: it reads the parts that fit your question and says which.
 - **Files it writes**: "a packing list as PDF", "a budget as Excel".
@@ -35,6 +38,9 @@ Schalte den Bot in einer Unterhaltung ein (Einstellungen → Bots). Allein mit i
 antwortet er auf jede Nachricht, mit anderen, wenn du ihn nennst (`@Claude …`) oder
 ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
 
+- **Während er arbeitet**: Bei einer längeren Antwort zeigt eine Statusnachricht, was er
+  tut und warum, eine Zeile pro Schritt („Ich lese den Stundenplan, um die Prüfungstermine
+  zu finden“); danach tritt die Antwort an ihre Stelle.
 - **Fragen und Dateien**: Teile eine PDF, Word-, Excel-, PowerPoint-Datei oder ein Foto
   und frag danach. Bei langen Dateien liest er die passenden Stellen und sagt, welche.
 - **Dateien**: „eine Packliste als PDF“, „ein Budget als Excel“.
@@ -63,6 +69,9 @@ Włącz bota w rozmowie (ustawienia → Boty). Sam na sam odpowiada na każdą w
 w grupie, gdy go wymienisz (`@Claude …`) lub mu odpowiesz. `@Claude pomoc` pokazuje,
 co tu potrafi.
 
+- **Podczas pracy**: przy dłuższej odpowiedzi wiadomość statusu pokazuje, co robi i
+  dlaczego, po jednym wierszu na krok („Czytam plan lekcji, żeby znaleźć terminy
+  egzaminów”); potem zastępuje ją odpowiedź.
 - **Pytania i pliki**: udostępnij PDF, plik Word, Excel, PowerPoint lub zdjęcie i zapytaj.
   W długich plikach czyta pasujące fragmenty i mówi, które.
 - **Pliki**: „lista rzeczy do spakowania jako PDF”, „budżet jako Excel”.

@@ -64,6 +64,26 @@ class TickerTest extends TestCase {
 		$this->assertStringContainsString('1:', end($this->edited));
 	}
 
+	public function testAnAnnouncedStepShowsAtTheNextPoll(): void {
+		$progress = new FakeProgress();
+		$progress->start('k', 'room', 5, '⏳ Thinking …', 0, 'ewa', $this->now);
+		$sleeps = 0;
+		$this->ticker($progress)->tick('k', function (int $s) use (&$sleeps, $progress) {
+			$this->now += $s;
+			$sleeps++;
+			if ($sleeps === 5) {
+				$progress->note('k', 'I read the timetable to find the exam dates.');
+			}
+			if ($sleeps === 7) {
+				$progress->done('k');
+			}
+		});
+		// Posted at 12 s; the step came at 15 s and was shown at that poll, not twenty seconds later.
+		$this->assertCount(1, $this->posted);
+		$this->assertCount(1, $this->edited);
+		$this->assertStringStartsWith("> I read the timetable to find the exam dates.\n\n⏳ Thinking … · 15 s", $this->edited[0]);
+	}
+
 	public function testAQuickAnswerShowsNothing(): void {
 		$progress = new FakeProgress();
 		$progress->start('k', 'room', 5, '⏳ Thinking …', 0, '', $this->now);

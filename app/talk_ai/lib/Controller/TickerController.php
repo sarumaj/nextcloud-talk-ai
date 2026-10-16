@@ -23,6 +23,8 @@ use OCP\IRequest;
  * signed like the process route): from ten seconds on it shows the current step
  * and the time it runs in a status message, changed every twenty seconds, until
  * the work is done (then the answer takes the message's place) or an hour passed.
+ * The steps the model announced stand above it, one per line, and a new one is
+ * shown at the next poll rather than after the twenty seconds.
  */
 class TickerController extends Controller {
 	public const FIRST = 10;
@@ -63,6 +65,7 @@ class TickerController extends Controller {
 	public function tick(string $key, ?callable $sleep = null): void {
 		$sleep ??= fn (int $s) => sleep($s);
 		$shown = 0;
+		$revision = 0;
 		$room = null;
 		for ($waited = 0; $waited < self::LIMIT; $waited += self::POLL) {
 			$sleep(self::POLL);
@@ -71,11 +74,14 @@ class TickerController extends Controller {
 				return;
 			}
 			$elapsed = $this->time->getTime() - (int)$state['since'];
-			if ($elapsed < self::FIRST || ($shown > 0 && $this->time->getTime() - $shown < self::EVERY)) {
+			$announced = (int)($state['revision'] ?? 0) !== $revision;
+			if ($elapsed < self::FIRST || ($shown > 0 && !$announced && $this->time->getTime() - $shown < self::EVERY)) {
 				continue;
 			}
 			$room ??= $this->conversation->room((string)$state['token']);
-			$text = $state['step'] . ' · ' . self::duration($elapsed) . ' ' . $this->texts->t((string)$state['user'], '(“stop” cancels)');
+			$revision = (int)($state['revision'] ?? 0);
+			$text = self::steps($state['steps'] ?? []) . $state['step'] . ' · ' . self::duration($elapsed) . ' '
+				. $this->texts->t((string)$state['user'], '(“stop” cancels)');
 			if ((int)$state['status'] > 0) {
 				$comment = $this->conversation->comment($room, (int)$state['status']);
 				if ($comment !== null) {
@@ -92,6 +98,11 @@ class TickerController extends Controller {
 			}
 			$shown = $this->time->getTime();
 		}
+	}
+
+	/** The announced steps as lines above the current one (quoted, so they read as the bot's notes). */
+	public static function steps(array $steps): string {
+		return implode('', array_map(fn ($step) => '> ' . $step . "\n", $steps)) . ($steps === [] ? '' : "\n");
 	}
 
 	public static function duration(int $seconds): string {

@@ -112,6 +112,8 @@
         "Off: it answers nobody (emergency stop); running document jobs are cancelled.": "Aus: er antwortet niemandem (Notaus); laufende Dokumentaufträge werden abgebrochen.",
         "Answer guests and federated participants": "Gästen und föderierten Teilnehmenden antworten",
         "They get chat answers only: no files, calendars or documents.": "Sie bekommen nur Chat-Antworten: keine Dateien, Kalender oder Dokumente.",
+        "Show the steps while answering": "Schritte beim Antworten zeigen",
+        "The status message of a slow answer lists what the bot does and why, a line per tool it uses; the answer then takes its place.": "Die Statusmeldung einer langsamen Antwort nennt, was der Bot tut und warum, eine Zeile pro Werkzeug; danach tritt die Antwort an ihre Stelle.",
         "Messages per answer": "Nachrichten pro Antwort",
         "How many recent messages of the conversation go with each question; older ones are summarized.": "Wie viele letzte Nachrichten der Unterhaltung mit jeder Frage mitgehen; ältere werden zusammengefasst.",
         "Context size of the model (tokens)": "Kontextgröße des Modells (Tokens)",

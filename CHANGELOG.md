@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0 - 2026-10-16
+
+### Added
+- The steps of a slow answer show in its status message while the bot works: with each
+  tool it uses, the model says in one sentence what it does and why ("I read the timetable
+  to find the exam dates"), and the line appears at the ticker's next look (three
+  seconds), above the current step; the latest six stay. The answer then takes the
+  message's place, so nothing of it stays in the chat. AI-Hub hands the app only a tool
+  call's arguments, so the model writes the sentence into an argument of its own, `why`,
+  which every tool takes and none of them sees. On by default; Administration → General,
+  "Show the steps while answering" (`show_steps`), turns it off.
+
 ## 0.5.9 - 2026-10-15
 
 ### Fixed

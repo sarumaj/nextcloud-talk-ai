@@ -477,7 +477,12 @@ class Reply {
 			. 'Tools: every tool listed below is available and works; it runs on the server, not on your side. Call it with the '
 			. 'tool block as described, and never say a tool is unavailable without having called it. Your own built-in tools (file '
 			. 'reading, shell) are switched off; these are different. Inside a tool call\'s arguments never write three backticks: '
-			. 'fence code and charts with tildes instead (~~~python … ~~~, ~~~chart … ~~~), or the call is cut off.' . "\n\n"
+			. 'fence code and charts with tildes instead (~~~python … ~~~, ~~~chart … ~~~), or the call is cut off.'
+			. ($this->appConfig->getValueString(Application::APP_ID, 'show_steps', 'yes') !== 'no'
+				? ' Give every tool call the argument ' . self::WHY . ': one short sentence in the person\'s language on what you do '
+					. 'and why ("I check the dates in the timetable before I add them"); the person sees it while you work, so name '
+					. 'nothing private of others.'
+				: '') . "\n\n"
 			. 'Files: read_file reads a file by id (Word, Excel, PowerPoint, OpenDocument, PDF, text; old .doc/.xls/.ppt too); '
 			. 'list_files lists the files shared here; find_files finds the person\'s own files by name. When asked about "the file", '
 			. '"the slides" or "the document", read the latest one that fits. You act with the rights of the person asking.' . $pdf . "\n\n"
@@ -641,10 +646,17 @@ class Reply {
 			}
 		}
 		$tools = $ordered + $tools;
+		$steps = $this->appConfig->getValueString(Application::APP_ID, 'show_steps', 'yes') !== 'no';
 		$wrapped = [];
 		foreach ($tools as $name => $tool) {
 			$run = $tool['run'];
-			$tool['run'] = function (string $uid, array $args) use ($name, $run) {
+			$tool['run'] = function (string $uid, array $args) use ($name, $run, $steps) {
+				// The model's own words on this step, for the status message; not the tool's business.
+				$why = (string)($args[self::WHY] ?? '');
+				unset($args[self::WHY]);
+				if ($steps && $this->progressKey !== '' && !$this->progressDone) {
+					$this->progress->note($this->progressKey, $why);
+				}
 				$this->status('⏳ ' . $this->phase($uid, $name) . ' …');
 				$private = $this->privateCall($uid, $name, $args);
 				$result = $private ?? $run($uid, $args);
@@ -654,9 +666,23 @@ class Reply {
 					'result' => mb_substr(preg_replace('/\s+/', ' ', $text) ?? '', 0, 300)];
 				return $result;
 			};
-			$wrapped[$name] = ['input' => self::lenient($tool['input'])] + $tool;
+			$wrapped[$name] = ['input' => self::withWhy(self::lenient($tool['input']))] + $tool;
 		}
 		return $wrapped;
+	}
+
+	/** The argument in which the model says what it does with a tool call, and why. */
+	public const WHY = 'why';
+
+	/**
+	 * A tool's input with the optional argument WHY. AI-Hub hands the app the arguments
+	 * only, not the model's words around a call; this is how they reach the chat.
+	 */
+	public static function withWhy(array $schema): array {
+		$schema['type'] ??= 'object';
+		$schema['properties'] = (array)($schema['properties'] ?? []) + [self::WHY => ['type' => 'string',
+			'description' => 'One short sentence for the person, in their language: what you do with this call and why']];
+		return $schema;
 	}
 
 	/** The tools listed first, in this order. */
