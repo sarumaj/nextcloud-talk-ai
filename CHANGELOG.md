@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.1 - 2026-10-17
+
+### Fixed
+- A new document with a new question gets the question answered for that document. The bot
+  went on with the earlier task instead: a person shared a document with "make me a study
+  sheet for this" while an earlier study sheet was the newest document job, and the bot
+  made the earlier one again.
+  - The files a message is about are now named with it: the files shared with it, or by
+    its author since the bot last answered (a file first, the question after it). A caption
+    no longer loses its file.
+  - The prompt says that each message is a request of its own. The summary, the recent
+    messages and the document jobs are background, continued only when the message asks for
+    it ("again", "continue", "the same for…", a reply to it).
+  - The document jobs in the context are marked as earlier work, not a to-do. The
+    conversation's summary keeps what was left open as history, not as tasks to resume.
+
 ## 0.7.0 - 2026-10-17
 
 ### Added
