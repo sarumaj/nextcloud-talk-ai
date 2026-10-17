@@ -44,6 +44,8 @@ OC.L10N.register(
         "“A packing list as PDF”": "„Lista rzeczy do spakowania jako PDF”",
         "Demanding documents in the workshop (templates, formulas, long decks, changes)": "Złożone dokumenty w pracowni (szablony, formuły, długie prezentacje, zmiany)",
         "“Minutes on this template as .docx”": "„Protokół na tym szablonie jako .docx”",
+        "Images in the workshop (diagrams, sketches, illustrations, posters)": "Obrazy w pracowni (diagramy, schematy, ilustracje, plakaty)",
+        "“A diagram of the water cycle as PNG”": "„Schemat obiegu wody jako PNG”",
         "Maths, sciences, statistics (computed exactly)": "Matematyka, nauki ścisłe, statystyka (dokładnie)",
         "“Solve x² − 5x + 6 = 0”": "„Rozwiąż x² − 5x + 6 = 0”",
         "Research and citations (web, Wikipedia, papers)": "Wyszukiwanie i cytowanie (web, Wikipedia, artykuły)",

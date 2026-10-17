@@ -281,6 +281,32 @@ class DocumentJobTest extends TestCase {
 		$this->assertNotEmpty(array_filter($this->sandbox->commands, fn ($c) => str_contains($c, 'check.py') && str_contains($c, "--lang 'de'")));
 	}
 
+	public function testAnImageJobReadsTheImageSkillAndDeliversTheImage(): void {
+		$hub = new FakeHub([
+			function ($call) {
+				$this->sandbox->files['/work/output/flow.png'] = 'PNG';
+				$call('render_document', ['path' => '/work/output/flow.png']);
+				return 'Looking at the image.';
+			},
+			function ($call) {
+				$call('deliver_file', ['path' => '/work/output/flow.png']);
+				$call('finish', ['summary' => 'A flowchart of the water cycle.']);
+				return 'Done.';
+			},
+		]);
+		$job = $this->job($hub);
+		$this->row['format'] = 'png';
+		$this->row['name'] = 'Wasserkreislauf';
+		$job->run(7);
+
+		$first = $hub->asks[0]['messages'][0]['text'];
+		$this->assertStringContainsString('/skills/image/SKILL.md', $first);
+		$this->assertStringContainsString('check the image', $first);
+		$this->assertStringContainsString('a checkerboard marks transparency', end($hub->asks[1]['messages'])['text']);
+		$this->assertSame('Wasserkreislauf – ' . date('Y-m-d') . '.png', $this->delivered[0][1]);
+		$this->assertSame('done', $this->row['status']);
+	}
+
 	public function testOnlyFilesThePersonMayReadAreCopiedIn(): void {
 		$hub = new FakeHub([fn ($call) => 'Nothing to do.']);
 		$job = $this->job($hub);

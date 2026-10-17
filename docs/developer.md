@@ -39,6 +39,10 @@ needs no update when an Erlass changes.
 `skills/common/scripts/formula.py` (ziamath to SVG, rsvg-convert to PNG); documents use the
 same script.
 
+Images are document jobs too: `create_document` takes png, svg, webp and jpg
+(`DocumentJob::IMAGES`), and the job reads `skills/image/SKILL.md` (Graphviz, SVG,
+matplotlib, Pillow; `textfit.py` for text that fits).
+
 ## The document job's tools
 
 All paths stay inside `/work` (the runner refuses others). AI-Hub runs at most eight
@@ -65,8 +69,9 @@ server log's line per job names the versions of the prompt and tools
 
 `skills/<format>/SKILL.md` with `scripts/`. The model gets the list (from
 `skills/README.md`) and reads a skill before building. `common/scripts/`:
-`render.sh` (PDF, page images, contact sheet), `check.py` (package, opening, pages,
-fonts, structure, formulas, spelling), `diff.py` (what a change changed and kept),
+`render.sh` (PDF, page images, contact sheet; an image as one page and a small copy),
+`check.py` (package, opening, pages, fonts, structure, formulas, spelling; for images size,
+blankness, and an SVG's outside references and fonts), `diff.py` (what a change changed and kept),
 `lo_update.py` (fields, contents, recalculation, conversion with LibreOffice's UNO).
 
 When changing a skill, the prompt or a tool's description: raise the version, run

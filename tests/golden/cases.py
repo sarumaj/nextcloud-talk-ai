@@ -2,9 +2,11 @@
 """The golden cases: each builds a file as a model should (or as it should not) and
 states what the checks must say. T-01 ODT protocol, T-02 template, T-03 CSV to XLSX
 with formulas and chart, T-04 PPTX deck with notes, T-05 the same as ODP, T-06 a
-change that keeps the rest, T-07 PDF export with embedded fonts; and broken files the
-checks must catch (heading jump, empty paragraphs, overflowing table, empty slide,
-typed results instead of formulas)."""
+change that keeps the rest, T-07 PDF export with embedded fonts, T-08 an SVG poster
+with fitted text, T-09 a Graphviz flowchart as PNG; and broken files the checks must
+catch (heading jump, empty paragraphs, overflowing table, empty slide, typed results
+instead of formulas, an image that loads from outside or names a missing font, a blank
+or tiny image)."""
 import csv, os, subprocess, sys
 
 os.makedirs("/work/out", exist_ok=True)
@@ -121,6 +123,44 @@ expect("caught: table wider than the page", ok, report, want=False, must=("wider
 p = Presentation(); p.slides.add_slide(p.slide_layouts[6]); p.save("/work/out/empty.pptx")
 ok, report = check("/work/out/empty.pptx")
 expect("caught: empty slide", ok, report, want=False, must=("slide 1 is empty",))
+
+# T-08: an SVG poster, text fitted with the real font, rendered as the jobs do
+sys.path.insert(0, "/skills/image/scripts")
+from textfit import fit, svg_text, contrast
+size, lines = fit("Sommerfest im Vereinsheim Sonnenhof", "Open Sans", 1300, 260, largest=110, bold=True)
+title, _ = svg_text("\n".join(lines), 800, 300, "Open Sans", size, 1300, anchor="middle", fill="#ffffff", bold=True)
+when, _ = svg_text("Samstag, 12. Juni 2027, ab 15 Uhr", 800, 700, "Open Sans", 48, 1300, anchor="middle", fill="#ffffff")
+svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900"><title>Plakat Sommerfest</title>'
+       '<rect width="100%" height="100%" fill="#0072B2"/><circle cx="1400" cy="150" r="90" fill="#E69F00"/>' + title + when + '</svg>')
+open("/work/out/t08.svg", "w").write(svg)
+ok, report = check("/work/out/t08.svg")
+render = subprocess.run(["bash", "/skills/common/scripts/render.sh", "/work/out/t08.svg"], capture_output=True, text=True).stdout
+expect("T-08 SVG poster: checks pass, renders one page, text has contrast", ok and contrast("#ffffff", "#0072B2") >= 4.5
+       and "pages: 1" in render and "sheet: " in render, report + render, must=("size: 1600 × 900",))
+
+# T-09: a flowchart with Graphviz, delivered as PNG
+open("/work/out/t09.dot", "w").write('digraph { graph [rankdir=TB, fontname="Open Sans"]; node [shape=box, style="rounded,filled", '
+                                     'fillcolor="#e8f1fa", fontname="Open Sans"]; Start [shape=oval]; Start -> Lesen -> '
+                                     'Entscheiden; Entscheiden [shape=diamond]; Entscheiden -> Ende [label="ja"]; Entscheiden -> Lesen [label="nein"]; }')
+subprocess.run(["dot", "-Tsvg", "/work/out/t09.dot", "-o", "/work/out/t09.svg"], check=True)
+subprocess.run(["rsvg-convert", "-w", "1200", "--keep-aspect-ratio", "-b", "white", "/work/out/t09.svg", "-o", "/work/out/t09.png"], check=True)
+ok, report = check("/work/out/t09.png")
+expect("T-09 Graphviz flowchart as PNG", ok, report, must=("size: 1200 ×",))
+
+# Broken images the checks must catch
+open("/work/out/remote.svg", "w").write('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800" '
+                                        'height="600" viewBox="0 0 800 600"><rect width="800" height="600" fill="#fff"/><image '
+                                        'xlink:href="https://example.org/cat.png" width="400" height="300"/><text x="10" y="50" '
+                                        'font-family="Comic Sans MS" font-size="30">Hallo</text></svg>')
+ok, report = check("/work/out/remote.svg")
+expect("caught: an SVG that loads from outside and names a missing font", ok, report, want=False,
+       must=("from outside", "'Comic Sans MS' is not installed"))
+subprocess.run(["convert", "-size", "1600x900", "xc:white", "/work/out/blank.png"], check=True)
+ok, report = check("/work/out/blank.png")
+expect("caught: a blank image", ok, report, want=False, must=("blank",))
+subprocess.run(["convert", "-size", "120x80", "gradient:", "/work/out/tiny.png"], check=True)
+ok, report = check("/work/out/tiny.png")
+expect("caught: a tiny image", ok, report, want=False, must=("too small",))
 
 print("%d of %d golden cases pass" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)

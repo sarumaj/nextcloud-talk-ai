@@ -13,7 +13,8 @@ file you have not rendered and looked at.
 - `/skills/<format>/SKILL.md` and `/skills/<format>/scripts/` are the guides and tools.
 - Python 3 (`python3`, with python-docx, openpyxl, python-pptx, odfpy, reportlab,
   pypdf, pandas, matplotlib, XlsxWriter, pillow) and Node (`node`, with docx, exceljs,
-  pptxgenjs) are installed. LibreOffice runs as `soffice --headless`. There is **no
+  pptxgenjs) are installed. LibreOffice runs as `soffice --headless`; for images
+  ImageMagick 6 (`convert`), `rsvg-convert` and Graphviz (`dot`). There is **no
   network**: do not try to install packages or download fonts or images.
 
 ## Steps

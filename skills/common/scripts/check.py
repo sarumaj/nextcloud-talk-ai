@@ -9,7 +9,10 @@ no runs of empty paragraphs, images and tables within the page, alt texts.
 Structure (slides): no empty slides, shapes within the slide, text that may overflow,
 speaker notes, alt texts. Spreadsheets: formulas (with --formulas they are required),
 no error values. With --lang: words Hunspell does not know (a list, not a failure).
-ODF files are checked through a temporary OOXML copy. Exits 1 when a check fails."""
+ODF files are checked through a temporary OOXML copy.
+Images (png jpg webp gif svg): it opens, its size in pixels, not blank; SVG: well-formed,
+a viewBox, nothing loaded from outside, the fonts it names are installed.
+Exits 1 when a check fails."""
 import os, re, shutil, subprocess, sys, tempfile, zipfile
 
 args = sys.argv[1:]
@@ -211,6 +214,63 @@ def spelling(pdf):
         notes.append("unknown to the %s dictionary (check, names may be fine): %s" % (dictionary, ", ".join(words[:30])))
 
 
+def check_image():
+    """An image opens and is not blank; an SVG stands alone (no outside files or fonts)."""
+    png = os.path.join(tmp, "image.png")
+    if ext == "svg":
+        from lxml import etree
+        try:
+            root = etree.parse(path).getroot()
+        except Exception as e:
+            problems.append("malformed SVG: %s" % str(e)[:160])
+            return
+        if root.get("viewBox") is None:
+            notes.append("no viewBox: the SVG does not scale cleanly")
+        for el in root.iter():
+            href = el.get("href") or el.get("{http://www.w3.org/1999/xlink}href") or ""
+            if href and not href.startswith(("#", "data:")):
+                problems.append("loads %s from outside: embed it (data: URI) or draw it" % href[:80])
+        text = etree.tostring(root, encoding="unicode")
+        if re.search(r"@import|url\((?!#|['\"]?#|['\"]?data:)", text):
+            problems.append("CSS loads something from outside (@import or url()): embed it")
+        installed = subprocess.run(["fc-list", ":", "family"], capture_output=True, text=True).stdout.lower()
+        named = set(re.findall(r"font-family\s*[:=]\s*[\"']?([^;\"'>]+)", text))
+        generic = {"serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui"}
+        for family in sorted(named):
+            first = family.split(",")[0].strip().strip("'\"")
+            if first and first.lower() not in generic and first.lower() not in installed:
+                problems.append("font %r is not installed and would be replaced (see the fonts in common/SKILL.md)" % first)
+        run = subprocess.run(["rsvg-convert", "-w", "800", "--keep-aspect-ratio", path, "-o", png], capture_output=True, text=True)
+        if run.returncode != 0:
+            problems.append("the SVG does not render: " + run.stderr.strip()[:200])
+            return
+    else:
+        run = subprocess.run(["convert", path + "[0]", png], capture_output=True, text=True)
+        if run.returncode != 0:
+            problems.append("the image does not open: " + run.stderr.strip()[:200])
+            return
+    info = subprocess.run(["identify", "-format", "%w %h",
+                           path + "[0]" if ext != "svg" else png], capture_output=True, text=True).stdout.split()
+    if ext == "svg":
+        box = (root.get("viewBox") or "").replace(",", " ").split()
+        width, height = (re.fullmatch(r"([\d.]+)(px)?", root.get(k) or "") for k in ("width", "height"))
+        info = [width.group(1), height.group(1)] if width and height else box[2:4] if len(box) == 4 else []
+    if len(info) >= 2:
+        w, h = round(float(info[0])), round(float(info[1]))
+        notes.append("size: %d × %d px%s" % (w, h, " (a vector image: scales freely)" if ext == "svg" else ""))
+        if ext != "svg" and max(w, h) < 400:
+            problems.append("only %d × %d px: too small to view; make it larger (e.g. 1600 px wide)" % (w, h))
+        if ext != "svg" and max(w, h) > 8000:
+            problems.append("%d × %d px is needlessly large: at most about 4000 px" % (w, h))
+    flat = subprocess.run(["convert", png, "-background", "white", "-alpha", "remove", "-alpha", "off", "-format", "%[fx:standard_deviation]", "info:"],
+                          capture_output=True, text=True).stdout.strip()
+    try:
+        if float(flat) < 0.003:
+            problems.append("the image is blank (one colour)")
+    except ValueError:
+        pass
+
+
 print("checks for", path)
 if not os.path.isfile(path):
     print("  ✗ no such file")
@@ -218,8 +278,11 @@ if not os.path.isfile(path):
 size = os.path.getsize(path)
 if size > 20 * 1024 * 1024:
     problems.append("larger than 20 MB (%.1f MB)" % (size / 1048576))
+image = ext in ("png", "jpg", "jpeg", "webp", "gif", "svg")
+if image:
+    check_image()
 package()
-opened = opens()
+opened = None if image else opens()
 if not open_only and opened:
     pages_content(*opened)
     try:

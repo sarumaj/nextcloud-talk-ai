@@ -75,6 +75,14 @@ class ToolChoiceTest extends TestCase {
 		$this->assertArrayNotHasKey('formula', $this->tools(['sandbox' => false]), 'formula images need the sandbox');
 	}
 
+	public function testTheWorkshopBuildsImagesToo(): void {
+		$create = $this->tools()['create_document'];
+		$this->assertContains('png', $create['input']['properties']['format']['enum']);
+		$this->assertContains('svg', $create['input']['properties']['format']['enum']);
+		$this->assertStringContainsString('Unknown format', ($create['run'])('ewa', ['task' => 'x', 'format' => 'bmp', 'name' => 'x']));
+		$this->assertStringContainsString('"Water cycle.jpg"', ($create['run'])('ewa', ['task' => 'A diagram', 'format' => 'JPEG', 'name' => 'Water cycle.jpeg']));
+	}
+
 	public function testAToolRuns(): void {
 		$out = ($this->tools()['convert_units']['run'])('ewa', ['value' => 5, 'from' => 'km', 'to' => 'mi']);
 		$this->assertStringContainsString('3.1', is_string($out) ? $out : json_encode($out));

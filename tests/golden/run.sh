@@ -12,7 +12,7 @@ repo="$(cd "$here/../.." && pwd)"
 work="$(mktemp -d "$repo/.golden.XXXXXX")"
 # The container's files belong to its user (another ID under rootless Docker): removed by it.
 cleanup() {
-  docker run --rm --network none -v "$work:/work" --user 10001:10001 --entrypoint sh "$image" -c 'rm -rf /work/out' >/dev/null 2>&1 || true
+  docker run --rm --network none -v "$work:/work" --user 10001:10001 --entrypoint sh "$image" -c 'rm -rf /work/out /work/.render' >/dev/null 2>&1 || true
   rm -rf "$work"
 }
 trap cleanup EXIT

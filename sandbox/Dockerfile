@@ -2,7 +2,8 @@
 # job (see runner.py), read-only, without network, writable only /work and /tmp.
 # Python and Node with the document libraries, LibreOffice headless to convert and
 # render, Poppler to turn pages into images, the fonts Collabora has, and ziamath
-# (LaTeX to SVG without TeX) with rsvg-convert for formulas as images.
+# (LaTeX to SVG without TeX) with rsvg-convert for formulas as images; ImageMagick,
+# Pillow and Graphviz for images (diagrams, illustrations).
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8 \
@@ -13,7 +14,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       python3 python3-venv nodejs npm \
       libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui python3-uno \
-      poppler-utils imagemagick librsvg2-bin ca-certificates coreutils procps \
+      poppler-utils imagemagick librsvg2-bin graphviz ca-certificates coreutils procps \
       hunspell hunspell-de-de hunspell-en-us hunspell-pl \
       fonts-liberation2 fonts-dejavu fonts-crosextra-carlito fonts-crosextra-caladea \
       fonts-noto-core fonts-open-sans fonts-linuxlibertine \

@@ -12,5 +12,6 @@ sandbox (see `sandbox/`), so they can be updated without a release of the app.
 | `pptx` | Presentations: PPTX (python-pptx) and ODP; templates (.potx/.otp), layouts, notes. |
 | `pdf` | PDF: from a document by LibreOffice, or directly with reportlab; reading and merging with pypdf. |
 | `exam` | Exam papers: practice and mock exams with cover, numbered material, tasks with operators and marks, the marking scheme by requirement level, and the key to grades (`grading_key.py`). |
+| `image` | Images drawn with code: diagrams and flowcharts (Graphviz), posters, illustrations and icons (SVG), charts and geometry (matplotlib), changes to photos (Pillow); text that fits (`textfit.py`), colours, sizes. |
 
 Written for this project (AGPL-3.0-or-later); not taken from other skill collections.

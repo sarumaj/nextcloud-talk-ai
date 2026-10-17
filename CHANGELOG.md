@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.0 - 2026-10-18
+
+### Added
+- **Images drawn with code** in the document sandbox. `create_document` takes the formats
+  png, svg, webp and jpg: diagrams and flowcharts, schematic drawings, function graphs,
+  posters, invitations, icons and flat illustrations, or changes to a shared image (crop,
+  label, combine). The AI draws with SVG, Graphviz, matplotlib or Pillow, renders the image,
+  looks at it at full size and at chat size, corrects it and posts it in the chat; the
+  preview before delivery works as for documents. It does not make photos or the likeness of
+  real people, and says so.
+- The skill `image` (`skills/image/SKILL.md`): which tool for which image, sizes and
+  formats, text on images, colour-blind-safe colours, SVG, Graphviz, matplotlib and Pillow
+  practice; `textfit.py` measures, wraps and fits text with the real font and checks
+  contrast.
+- `render.sh` renders images (as PNG, a checkerboard where transparent, and a small copy);
+  `check.py` checks them: it opens, its size, not blank, an SVG well-formed with a viewBox,
+  nothing loaded from outside and only installed fonts.
+- The sandbox image has Graphviz.
+- The help names images in the workshop.
+
 ## 0.7.2 - 2026-10-18
 
 ### Fixed

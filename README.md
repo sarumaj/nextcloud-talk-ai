@@ -58,6 +58,11 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
 - **Formulas as images:** with the sandbox, LaTeX that the chat's Unicode cannot show (nested
   fractions, matrices, integrals with limits, aligned derivations) is typeset by ziamath and
   sent as an image; documents built in the sandbox use it too.
+- **Images drawn with code:** with the sandbox, diagrams and flowcharts (Graphviz), posters,
+  invitations, icons and flat illustrations (SVG), function graphs and geometry (matplotlib),
+  and changes to a shared photo (crop, label, collage) as PNG, SVG, WebP or JPEG; the AI looks
+  at each render and corrects it. No photos and no likeness of real people: it draws, it does
+  not generate pictures.
 - **Art:** the palette of a painting or photo, colour harmonies, colour names (pigments too),
   value studies (grayscale, notan), composition grids (thirds, golden ratio), mirrored and
   blurred views, and help with exhibition texts and statements.
@@ -105,9 +110,10 @@ when that changes (within ten minutes, or at its next answer). For a fixed name:
 
 ### The document sandbox (optional)
 
-For demanding office files the bot can hand the work to a sandbox: the AI writes code
-(python-docx, openpyxl, python-pptx; docx, exceljs, pptxgenjs), builds the file, renders it
-with LibreOffice, looks at the pages and corrects it, then delivers it. Each job runs in its
+For demanding office files and images the bot can hand the work to a sandbox: the AI writes
+code (python-docx, openpyxl, python-pptx; docx, exceljs, pptxgenjs; SVG, Pillow, Graphviz,
+matplotlib), builds the file, renders it with LibreOffice (an image with rsvg-convert or
+ImageMagick), looks at the pages and corrects it, then delivers it. Each job runs in its
 own container: no network, read-only, non-root, without capabilities, limited in CPU, memory,
 processes and time, writable only `/work` (in memory); it is removed afterwards.
 
@@ -164,7 +170,8 @@ For example:
 - Share a photo of the blackboard and ask "@Claude what does it say?"
 - With the sandbox: share a `.ott` template and notes and ask for "the meeting minutes on this
   template as .docx"; share a CSV and ask for "an Excel file with monthly sums as formulas and
-  a chart"; share a report and ask "add a chapter on costs after chapter 2".
+  a chart"; share a report and ask "add a chapter on costs after chapter 2"; ask for "a
+  flowchart of how we order supplies as PNG" or "an invitation to the summer party, A5".
 
 ## How it works
 

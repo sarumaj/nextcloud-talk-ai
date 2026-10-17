@@ -19,6 +19,9 @@ lists what it can do here.
   report". It takes a few minutes; a status message shows the progress, a preview comes
   before delivery (answer "ok" or with a correction), "stop" cancels. The file appears
   in the chat and in your folder **Talk-AI**; "again, but shorter" repeats it with changes.
+- **Images**: "a flowchart of how we order supplies", "an invitation to the summer party,
+  A5", "label the parts on this photo". Drawn with code, the same way as bigger documents;
+  PNG by default, SVG to edit or scale. It does not make photos or pictures of real people.
 - **Maths and sciences**: step by step, exact; graphs and charts.
 - **Exams**: share the official syllabus or give its link, then "a mock exam for maths",
   "57 of 80 marks: how many points?", "my points so far: what do I need for 1.5?", "a study

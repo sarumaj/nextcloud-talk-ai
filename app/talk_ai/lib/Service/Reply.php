@@ -64,6 +64,8 @@ class Reply {
 	private const PRESENTATIONS = ['odp', 'pptx'];
 	/** Flash card formats: printable, or for import into a learning app. */
 	private const CARD_FORMATS = ['pdf', 'docx', 'odt', 'anki', 'quizlet', 'csv', 'xlsx'];
+	/** The office formats a document job builds (images: DocumentJob::IMAGES). */
+	private const BUILD_FORMATS = ['docx', 'odt', 'xlsx', 'ods', 'pptx', 'odp', 'pdf'];
 
 	/** The question being answered: what the tools work on. */
 	private ?object $room = null;
@@ -512,7 +514,9 @@ class Reply {
 				. 'template, a given layout or company design, spreadsheets with real formulas, formatting or charts from data, '
 				. 'presentations of many slides or on a template, PDF exports of documents, and every change to an existing '
 				. 'document (its id in file_ids; the result keeps everything else). Research first, then put the content into the '
-				. 'task. It runs on its own for a few minutes: after calling it, tell the person in one sentence that the file is '
+				. 'task. It also draws images (png, svg, webp, jpg): diagrams, flowcharts, sketches, schematic drawings, illustrations, '
+				. 'icons, posters and invitations, with code it checks by eye; it cannot take photos or copy real people\'s faces. '
+				. 'It runs on its own for a few minutes: after calling it, tell the person in one sentence that the file is '
 				. 'being built and will appear here; do not send it a second time with send_file.' . "\n\n" : '')
 			. 'Design: make documents look finished. Choose a theme that fits (academic for school papers and theses, modern for '
 			. 'handouts, classic for letters and texts, minimal for plain notes, playful for children or invitations), a cover page '
@@ -779,6 +783,7 @@ class Reply {
 			[!$this->guest, $t('Reading files (PDF, Office, photos with OCR)'), $t('“What does the PDF say?”')],
 			[$this->features['documents'] ?? false, $t('Writing files (PDF, Word, Excel, PowerPoint)'), $t('“A packing list as PDF”')],
 			[$this->canBuild, $t('Demanding documents in the workshop (templates, formulas, long decks, changes)'), $t('“Minutes on this template as .docx”')],
+			[$this->canBuild, $t('Images in the workshop (diagrams, sketches, illustrations, posters)'), $t('“A diagram of the water cycle as PNG”')],
 			[true, $t('Maths, sciences, statistics (computed exactly)'), $t('“Solve x² − 5x + 6 = 0”')],
 			[$this->features['web'] ?? false, $t('Research and citations (web, Wikipedia, papers)'), $t('“Cite 10.1038/nature14539 in APA”')],
 			[$this->features['calendar'] ?? false, $t('Calendar and tasks (confirmed, undoable)'), $t('“Add my maths exam on 12 Nov at 9:00”')],
@@ -1074,8 +1079,9 @@ class Reply {
 	/** Queues a document job for the sandbox (DocumentJob, off this request); what to tell the person. */
 	private function createDocument(string $uid, array $args, array $previous = []): string {
 		$format = strtolower(ltrim((string)($args['format'] ?? ''), '.'));
-		if (!in_array($format, ['docx', 'odt', 'xlsx', 'ods', 'pptx', 'odp', 'pdf'], true)) {
-			return 'Unknown format: use docx, odt, xlsx, ods, pptx, odp or pdf.';
+		$format = $format === 'jpeg' ? 'jpg' : $format;
+		if (!in_array($format, [...self::BUILD_FORMATS, ...DocumentJob::IMAGES], true)) {
+			return 'Unknown format: use docx, odt, xlsx, ods, pptx, odp or pdf, or for an image png, svg, webp or jpg.';
 		}
 		$task = trim((string)($args['task'] ?? ''));
 		if ($task === '') {
@@ -1102,7 +1108,7 @@ class Reply {
 			return 'There is no house style "' . $style . '" for this person. Styles: '
 				. (implode(', ', array_map(fn ($s) => $s['name'], $this->policy->styles($uid))) ?: 'none') . ' (or "none").';
 		}
-		$name = preg_replace('/\.(docx|odt|xlsx|ods|pptx|odp|pdf)$/i', '', self::fileName((string)($args['name'] ?? 'Document'))) ?: 'Document';
+		$name = preg_replace('/\.(docx|odt|xlsx|ods|pptx|odp|pdf|png|svg|webp|jpe?g)$/i', '', self::fileName((string)($args['name'] ?? 'Document'))) ?: 'Document';
 		$folder = trim(str_replace('..', '', (string)($args['target_folder'] ?? '')), '/');
 		$id = $this->jobs->add($uid, $this->room->getToken(), $this->messageId, $format, $name, mb_substr($task, 0, 20000), [
 			'inputs' => array_slice($ids, 0, 10), 'folder' => $folder, 'style' => $style] + $previous);
@@ -1334,11 +1340,14 @@ class Reply {
 					. 'the person\'s files and this chat (takes a few minutes; a status message shows the progress). For demanding files: '
 					. 'a .docx/.odt on a template (.dotx .ott) or in a given layout, a report or protocol from inputs, a spreadsheet with '
 					. 'formulas, formatting and charts from a CSV or table, a presentation on a template or of many slides, a PDF export, or '
-					. 'a change to an existing document (pass it in file_ids and say what to change). The task must hold everything the '
-					. 'document needs: content, structure, language, design wishes, and what you researched.',
+					. 'a change to an existing document (pass it in file_ids and say what to change). Also images (png, svg, webp, jpg) '
+					. 'drawn with code: a diagram, flowchart, sketch, schematic, illustration, icon, poster or invitation; or an input '
+					. 'image annotated, cropped or combined (in file_ids). The task must hold everything the document needs: content, '
+					. 'structure, language, design wishes (for an image: subject, style, size or aspect, colours, all text on it), and '
+					. 'what you researched.',
 				'input' => ['type' => 'object', 'properties' => [
 					'task' => ['type' => 'string', 'description' => 'The full job in the person\'s language: what to build, content, structure, design'],
-					'format' => ['type' => 'string', 'enum' => ['docx', 'odt', 'xlsx', 'ods', 'pptx', 'odp', 'pdf']],
+					'format' => ['type' => 'string', 'enum' => [...self::BUILD_FORMATS, ...DocumentJob::IMAGES]],
 					'name' => ['type' => 'string', 'description' => 'File name without extension, e.g. "Protokoll Teamsitzung 2026-10-15"'],
 					'file_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Input files: templates, data, the document to change'],
 					'target_folder' => ['type' => 'string', 'description' => 'A folder in the person\'s files (default Talk-AI/<date>)'],

@@ -43,12 +43,14 @@ use Psr\Log\LoggerInterface;
 class DocumentJob {
 	public const SCENARIO = 'document';
 	/** The version of the system prompt and tools, in the server log's line per job. */
-	public const VERSION = '2026-10-15.1';
+	public const VERSION = '2026-10-18.1';
 	/** Free space the person's files need at least for a job (bytes). */
 	private const MIN_FREE = 262144;
 
 	private const IMAGE_TYPES = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp'];
 	private const TEXT_LIMIT = 30000;
+	/** Images a job can build: drawn with code (SVG, Pillow, ImageMagick, matplotlib, Graphviz). */
+	public const IMAGES = ['png', 'svg', 'webp', 'jpg'];
 	private const OFFICE = ['docx', 'odt', 'doc', 'dotx', 'ott', 'rtf', 'xlsx', 'ods', 'xls', 'xltx', 'ots', 'pptx', 'odp', 'ppt', 'potx', 'otp'];
 
 	private array $job = [];
@@ -371,14 +373,18 @@ class DocumentJob {
 			. ($previous !== '' ? 'This changes the document of an earlier job (' . $previous . '): it is among the inputs. Change only what the task asks; '
 				. "keep everything else (styles, headers and footers, comments, tracked changes, objects) as it is.\n" : '')
 			. ($style !== '' ? "\nHouse style (use it without being asked):\n" . $style . "\n" : '')
-			. "\nStart by reading /skills/common/SKILL.md and the skill for the format, then build, render_document, check the "
-			. 'pages, correct, deliver_file and finish.';
+			. "\nStart by reading /skills/common/SKILL.md and /skills/" . self::skillOf((string)$job['format']) . '/SKILL.md, then build, '
+			. 'render_document, check the ' . ($this->isImage() ? 'image' : 'pages') . ', correct, deliver_file and finish.';
 	}
 
 	private function nextMessage(bool $idle): string {
 		$lines = [];
 		if ($this->images && $this->pending !== []) {
-			$lines[] = 'Attached are the images you asked for (after a render: the contact sheet of all pages first, then single pages). '
+			$lines[] = $this->isImage()
+				? 'Attached are the images you asked for (after a render: the image, then a small copy as a chat shows it; a '
+					. 'checkerboard marks transparency). Check what the task asks for is there and right, text is legible and spelt '
+					. 'right, nothing is cut off or overlaps, shapes and proportions are right, colours have contrast; then correct or deliver.'
+				: 'Attached are the images you asked for (after a render: the contact sheet of all pages first, then single pages). '
 				. 'Check each page for overflow, cut or overlapping text, empty pages, wrong fonts, poor contrast and layout faults; '
 				. 'then correct or deliver.';
 		}
@@ -395,14 +401,15 @@ class DocumentJob {
 
 	private function systemPrompt(): string {
 		$skills = $this->sandbox->exec($this->box, 'cat /skills/README.md 2>/dev/null | sed -n "/^| Skill/,/^$/p"', 20)['stdout'];
-		return 'You build an office document in a sandbox with code, check it visually, and deliver it. You are the document '
+		return 'You build an office document or an image in a sandbox with code, check it visually, and deliver it. You are the document '
 			. 'builder of the assistant ' . $this->bot->name() . " in Nextcloud Talk.\n\n"
 			. "Procedure (always): 1. understand the job; 2. read /skills/common/SKILL.md and the skill for the format; 3. gather "
 			. "the material (input files, the task's content); 4. write a script and build the file; 5. render_document and look "
 			. "at every page; 6. correct (at most " . $this->budget . ' correction rounds); 7. deliver_file, then finish.' . "\n\n"
 			. "Sandbox: Linux, working directory /work (writable; nothing else), inputs in /work/input/, results into /work/output/, "
 			. "skills read-only in /skills/. Python 3 (python-docx, openpyxl, python-pptx, odfpy, reportlab, pypdf, pandas, "
-			. "matplotlib), Node (docx, exceljs, pptxgenjs), LibreOffice (soffice --headless), Poppler, Hunspell (de, en, pl). No network.\n\n"
+			. "matplotlib, Pillow), Node (docx, exceljs, pptxgenjs), LibreOffice (soffice --headless), Poppler, ImageMagick 6 (convert), "
+			. "rsvg-convert, Graphviz (dot), Hunspell (de, en, pl). No network.\n\n"
 			. "Skills:\n" . trim($skills) . "\n\n"
 			. "Rules: spreadsheets compute with formulas, not typed results; charts are native chart objects where the format has "
 			. "them; with a template or house style, use its styles, layouts, colours and fonts and keep its header, footer and "
@@ -457,8 +464,9 @@ class DocumentJob {
 			],
 			'render_document' => [
 				'description' => 'Renders a document (DOCX, ODT, XLSX, ODS, PPTX, ODP, PDF) with LibreOffice to PDF and its pages to images '
-					. '(150 dpi), and runs the automatic checks (structure, spelling; against the original when changing one). The page '
-					. 'images are shown to you with the next message. Required before deliver_file. pages: e.g. "3-5".',
+					. '(150 dpi), or an image (PNG, SVG, WebP, JPEG, GIF) as it looks, and runs the automatic checks (structure, spelling; '
+					. 'against the original when changing one). The images are shown to you with the next message. Required before '
+					. 'deliver_file. pages: e.g. "3-5".',
 				'input' => ['type' => 'object', 'properties' => ['path' => ['type' => 'string'], 'pages' => ['type' => 'string']], 'required' => ['path']],
 				'run' => fn (string $uid, array $args) => $this->tool('render_document', $args, fn () => $this->render((string)$args['path'], (string)($args['pages'] ?? ''))),
 			],
@@ -611,7 +619,7 @@ class DocumentJob {
 		$pages = preg_match('/^\d+(-\d+)?$/', $pages) === 1 ? (str_contains($pages, '-') ? $pages : $pages . '-' . $pages) : '';
 		$r = $this->command('bash /skills/common/scripts/render.sh ' . escapeshellarg($path) . ($pages !== '' ? ' ' . $pages : ''), 1800);
 		if ($r['exit_code'] !== 0) {
-			return 'The file could not be rendered (LibreOffice cannot open it as it is): ' . trim($r['stdout'] . "\n" . $r['stderr']) . "\nFix the file and render again.";
+			return 'The file could not be rendered (' . (self::skillOf(pathinfo($path, PATHINFO_EXTENSION)) === 'image' ? 'it does not open as an image' : 'LibreOffice cannot open it as it is') . '): ' . trim($r['stdout'] . "\n" . $r['stderr']) . "\nFix the file and render again.";
 		}
 		$key = basename($path);
 		$this->renders[$key] = ($this->renders[$key] ?? 0) + 1;
@@ -647,6 +655,9 @@ class DocumentJob {
 			$out .= 'The page images (' . ($sheet !== '' ? 'a contact sheet of all pages, then ' : '') . 'the first pages; ask for others with pages) are shown '
 				. "to you with the next message: end this turn now with a short note to see them (other tools wait until you have).\n";
 			$this->mustLook = $this->pending !== [];
+		} elseif (self::skillOf(pathinfo($path, PATHINFO_EXTENSION)) === 'image') {
+			$out .= "This AI connection takes no images: rely on the checks above, and draw so that the result follows from the code "
+				. "(sizes, positions and text computed, not guessed).\n";
 		} else {
 			$pdf = preg_match('#^pdf: (/work/.+)$#m', $r['stdout'], $p) === 1 ? $p[1] : $path;
 			$text = $this->sandbox->exec($this->box, 'pdftotext -layout ' . escapeshellarg($pdf) . ' - | head -c 6000', 60);
@@ -828,6 +839,10 @@ class DocumentJob {
 	}
 
 	/** Whether the task asks for calculations (the check then wants formulas in a spreadsheet). */
+	private function isImage(): bool {
+		return self::skillOf((string)$this->job['format']) === 'image';
+	}
+
 	private function wantsFormulas(): bool {
 		return in_array((string)$this->job['format'], ['xlsx', 'ods'], true)
 			&& preg_match('/summe|sum|total|formel|formula|berechn|calculat|durchschnitt|average|mittel|gewinn|profit|oblicz|suma|średni/iu', (string)$this->job['task']) === 1;
@@ -1012,6 +1027,7 @@ class DocumentJob {
 			'xlsx', 'ods', 'xls', 'xltx', 'ots', 'csv' => 'xlsx',
 			'pptx', 'odp', 'ppt', 'potx', 'otp' => 'pptx',
 			'pdf' => 'pdf',
+			'png', 'svg', 'webp', 'jpg', 'jpeg', 'gif' => 'image',
 			default => 'docx',
 		};
 	}
