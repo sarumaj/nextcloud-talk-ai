@@ -7,8 +7,8 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Document;
 
 /**
- * Theoretical informatics run step by step: the register machine of the Hessian
- * Abitur glossary (accumulator, LOAD/STORE/ADD/SUB/MUL/DIV, GOTO/JZERO/JNZERO,
+ * Theoretical informatics run step by step: the accumulator register machine of German
+ * school glossaries (e.g. Hessen's for the Abitur: LOAD/STORE/ADD/SUB/MUL/DIV, GOTO/JZERO/JNZERO,
  * END; constants #i, registers i, indirect *i; natural numbers), finite automata
  * (deterministic or not) on words, and regular expressions on words.
  */
@@ -123,7 +123,7 @@ class Machines {
 		}
 		ksort($reg);
 		return ['ended' => $ended, 'steps' => $step, 'accumulator' => $acc, 'registers' => $reg, 'trace' => $trace,
-			'machine' => 'Hessian Abitur glossary: SUB stops at 0, DIV divides whole numbers, DIV by 0 ends; #i a constant, i register i, *i the register named in register i'];
+			'machine' => 'accumulator machine on natural numbers: SUB stops at 0, DIV divides whole numbers, DIV by 0 ends; #i a constant, i register i, *i the register named in register i'];
 	}
 
 	/**

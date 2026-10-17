@@ -58,7 +58,7 @@ class ToolChoiceTest extends TestCase {
 	public function testEveryQuestionGetsTheSameTools(): void {
 		$tools = $this->tools();
 		$this->assertSame(Reply::CORE_TOOLS, array_slice(array_keys($tools), 0, count(Reply::CORE_TOOLS)));
-		foreach (['chemistry', 'create_poll', 'finance', 'find_images', 'redo_document', 'my_profile', 'abitur', 'grades', 'measurement', 'numerics', 'law'] as $name) {
+		foreach (['chemistry', 'create_poll', 'finance', 'find_images', 'redo_document', 'my_profile', 'exam', 'formula', 'grades', 'measurement', 'numerics', 'law'] as $name) {
 			$this->assertArrayHasKey($name, $tools);
 		}
 		$this->assertArrayNotHasKey('more_tools', $tools);
@@ -72,14 +72,13 @@ class ToolChoiceTest extends TestCase {
 			$this->assertArrayNotHasKey($name, $tools);
 		}
 		$this->assertArrayHasKey('read_file', $tools);
+		$this->assertArrayNotHasKey('formula', $this->tools(['sandbox' => false]), 'formula images need the sandbox');
 	}
 
 	public function testAToolRuns(): void {
 		$out = ($this->tools()['convert_units']['run'])('ewa', ['value' => 5, 'from' => 'km', 'to' => 'mi']);
 		$this->assertStringContainsString('3.1', is_string($out) ? $out : json_encode($out));
-		$points = ($this->tools()['abitur']['run'])('ewa', ['action' => 'points', 'achieved' => 57, 'max' => 80, 'why' => 'I convert the BE']);
-		$this->assertSame(10, $points['points']);
-		$exams = ($this->tools()['abitur']['run'])('ewa', ['action' => 'schedule', 'subject' => 'Englisch', 'level' => 'LK']);
-		$this->assertSame('2027-04-30', $exams['exams'][0]['date']);
+		$points = ($this->tools()['exam']['run'])('ewa', ['action' => 'points', 'achieved' => 57, 'max' => 80, 'why' => 'I convert the marks']);
+		$this->assertSame(10, $points['result']);
 	}
 }

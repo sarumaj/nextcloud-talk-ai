@@ -134,8 +134,10 @@ the model and before letting everyone use it.
   and memories; or the delivered documents).
 - API keys stay in AI-Hub; the sandbox never sees them.
 - The `law` tool reads federal norms from gesetze-im-internet.de, as `read_url` reads other
-  pages (only the norm's address goes there); the Abitur data, the operator lists and all
-  grading tables are in the app (`data/abitur/`) and need no connection.
+  pages (only the norm's address goes there). The exam and grade tools compute in PHP; the
+  rules of a state or university come from the documents people share or name.
+- `formula` typesets LaTeX in a short-lived sandbox container (ziamath, no network), like a
+  small document job: with one job at a time it waits for a running document, and says so.
 
 ## Logs and troubleshooting
 

@@ -40,12 +40,13 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   schedules, break-even), physical education (heart-rate zones, pace, race times, BMI,
   calories), informatics (truth tables, encodings, SQL on example tables), history (timelines),
   and mind maps for any topic.
-- **Abitur (Hessen 2027), from the official texts:** the Themenfelder, Pflichtlektüren, dates,
-  times, choice of tasks and Hilfsmittel of every subject (Abiturerlass), the operators with
-  their Anforderungsbereiche (the ministry's lists), and the OAVO's grading computed: BE to
-  points (Anlage 9a), the Fehlerindex (9b), Deutsch 70/30, Latin translations (9c), written
-  and oral together (10a), Block I and II and the average grade (§ 26, 10b), and what a target
-  grade needs. Mock exams like the real ones, the exam dates into the calendar, a study plan.
+- **Exams, by the official rules:** syllabus, operators, dates and grading tables come from the
+  official documents you share or name (read like any file or page), not from built-in data
+  for one state or year. Then it computes: marks to points or grades by your table (the German
+  15-point table by default), an error index and its deduction or scale, grades from weighted
+  parts, written and oral exams combined, the Abitur's total and average (KMK formulas) and
+  what a target grade needs; checks that a practice exam adds up and balances its
+  requirement levels; and makes a study plan to the exam dates.
 - **Studies:** university averages by the rule of your Prüfungsordnung (ECTS, cut or rounded,
   best-of, double weight), the grade still needed, foreign grades (bayerische Formel), law
   exam points; measurement uncertainty for lab reports (GUM: propagation, budget, rounding,
@@ -54,6 +55,9 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   Kruskal-Wallis, Spearman, confidence intervals, effect sizes, APA lines); chemistry pH,
   titration curves and equilibria; register machines, automata and regular expressions;
   legal deadlines by §§ 187–193 BGB with each state's holidays, and federal norms.
+- **Formulas as images:** with the sandbox, LaTeX that the chat's Unicode cannot show (nested
+  fractions, matrices, integrals with limits, aligned derivations) is typeset by ziamath and
+  sent as an image; documents built in the sandbox use it too.
 - **Art:** the palette of a painting or photo, colour harmonies, colour names (pigments too),
   value studies (grayscale, notan), composition grids (thirds, golden ratio), mirrored and
   blurred views, and help with exhibition texts and statements.
@@ -147,8 +151,9 @@ For example:
 - Share a painting and ask "@Claude what is its palette, and what would complement it?"
 - "Put my maths exam on 12 November at 9:00 in my calendar, with a reminder the day before."
 - "A mind map of the causes of the First World War."
-- "When is my maths LK exam, and what comes up?", "a mock exam for English LK", "I got 57 of
-  80 BE: how many points?", "my course points so far: what average, and what do I need for 1.5?"
+- Share the official syllabus and ask "a mock exam for maths with a marking scheme", "I got 57
+  of 80 marks: how many points?", "my course points so far: what average, and what do I need
+  for 1.5?"
 - "My grades with ECTS: what is my average under my PO (one decimal, cut off)?"
 - "Pendulum: l = 1.000 ± 0.002 m, T = 2.006 ± 0.005 s: g with its uncertainty."
 - "A one-month deadline from 31 January, in Hesse: when does it end?"

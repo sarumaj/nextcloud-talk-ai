@@ -20,9 +20,10 @@ lists what it can do here.
   before delivery (answer "ok" or with a correction), "stop" cancels. The file appears
   in the chat and in your folder **Talk-AI**; "again, but shorter" repeats it with changes.
 - **Maths and sciences**: step by step, exact; graphs and charts.
-- **Abitur (Hessen 2027)**: "when is my maths LK exam?", "what is on the English LK?",
-  "a mock exam for Deutsch GK", "57 of 80 BE: how many points?", "my points so far: what
-  do I need for 1.5?". Tell it your subjects once ("remember: LK Mathe, LK Englisch …").
+- **Exams**: share the official syllabus or give its link, then "a mock exam for maths",
+  "57 of 80 marks: how many points?", "my points so far: what do I need for 1.5?", "a study
+  plan until my exams". Tell it once your subjects and where the official papers are
+  ("remember: Abitur Hessen 2027, LK Mathe, LK Englisch, the Erlass is at …").
 - **Studies**: averages by your Prüfungsordnung, lab uncertainties, statistics with APA
   lines, deadlines in law.
 - **Research and citations**: the web, Wikipedia, papers; "cite this in APA".
@@ -56,10 +57,10 @@ ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
   Korrektur), „stop“ bricht ab. Die Datei erscheint im Chat und im Ordner **Talk-AI**;
   „nochmal, aber kürzer“ wiederholt den Auftrag mit Änderungen.
 - **Mathe und Naturwissenschaften**: Schritt für Schritt, exakt gerechnet; Graphen.
-- **Abitur (Hessen 2027)**: „wann ist mein Mathe-LK?“, „was kommt im Englisch-LK dran?“,
-  „eine Übungsklausur für Deutsch GK“, „57 von 80 BE: wie viele Punkte?“, „meine Punkte
-  bisher: was brauche ich für 1,5?“. Sag ihm einmal deine Fächer („merk dir: LK Mathe, LK
-  Englisch …“).
+- **Prüfungen**: teile den amtlichen Lehrplan oder nenne den Link, dann „eine Übungsklausur
+  für Mathe“, „57 von 80 BE: wie viele Punkte?“, „meine Punkte bisher: was brauche ich für
+  1,5?“, „ein Lernplan bis zu den Prüfungen“. Sag ihm einmal deine Fächer und wo die amtlichen
+  Unterlagen sind („merk dir: Abitur Hessen 2027, LK Mathe, LK Englisch, der Erlass ist unter …“).
 - **Studium**: Schnitt nach deiner Prüfungsordnung, Messunsicherheit im Praktikum,
   Statistik mit APA-Zeile, Fristen im Jura-Studium.
 - **Recherche und Zitate**: Web, Wikipedia, Fachartikel; „zitiere das in APA“.
@@ -92,10 +93,10 @@ co tu potrafi.
   podgląd (odpowiedz „ok” lub z poprawką), „stop” przerywa. Plik pojawia się na czacie i
   w folderze **Talk-AI**; „jeszcze raz, ale krócej” powtarza zlecenie ze zmianami.
 - **Matematyka i nauki ścisłe**: krok po kroku, dokładnie; wykresy.
-- **Abitur (Hesja 2027)**: „kiedy mam maturę z matematyki LK?”, „co obowiązuje na
-  angielskim LK?”, „próbny egzamin z niemieckiego GK”, „57 z 80 BE: ile punktów?”, „moje
-  punkty dotąd: czego potrzebuję na 1,5?”. Podaj raz swoje przedmioty („zapamiętaj: LK
-  matematyka, LK angielski …”).
+- **Egzaminy**: udostępnij urzędowy program albo podaj link, potem „próbny egzamin z
+  matematyki”, „57 z 80 punktów: ile to w skali?”, „moje punkty dotąd: czego potrzebuję na
+  1,5?”, „plan nauki do egzaminów”. Podaj raz przedmioty i gdzie są urzędowe dokumenty
+  („zapamiętaj: Abitur Hesja 2027, LK matematyka, LK angielski, rozporządzenie jest pod …”).
 - **Studia**: średnia według regulaminu studiów, niepewność pomiaru w laboratorium,
   statystyka z wierszem APA, terminy w prawie.
 - **Wyszukiwanie i cytaty**: sieć, Wikipedia, artykuły; „zacytuj to w APA”.

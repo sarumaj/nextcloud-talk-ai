@@ -1,53 +1,52 @@
-# Exam papers: practice exams, mock Abitur, Klausuren
+# Exam papers: practice exams, mock exams, Klausuren
 
-For a practice task, a mock exam (e.g. Landesabitur Hessen) or a Klausur with its
-Erwartungshorizont. Build the paper as DOCX (read `/skills/docx/SKILL.md` too) or as
-PDF from it. The task gives you the content; this guide gives the form that German
-exam papers have. Never invent official material: a mock exam is marked as one.
+For a practice task, a mock exam (school or university) or a Klausur with its marking
+scheme (Erwartungshorizont). Build the paper as DOCX (read `/skills/docx/SKILL.md` too)
+or as PDF from it. The task gives you the content and the rules of the real exam (time,
+aids, choice of tasks, total marks, operators, grading table), taken from official
+documents; this guide gives the form. Never present it as official: it is a practice paper.
 
 ## Two files
 
-1. **The paper** (for the student), `<Subject> <Level> – Übungsklausur.docx`.
-2. **The Erwartungshorizont** (for checking), `… – Erwartungshorizont.docx`, unless the
-   task asks for one file; then it starts on a new page after "Ende der Aufgaben".
+1. **The paper** (for the student), `<Subject> – Übungsklausur.docx` (or in the
+   language of the task).
+2. **The marking scheme** (`… – Erwartungshorizont.docx`), unless the task asks for one
+   file; then it starts on a new page after the last task.
 
 ## The paper
 
-- **Cover (Deckblatt), its own page:** "Übungsklausur – nicht amtlich" at the top; subject
-  and level (Grundkurs / Leistungskurs); for an Abitur mock the Vorschlag (A, B1, …) and
-  the Auswahl rule as the task states it ("Wählen Sie einen der Vorschläge B1 oder B2");
-  Bearbeitungszeit in minutes; the allowed Hilfsmittel as a list; a line for the name.
-- **Material:** each text, figure or table as "Material 1", "M 2" …, with its source
-  under it (author, title, year; "verändert" if shortened). Number the lines of every
-  text on the left margin, every fifth line (5, 10, 15 …), so tasks can say "Z. 12–18".
-  Use a table of two columns (numbers 8 pt grey | text) or line numbering of the section
-  (python-docx: `w:lnNumType` with `w:countBy="5"` and `w:restart="newSection"` on the
-  section's `sectPr`). Render and check that the numbers match the lines.
+- **Cover, its own page:** "Practice paper – not official" (in the paper's language,
+  e.g. "Übungsklausur – nicht amtlich") at the top; subject, course or level; the parts
+  and the choice rule as the task states it ("choose one of B1 and B2"); time in minutes;
+  the allowed aids as a list; a line for the name.
+- **Material:** each text, figure or table as "Material 1" ("M 1") …, with its source under
+  it (author, title, year; "adapted" if shortened). Number the lines of every text every
+  fifth line (5, 10, 15 …) on the left, so tasks can refer to lines: a two-column table
+  (numbers 8 pt grey | text) or the section's line numbering (python-docx: `w:lnNumType`
+  with `w:countBy="5"` and `w:restart="newSection"` on the section's `sectPr`). Render and
+  check that the numbers match the lines.
 - **Tasks:** a table of three columns: number (1, 1.1, 1.2 …) | the task, starting with
-  its operator in bold (the official operator, e.g. **Erläutern** Sie …) | BE, right
-  aligned. A last row "Summe" with the total BE. Each task fits on its page; never split
-  a task row across pages (`cantSplit` on the row).
-- **Mathematik:** Prüfungsteil 1 (hilfsmittelfrei) on its own pages with "ohne
-  Taschenrechner und Formelsammlung"; formulas as real equations (OMML via the docx skill,
-  or LaTeX rendered to images only if equations fail). Space for answers only if asked.
-- Header: subject, level, "Übungsklausur"; footer: page "x von y".
+  its operator in bold (e.g. **Erläutern** Sie …, **Explain** …) | marks, right aligned. A
+  last row with the total. Never split a task row across pages (`cantSplit` on the row).
+- **Formulas** typeset (`/skills/common/scripts/formula.py`, see the common skill), never as
+  plain text. A part without calculator gets its own pages and says so.
+- Header: subject and "practice paper"; footer: page "x of y".
 
-## The Erwartungshorizont
+## The marking scheme
 
-- A table per Vorschlag: Teilaufgabe | erwartete Leistung (bullets, the expected points,
-  acceptable alternatives "oder") | BE in AFB I | AFB II | AFB III. The sums under each
-  column; their total equals the paper's.
-- After the table: "Bewertungshinweise" with what makes the work **ausreichend
-  (5 Punkte)** and **gut (11 Punkte)**, in sentences about the whole work.
-- The key from BE to points (Notenschlüssel): run
-  `python3 /skills/exam/scripts/grading_key.py <total BE>` and put its table in. It is the
-  OAVO Hessen's Anlage 9a (whole percent, not rounded); another scale only if the task
-  names one.
-- Deutsch: the share of Verstehensleistung (70 %) and Darstellungsleistung (30 %);
-  languages: content and language as the task says.
+- A table per task set: task | expected answer (bullets, the expected points, acceptable
+  alternatives) | marks per requirement level I | II | III (reproduce; apply and
+  transfer; reflect and solve problems). The sums under each column; the total equals
+  the paper's.
+- After the table: grading notes: what makes a pass and what a good result, in sentences
+  about the whole work, as official schemes do (German schools: "ausreichend (5 Punkte)"
+  and "gut (11 Punkte)").
+- The key from marks to grades: `python3 /skills/exam/scripts/grading_key.py <total>`
+  gives the usual German 15-point table; the school's or university's own table with
+  `--table "15:95,14:90,…"` (result:from percent) or `--table "1,0:95;1,3:90;…"`.
 
 ## Check before delivering
 
-- BE in the paper and in the Erwartungshorizont agree, per task and in total.
+- Marks in the paper and in the scheme agree, per task and in total.
 - Every task starts with an operator; line references point at the right lines.
-- The cover says "nicht amtlich"; times and Hilfsmittel are those the task names.
+- The cover says it is a practice paper; time and aids are those the task names.

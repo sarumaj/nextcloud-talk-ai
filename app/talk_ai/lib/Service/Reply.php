@@ -7,7 +7,6 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Service;
 
 use OCA\TalkAi\AppInfo\Application;
-use OCA\TalkAi\Document\Abitur;
 use OCA\TalkAi\Document\Analysis;
 use OCA\TalkAi\Document\Biology;
 use OCA\TalkAi\Document\Calculator;
@@ -15,6 +14,7 @@ use OCA\TalkAi\Document\Chart;
 use OCA\TalkAi\Document\Chemistry;
 use OCA\TalkAi\Document\Colors;
 use OCA\TalkAi\Document\Equilibria;
+use OCA\TalkAi\Document\Exams;
 use OCA\TalkAi\Document\Figures;
 use OCA\TalkAi\Document\Finance;
 use OCA\TalkAi\Document\ImageStudy;
@@ -528,7 +528,9 @@ class Reply {
 			. 'steps so the person learns, not just the result.' . "\n\n"
 			. 'Maths: solve step by step. Use the calculate tool for every non-trivial calculation instead of computing in your head. '
 			. 'Write formulas in LaTeX between $…$ (inline) or $$…$$ (on their own line): the chat shows them in Unicode, documents '
-			. 'as real formulas. Keep chat formulas simple; for long derivations offer a PDF.' . "\n\n"
+			. 'as real formulas. Keep chat formulas simple; where Unicode is not enough (nested fractions, matrices, integrals with '
+			. 'limits, aligned derivations) send them as an image with formula' . ($this->canBuild ? '' : ' (not available here)') . '; for '
+			. 'long derivations offer a PDF.' . "\n\n"
 			. 'Subjects: use the exact tools instead of working it out yourself: calculate (also constants like c0, g0, h_planck, '
 			. 'N_A, q_e; normcdf, invnorm, binompdf, binomcdf, poissonpdf; bin, hex), statistics, convert_units (physics and '
 			. 'everyday units, temperatures), chemistry (molar masses, balancing equations, elements), biology (crosses with '
@@ -539,7 +541,8 @@ class Reply {
 			. 'planes), statistics (also t-, χ², binomial and rank tests, ANOVA, confidence intervals, effect sizes, APA lines), music '
 			. '(scales, chords, intervals), finance (interest, loans), geo (places, distances), chemistry also pH, titration curves and '
 			. 'equilibria (Kc), informatics also register machines, automata and regular expressions, measurement (uncertainty and its '
-			. 'propagation for lab reports), numerics (roots, integrals, ODEs, eigenvalues with their tables), grades (university averages '
+			. 'propagation for lab reports), exam (grading tables, error index, Abitur total, practice exam checks, study plans), '
+			. 'numerics (roots, integrals, ODEs, eigenvalues with their tables), grades (university averages '
 			. 'by the PO\'s rule, workload), law (deadlines by §§ 187–193 BGB, federal norms). Chemical formulas: \\ce{H2SO4} inside $…$, '
 			. 'or write H₂SO₄. Present a tool\'s result as it is, with a short explanation of the method; do not recompute it by '
 			. 'hand. If a tool fails, say so and only then work it out yourself, marked as such.' . "\n\n"
@@ -566,14 +569,15 @@ class Reply {
 			. 'read_url reads a page or file at a link. lookup searches Wikipedia (in the person\'s language) and scholarly papers '
 			. '(OpenAlex) for a topic. To cite, use cite with the DOI, ISBN or URL and the style asked (APA if none): it gives the '
 			. 'exact citation for a DOI and real details otherwise; never invent sources, quotes or details.' . "\n\n"
-			. 'Abitur (Hessen 2027): take subjects, levels, the calculator and the set texts from the abitur tool and the person\'s '
-			. 'studies preference, not from memory. Practice tasks and mock exams follow its blueprint: the official operators (abitur '
-			. 'operators) with their Anforderungsbereich, BE per Teilaufgabe adding up to the real total, the real time and Hilfsmittel '
-			. '(Mathe Teil 1 without a calculator: do not use calculate in its solutions; "berechnen" needs a written way). Give an '
-			. 'Erwartungshorizont, then grade answers with points (Anlage 9a), the Fehlerindex (Anlage 9b) or deutsch (70/30), and say what '
-			. 'was missing for the next point. A mock exam as a file: create_document (its exam skill lays out the paper and the '
-			. 'Erwartungshorizont), or send_file without the sandbox. Exam dates and study plans come from schedule and plan, into the calendar once the person '
-			. 'agrees.' . "\n\n"
+			. 'Exams: syllabus, topics, set texts, operators, dates, time, allowed aids and grading tables differ by state, school, '
+			. 'university and year. Take them from the official documents (the ones the person shares or names in their studies '
+			. 'preference, or the ministry\'s or university\'s own pages found by searching), read with read_url or read_file, and '
+			. 'say which document they come from; never from memory. Practice tasks and mock exams use the official operators with '
+			. 'their requirement level, marks per task adding up to the real total (check them with exam check), the real time and '
+			. 'aids (a part without calculator: no calculate in its solutions). Give a marking scheme, then grade answers with exam '
+			. '(points, error_index, weighted) by the official table and say what was missing for the next point. A mock exam as a '
+			. 'file: create_document (its exam skill lays it out), or send_file without the sandbox. Exam dates go into the calendar '
+			. 'and a study plan comes from exam plan, once the person agrees.' . "\n\n"
 			. 'University: ask for the Prüfungsordnung\'s rule (weights, decimals cut or rounded) before an average; lab reports give '
 			. 'every result with its uncertainty (measurement); statistics name test, assumptions and the APA line; law answers work in '
 			. 'Gutachtenstil (Obersatz, Definition, Subsumtion, Ergebnis) from the norm\'s text (law norm).' . "\n\n"
@@ -638,7 +642,7 @@ class Reply {
 	private function tools(): array {
 		$tools = $this->toolList();
 		$off = [
-			'sandbox' => ['create_document', 'redo_document', 'document_status', 'room_settings'],
+			'sandbox' => ['create_document', 'redo_document', 'document_status', 'room_settings', 'formula'],
 			'documents' => ['send_file', 'send_flashcards', 'create_document', 'redo_document'],
 			'web' => ['read_url', 'cite', 'lookup', 'find_images', 'geo'],
 			'calendar' => ['calendar'],
@@ -769,7 +773,7 @@ class Reply {
 			[true, $t('Maths, sciences, statistics (computed exactly)'), $t('“Solve x² − 5x + 6 = 0”')],
 			[$this->features['web'] ?? false, $t('Research and citations (web, Wikipedia, papers)'), $t('“Cite 10.1038/nature14539 in APA”')],
 			[$this->features['calendar'] ?? false, $t('Calendar and tasks (confirmed, undoable)'), $t('“Add my maths exam on 12 Nov at 9:00”')],
-			[true, $t('Abitur and studies (official Hessen 2027 data, grades, lab uncertainty, deadlines)'), $t('“When is my maths LK exam, and what is on it?”')],
+			[true, $t('Exams and studies (grading tables, mock exams, study plans, grades, lab uncertainty, deadlines)'), $t('“I got 57 of 80 marks: how many points?”')],
 			[!$this->guest, $t('Polls in the chat'), $t('“Make a poll: pizza or pasta?”')],
 		];
 		foreach ($items as [$on, $what, $example]) {
@@ -1316,7 +1320,8 @@ class Reply {
 			'my_profile' => [
 				'description' => 'The person\'s saved preferences, used in every answer: action show, set (citation_style, language, '
 					. 'salutation, house_style, notes, studies: school or university, programme, semester, exam subjects with levels, calculator, '
-					. 'e.g. "Abitur Hessen 2027: LK Mathematik, LK Englisch, GK Deutsch (3.), PoWi mündlich (4.), Präsentation Kunst (5.); WTR") '
+					. 'links to the official syllabus, operator list or Prüfungsordnung; e.g. "Abitur Hessen 2027: LK Mathematik, LK Englisch, '
+					. 'GK Deutsch; WTR; Erlass: https://…") '
 					. 'or delete. Only when they ask to remember or forget something about themselves.',
 				'input' => ['type' => 'object', 'properties' => ['action' => ['type' => 'string', 'enum' => ['show', 'set', 'delete']],
 					'citation_style' => ['type' => 'string'], 'language' => ['type' => 'string'], 'salutation' => ['type' => 'string'],
@@ -1540,7 +1545,7 @@ class Reply {
 					. 'whether it is a tautology; "encode" (text, kind: number for bases and two\'s complement with bits, text for UTF-8 '
 					. 'bytes and code points, base64, base64_decode, url, url_decode, hash); "sql" (setup: CREATE TABLE and INSERT '
 					. 'statements, query: SELECT … ; several separated by ;): runs them in a throwaway SQLite database; "register_machine" '
-					. '(program: LOAD/STORE/ADD/SUB/MUL/DIV x, GOTO/JZERO/JNZERO label, END with #i, i, *i as in the Hessian Abitur glossary, '
+					. '(program: LOAD/STORE/ADD/SUB/MUL/DIV x, GOTO/JZERO/JNZERO label, END with #i, i, *i as in German school glossaries, '
 					. 'one per line, labels "m1:" or line numbers; registers {"1": 5}): the run with a trace; "automaton" (transitions lines '
 					. '"q0, a -> q1", start, accepting, words): deterministic or not, the run per word, accepted or not; "regex" (expression, '
 					. 'words): which words it matches as a whole.',
@@ -1679,30 +1684,38 @@ class Reply {
 				'input' => ['type' => 'object', 'properties' => ['query' => ['type' => 'string'], 'count' => ['type' => 'integer']], 'required' => ['query']],
 				'run' => fn (string $uid, array $args) => self::marked('Wikimedia Commons search', $this->web->images((string)$args['query'], (int)($args['count'] ?? 6))),
 			],
-			'abitur' => [
-				'description' => 'The Hessian Landesabitur 2027 from the official texts (Abiturerlass, operator lists, OAVO). action "subject" '
-					. '(subject, level GK/LK): exam date and time, BE, choice of tasks, structure, Hilfsmittel, Pflichtlektüren, the Themenfelder '
-					. 'with the bullets of the level; "schedule" (subjects like ["Mathematik LK", "Deutsch GK"]): the written exams in order with '
-					. 'times and Nachtermine, key dates, and events for the calendar tool; "operators" (subject, operator optional): the official '
-					. 'definitions and Anforderungsbereiche; "blueprint" (subject, level, calculator WTR/CAS): the frame of a mock exam like the real '
-					. 'one; "points" (achieved, max): percent to points by Anlage 9a; "error_index" (errors, words, points, language_be): the '
-					. 'deduction by Anlage 9b; "deutsch" (understanding, presentation points, errors, words): Deutsch 70/30 with the deduction; '
-					. '"translation" (errors, words): Latin/Greek by Anlage 9c; "combined" (written, oral): one subject examined in both; "total" '
-					. '(lk: the 8 LK course points, gk: the 24 GK ones, exams: the 5 exam points or {written, oral}, target grade): Block I and II, '
-					. 'the average grade and whether it passes, what the target needs; "oral": oral exam and Präsentationsprüfung rules; "plan" '
-					. '(subjects, from; "PoWi mündlich" for oral ones): a study plan up to the exams, as tasks for the calendar tool; '
-					. '"style_devices" (name optional): the Latin Stilmittelkatalog.',
+			'exam' => [
+				'description' => 'Exam arithmetic by the rules the person or the official documents give (none are built in for a state, '
+					. 'school or year). action "points" (achieved, max, table {result: from percent}, default the usual German 15-point '
+					. 'table; whole: the whole percent counts): marks to points or grades; "error_index" (errors, words, steps [[from index, '
+					. 'points off]] default [[3,1],[6,2]], or table [[up to index, result]], points): language errors and their deduction or '
+					. 'result; "weighted" (parts [{name, points, weight}], decimals): a grade from parts, e.g. content 70 / language 30; '
+					. '"combine" (written, oral, written_weight 2, oral_weight 1, factor 4): written and oral exam in one subject; "abitur" '
+					. '(courses [{points, weight}] or block1, exams [points], target): Block I and II and the average by the KMK formulas, and '
+					. 'what a target needs; "check" (tasks [{id, operator, afb I/II/III, marks}], total, minutes, shares): whether a practice '
+					. 'exam adds up and balances its requirement levels; "plan" (exams [{name, date, topics}], from, revision_days): a study plan '
+					. 'up to the exams, as tasks for the calendar tool.',
 				'input' => ['type' => 'object', 'properties' => [
-					'action' => ['type' => 'string', 'enum' => ['subject', 'schedule', 'operators', 'blueprint', 'points', 'error_index', 'deutsch',
-						'translation', 'combined', 'total', 'oral', 'plan', 'style_devices']],
-					'subject' => ['type' => 'string'], 'level' => ['type' => 'string', 'enum' => ['GK', 'LK']], 'subjects' => ['type' => 'array', 'items' => ['type' => 'string']],
-					'operator' => ['type' => 'string'], 'calculator' => ['type' => 'string'], 'achieved' => ['type' => 'number'], 'max' => ['type' => 'number'],
-					'errors' => ['type' => 'number'], 'words' => ['type' => 'integer'], 'points' => ['type' => 'integer'], 'language_be' => ['type' => 'number'],
-					'understanding' => ['type' => 'number'], 'presentation' => ['type' => 'number'], 'written' => ['type' => 'integer'], 'oral' => ['type' => 'integer'],
-					'lk' => ['type' => 'array', 'items' => ['type' => 'integer']], 'gk' => ['type' => 'array', 'items' => ['type' => 'integer']],
-					'exams' => ['type' => 'array'], 'target' => ['type' => 'number'], 'from' => ['type' => 'string'], 'name' => ['type' => 'string'],
+					'action' => ['type' => 'string', 'enum' => ['points', 'error_index', 'weighted', 'combine', 'abitur', 'check', 'plan']],
+					'achieved' => ['type' => 'number'], 'max' => ['type' => 'number'], 'table' => ['type' => ['object', 'array']], 'whole' => ['type' => 'boolean'],
+					'errors' => ['type' => 'number'], 'words' => ['type' => 'integer'], 'steps' => ['type' => 'array'], 'points' => ['type' => 'integer'],
+					'parts' => ['type' => 'array', 'items' => ['type' => 'object']], 'decimals' => ['type' => 'integer'],
+					'written' => ['type' => 'number'], 'oral' => ['type' => 'number'], 'written_weight' => ['type' => 'number'], 'oral_weight' => ['type' => 'number'], 'factor' => ['type' => 'number'],
+					'courses' => ['type' => 'array'], 'block1' => ['type' => 'integer'], 'exams' => ['type' => 'array'], 'target' => ['type' => 'number'],
+					'tasks' => ['type' => 'array', 'items' => ['type' => 'object']], 'total' => ['type' => 'number'], 'minutes' => ['type' => 'number'], 'shares' => ['type' => 'object'],
+					'from' => ['type' => 'string'], 'revision_days' => ['type' => 'integer'],
 				], 'required' => ['action']],
-				'run' => fn (string $uid, array $args) => $this->abitur($args),
+				'run' => fn (string $uid, array $args) => $this->exam($args),
+			],
+			'formula' => [
+				'description' => 'Typesets LaTeX maths as an image in the chat (ziamath in the sandbox), for what the chat\'s Unicode cannot show '
+					. 'well: nested fractions, roots, integrals and sums with limits, matrices, aligned derivations (\\begin{aligned} … '
+					. '\\end{aligned}), cases. One formula per call; several lines with aligned.',
+				'input' => ['type' => 'object', 'properties' => [
+					'latex' => ['type' => 'string', 'description' => 'The formula without $ delimiters'],
+					'name' => ['type' => 'string', 'description' => 'File name without extension, e.g. "Quadratic formula"'],
+				], 'required' => ['latex']],
+				'run' => fn (string $uid, array $args) => $this->formula($uid, (string)$args['latex'], (string)($args['name'] ?? '')),
 			],
 			'grades' => [
 				'description' => 'University grades by the rule of the person\'s Prüfungsordnung, and study workload. action "average" (modules '
@@ -1955,27 +1968,47 @@ class Reply {
 		};
 	}
 
-	/** The abitur tool's actions. */
-	private function abitur(array $args): array {
-		$subject = (string)($args['subject'] ?? '');
-		$level = (string)($args['level'] ?? '');
-		$subjects = (array)($args['subjects'] ?? ($subject !== '' ? [trim($subject . ' ' . $level)] : []));
+	/** The exam tool's actions. */
+	private function exam(array $args): array {
+		$number = fn (string $key) => isset($args[$key]) ? (float)str_replace(',', '.', (string)$args[$key]) : null;
 		return match ((string)$args['action']) {
-			'schedule' => Abitur::schedule($subjects),
-			'operators' => Abitur::operators($subject, (string)($args['operator'] ?? '')),
-			'blueprint' => Abitur::blueprint($subject, $level, (string)($args['calculator'] ?? '')),
-			'points' => Abitur::points((float)($args['achieved'] ?? 0), (float)($args['max'] ?? 100) ?: 100),
-			'error_index' => Abitur::errorIndex((float)($args['errors'] ?? 0), (int)($args['words'] ?? 0), isset($args['points']) ? (int)$args['points'] : null,
-				isset($args['language_be']) ? (float)$args['language_be'] : null),
-			'deutsch' => Abitur::deutsch((float)($args['understanding'] ?? 0), (float)($args['presentation'] ?? 0), isset($args['errors']) ? (float)$args['errors'] : null, (int)($args['words'] ?? 0)),
-			'translation' => Abitur::translation((float)($args['errors'] ?? 0), (int)($args['words'] ?? 0)),
-			'combined' => Abitur::combined((int)($args['written'] ?? 0), (int)($args['oral'] ?? 0)),
-			'total' => Abitur::total((array)($args['lk'] ?? []), (array)($args['gk'] ?? []), (array)($args['exams'] ?? []), isset($args['target']) ? (float)str_replace(',', '.', (string)$args['target']) : null),
-			'oral' => Abitur::oral(),
-			'plan' => Abitur::plan($subjects, (string)($args['from'] ?? '')),
-			'style_devices' => Abitur::styleDevices((string)($args['name'] ?? '')),
-			default => Abitur::subject($subject, $level),
+			'error_index' => Exams::errorIndex((float)($args['errors'] ?? 0), (int)($args['words'] ?? 0), (array)($args['steps'] ?? []), (array)($args['table'] ?? []),
+				isset($args['points']) ? (int)$args['points'] : null),
+			'weighted' => Exams::weighted((array)($args['parts'] ?? []), (int)($args['decimals'] ?? 0)),
+			'combine' => Exams::combine((float)($args['written'] ?? 0), (float)($args['oral'] ?? 0), $number('written_weight') ?? 2, $number('oral_weight') ?? 1, $number('factor') ?? 4),
+			'abitur' => Exams::abitur((array)($args['courses'] ?? []), isset($args['block1']) ? (int)$args['block1'] : null, (array)($args['exams'] ?? []), $number('target')),
+			'check' => Exams::check((array)($args['tasks'] ?? []), $number('total'), $number('minutes'), (array)($args['shares'] ?? [])),
+			'plan' => Exams::plan((array)($args['exams'] ?? []), (string)($args['from'] ?? ''), (int)($args['revision_days'] ?? 14)),
+			default => Exams::points((float)($args['achieved'] ?? 0), $number('max') ?: 100, (array)($args['table'] ?? []), self::flag($args['whole'] ?? true)),
 		};
+	}
+
+	/** A LaTeX formula typeset in the sandbox (ziamath) and sent into the chat as an image. */
+	private function formula(string $uid, string $latex, string $name): string {
+		if (!$this->canBuild) {
+			return 'Formula images need the document sandbox, which is not available here: write the formula in LaTeX between $$ … $$ instead.';
+		}
+		$latex = trim(trim($latex), '$');
+		if ($latex === '' || mb_strlen($latex) > 4000) {
+			return 'A formula of up to 4000 characters, please.';
+		}
+		try {
+			$box = $this->sandbox->create(['cpus' => 1, 'memory_mb' => 512, 'disk_mb' => 64, 'seconds' => 60]);
+		} catch (\Throwable $e) {
+			return 'The sandbox is busy with a document' . (str_contains($e->getMessage(), 'busy') ? '' : ' or not reachable')
+				. ': write the formula in LaTeX between $$ … $$ instead, or try again in a few minutes.';
+		}
+		try {
+			$this->sandbox->put($box, 'formula.tex', $latex);
+			$r = $this->sandbox->exec($box, 'python3 /skills/common/scripts/formula.py --file formula.tex formula.png --size 26', 60);
+			if ($r['exit_code'] !== 0) {
+				return 'The formula could not be typeset: ' . mb_substr(trim($r['stderr'] ?: $r['stdout']), 0, 300) . ' Correct the LaTeX and try again.';
+			}
+			$png = $this->sandbox->get($box, 'formula.png');
+		} finally {
+			$this->sandbox->delete($box);
+		}
+		return $this->post($this->conversation->saveFile($this->room, $uid, self::fileName($name !== '' ? $name : 'Formula') . '.png', $png), 'png');
 	}
 
 	/** A study of a shared image, sent into the chat. */

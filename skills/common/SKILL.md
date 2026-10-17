@@ -63,3 +63,13 @@ file you have not rendered and looked at.
   (Cambria-compatible), DejaVu, Noto, Open Sans, Linux Libertine. Others are not
   installed and would be replaced.
 - Keep file names short and meaningful: `Protokoll_2026-10-15.odt`.
+- **Formulas** (maths, physics, chemistry) are typeset, never written as `x^2/(2a)` in
+  plain text. `python3 /skills/common/scripts/formula.py 'LaTeX' f.png` renders LaTeX to an
+  image with ziamath (no TeX needed: fractions, roots, integrals with limits, sums,
+  matrices, `aligned` derivations, `cases`, `\text{}`); `--scale 3` for print, `.svg` for
+  SVG, `--mathml` for MathML. Insert the PNG inline or on its own line, sized in cm
+  (height about 0.5 cm per line of formula at 11 pt), with the LaTeX as its alt text. This
+  works in every format (DOCX, PPTX, XLSX, reportlab PDF). Where people must edit the
+  formulas, an ODT with formula objects (MathML) converted to DOCX by LibreOffice is
+  possible; render it and check. Number displayed equations on the right "(1)" when the
+  text refers to them.

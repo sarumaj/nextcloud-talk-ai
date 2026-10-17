@@ -24,18 +24,20 @@
   sandbox answers like the real one, Talk's events come as fixtures),
   `tests/golden/` (the document cases with the image), `tests/compat/` (Talk's API).
 
-## Data for the Abitur
+## Exams and studies without built-in rules
 
-`app/talk_ai/data/abitur/` holds the Hessian Landesabitur 2027 as data, transcribed from the
-official texts and kept as close to them as possible: `hessen-2027.json` (per subject: exam
-dates and times, BE, choice of tasks, structure, Hilfsmittel, Pflichtlektüren, Themenfelder
-with the bullets of grundlegendes and erhöhtes Niveau; from the Abiturerlass of 2 July 2025),
-`operators/*.json` (the ministry's operator lists, Stand August 2025/2026: names, AFB,
-definitions, without the examples) and `latein-stilmittel.json`. The OAVO's tables (Anlagen
-9a, 9b, 9c, 10a, 10b and § 26) are code in `lib/Document/Abitur.php`, checked against the
-OAVO of September 2026 in `tests/AbiturTest.php`. For a new year: a new
-`hessen-<year>.json` from that year's Erlass, the new operator lists, and `Abitur::data()`
-pointing at it.
+The exam and study tools (`lib/Document/Exams.php`, `Study.php`, `Measurement.php`,
+`Numerics.php`, `Law.php`, `Equilibria.php`, `Machines.php`) compute; the rules of a state,
+school, university or year (grading tables, steps of an error index, weights, syllabus,
+operators, dates) are their arguments, which the model takes from the official documents the
+person shares or names. Only rules valid everywhere are defaults: the usual German 15-point
+table, the KMK formulas of the Abitur, §§ 187–193 BGB. `tests/ExamsTest.php` checks that
+the generic rules reproduce real regulations (Hessen's OAVO, Anlagen 9a–10b), so the app
+needs no update when an Erlass changes.
+
+`formula` (in `Reply.php`) typesets LaTeX in a sandbox container with
+`skills/common/scripts/formula.py` (ziamath to SVG, rsvg-convert to PNG); documents use the
+same script.
 
 ## The document job's tools
 

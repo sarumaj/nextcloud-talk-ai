@@ -3,32 +3,33 @@
 ## 0.7.0 - 2026-10-17
 
 ### Added
-- **The Hessian Landesabitur 2027, from the official texts** (tool `abitur`). Per subject
-  (28, also bilingual): exam date, time and BE; the choice of tasks; structure; Hilfsmittel;
-  Pflichtlektüren; and the Themenfelder with the bullets of the GK or the LK. All of it comes
-  from the Abiturerlass of 2 July 2025. The operators of each subject come from the
-  ministry's lists, with their definitions and Anforderungsbereiche. The OAVO's grading
-  (September 2026) is computed:
-  - BE to points (Anlage 9a);
-  - the Fehlerindex and its deduction (9b);
-  - Deutsch, Verstehens- and Darstellungsleistung 70/30;
-  - Latin and Greek translations (9c);
-  - written and oral exam in one subject (10a);
-  - Block I and II with the conditions for passing (§ 26) and the average grade (10b);
-  - the Block II a target grade needs.
+- **Exams by the official rules** (tool `exam`). None of a state's, school's or year's rules
+  are built in. The syllabus, operators, dates, aids and grading tables come from the
+  official documents the person shares or names, read like any other file or page, and the
+  prompt asks for them instead of memory. The tool computes:
+  - marks to points or grades by a table (the usual German 15-point table by default; the
+    whole percent or the exact one);
+  - an error index with its deduction steps or its own scale (as for translations);
+  - grades from weighted parts (e.g. content 70 / language 30);
+  - written and oral exams combined;
+  - the Abitur's Block I and II and average by the KMK formulas, and what a target grade
+    needs;
+  - a check that a practice exam's marks add up and that its requirement levels are
+    balanced;
+  - a study plan up to the exam dates, as calendar tasks.
 
-  The tool also gives:
-  - the written exams of a person's subjects in order, with times and Nachtermine, as
-    calendar events;
-  - the frame of a mock exam like the real one (Mathe Teil 1 and 2, its hand-in time);
-  - the rules of the oral exam and the Präsentationsprüfung;
-  - a study plan up to the exams, as calendar tasks;
-  - the Latin Stilmittelkatalog.
-- A preference `studies` (school or university, subjects with levels, calculator) that every
-  answer uses.
-- The skill `exam` for the document sandbox: a practice exam or mock Abitur with cover,
-  material with line numbers, tasks with operators and BE, the Erwartungshorizont by AFB,
-  and the key from BE to points (`grading_key.py`).
+  The tests reproduce real regulations (Hessen's OAVO, Anlagen 9a to 10b) with these
+  generic rules.
+- The skill `exam` for the document sandbox: a practice or mock exam with cover, material
+  with line numbers, tasks with operators and marks, the marking scheme by requirement level,
+  and the key from marks to grades (`grading_key.py`, any table).
+- **Formulas as images** (tool `formula`, with the sandbox): LaTeX the chat's Unicode cannot
+  show (nested fractions, matrices, integrals with limits, aligned derivations) is typeset
+  by ziamath in a short-lived sandbox container and sent as an image. The sandbox image
+  has ziamath and rsvg-convert. `skills/common/scripts/formula.py` gives documents the same
+  formulas (PNG, SVG or MathML), and the skills ask for formulas to be typeset.
+- A preference `studies` (school or university, subjects with levels, calculator, links to
+  the official documents) that every answer uses.
 - **Studies** (from a sample of 19 study programmes' module handbooks):
   - `grades`: averages by the rule of the Prüfungsordnung (ECTS or own weights, one or two
     decimals cut or rounded, best-of groups, double weights), module grades from their
@@ -53,14 +54,14 @@
   Each test also gives a line in APA style.
 - `chemistry` also does:
   - pH of strong and weak acids and bases, exact and by the school's approximation;
-  - buffers (Henderson-Hasselbalch);
+  - buffers;
   - titration curves from the charge balance, with their characteristic points;
   - the law of mass action: the concentrations at equilibrium from Kc, or Kc from them.
 - `informatics` also runs:
-  - the register machine of the Hessian Abitur glossary, with a trace;
+  - the accumulator register machine of German school glossaries, with a trace;
   - finite automata on words (deterministic or not, ε too);
   - regular expressions on words.
-- The help names Abitur and studies.
+- The help names exams and studies.
 
 ## 0.6.0 - 2026-10-16
 
