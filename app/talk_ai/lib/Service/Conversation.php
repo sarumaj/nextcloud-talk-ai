@@ -207,13 +207,18 @@ class Conversation {
 		return $file;
 	}
 
-	/** Shares a file of the person into the conversation (read only), without Talk's "shared a file" message. */
+	/**
+	 * Shares a file of the person into the conversation, without Talk's "shared a file"
+	 * message: to read, and to share on, so its members can forward the bot's message (Talk
+	 * shares the file again into the other conversation, as the one who forwards it); nobody
+	 * can change it through the conversation.
+	 */
 	public function share(object $room, string $userId, File $file): void {
 		QuietFolderShareListener::$quietFor = $room->getToken();
 		try {
 			$share = $this->shareManager->newShare();
 			$share->setNode($file)->setShareType(\OCP\Share\IShare::TYPE_ROOM)->setSharedWith($room->getToken())
-				->setSharedBy($userId)->setShareOwner($file->getOwner()?->getUID() ?? $userId)->setPermissions(\OCP\Constants::PERMISSION_READ);
+				->setSharedBy($userId)->setShareOwner($file->getOwner()?->getUID() ?? $userId)->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_SHARE);
 			$this->shareManager->createShare($share);
 		} finally {
 			QuietFolderShareListener::$quietFor = null;

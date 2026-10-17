@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.2 - 2026-10-18
+
+### Fixed
+- A file the bot posts (a document, an .ics file, a study set) can be forwarded to another
+  conversation: the conversation's share of it now lets its members share it on (read and
+  share; still nobody can change it there). Forwarding shares the file again into the other
+  conversation as the one who forwards it, which a read-only share refused.
+
 ## 0.7.1 - 2026-10-17
 
 ### Fixed
