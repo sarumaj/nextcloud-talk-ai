@@ -347,7 +347,7 @@ class Calculator {
 		return $z - (self::normalCdf($z) - $p) / self::normalPdf($z);
 	}
 
-	private static function binomialPdf(int $n, float $p, int $k): float {
+	public static function binomialPdf(int $n, float $p, int $k): float {
 		if ($k < 0 || $k > $n || $p < 0 || $p > 1) {
 			return 0.0;
 		}

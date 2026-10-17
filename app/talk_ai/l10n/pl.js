@@ -50,6 +50,8 @@ OC.L10N.register(
         "“Cite 10.1038/nature14539 in APA”": "„Zacytuj 10.1038/nature14539 w APA”",
         "Calendar and tasks (confirmed, undoable)": "Kalendarz i zadania (z potwierdzeniem, do cofnięcia)",
         "“Add my maths exam on 12 Nov at 9:00”": "„Wpisz sprawdzian 12.11 o 9:00”",
+        "Abitur and studies (official Hessen 2027 data, grades, lab uncertainty, deadlines)": "Matura i studia (Abitur Hesja 2027, oceny, niepewność pomiaru, terminy)",
+        "“When is my maths LK exam, and what is on it?”": "„Kiedy mam Abitur z matematyki LK i co obowiązuje?“",
         "Polls in the chat": "Ankiety na czacie",
         "“Make a poll: pizza or pasta?”": "„Zrób ankietę: pizza czy makaron?”",
         "Shortcuts": "Skróty",

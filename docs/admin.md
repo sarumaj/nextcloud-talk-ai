@@ -133,6 +133,9 @@ the model and before letting everyone use it.
 - People can delete their data themselves ("delete my data": all records, preferences
   and memories; or the delivered documents).
 - API keys stay in AI-Hub; the sandbox never sees them.
+- The `law` tool reads federal norms from gesetze-im-internet.de, as `read_url` reads other
+  pages (only the norm's address goes there); the Abitur data, the operator lists and all
+  grading tables are in the app (`data/abitur/`) and need no connection.
 
 ## Logs and troubleshooting
 

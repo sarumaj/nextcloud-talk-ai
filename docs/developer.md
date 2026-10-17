@@ -24,6 +24,19 @@
   sandbox answers like the real one, Talk's events come as fixtures),
   `tests/golden/` (the document cases with the image), `tests/compat/` (Talk's API).
 
+## Data for the Abitur
+
+`app/talk_ai/data/abitur/` holds the Hessian Landesabitur 2027 as data, transcribed from the
+official texts and kept as close to them as possible: `hessen-2027.json` (per subject: exam
+dates and times, BE, choice of tasks, structure, Hilfsmittel, Pflichtlektüren, Themenfelder
+with the bullets of grundlegendes and erhöhtes Niveau; from the Abiturerlass of 2 July 2025),
+`operators/*.json` (the ministry's operator lists, Stand August 2025/2026: names, AFB,
+definitions, without the examples) and `latein-stilmittel.json`. The OAVO's tables (Anlagen
+9a, 9b, 9c, 10a, 10b and § 26) are code in `lib/Document/Abitur.php`, checked against the
+OAVO of September 2026 in `tests/AbiturTest.php`. For a new year: a new
+`hessen-<year>.json` from that year's Erlass, the new operator lists, and `Abitur::data()`
+pointing at it.
+
 ## The document job's tools
 
 All paths stay inside `/work` (the runner refuses others). AI-Hub runs at most eight

@@ -171,6 +171,253 @@ class Statistics {
 		return ['test' => 't-test of the correlation against 0', 't' => self::r($t), 'degrees_of_freedom' => $n - 2, 'p_two_sided' => self::r($p), 'significant_at_' . $alpha => $p < $alpha];
 	}
 
+	/**
+	 * A binomial test of H0: p = p0 as at school (Hessen LK Q3.3): the rejection region
+	 * for the side (right: H0 p ≤ p0, left: H0 p ≥ p0, two: each tail at most α/2), the
+	 * actual error of the first kind, with p1 the error of the second kind, with an
+	 * observed k the decision.
+	 */
+	public static function binomialTest(int $n, float $p0, float $alpha = 0.05, string $side = 'right', ?int $observed = null, ?float $p1 = null): array {
+		if ($n < 1 || $n > 100000 || $p0 <= 0 || $p0 >= 1 || $alpha <= 0 || $alpha >= 1) {
+			throw new \InvalidArgumentException('needs n ≥ 1, 0 < p0 < 1 and 0 < α < 1');
+		}
+		$cdf = [];
+		$sum = 0.0;
+		for ($k = 0; $k <= $n; $k++) {
+			$cdf[$k] = $sum += Calculator::binomialPdf($n, $p0, $k);
+		}
+		$below = fn (int $k) => $k < 0 ? 0.0 : min(1.0, $cdf[min($k, $n)]);
+		$side = match (strtolower($side)) {
+			'left', 'links', 'linksseitig', 'lower' => 'left',
+			'two', 'two-sided', 'both', 'beidseitig', 'zweiseitig' => 'two',
+			default => 'right',
+		};
+		$tail = $side === 'two' ? $alpha / 2 : $alpha;
+		// Right: the least k with P(X ≥ k) ≤ α; left: the greatest k with P(X ≤ k) ≤ α.
+		$upper = $n + 1;
+		while ($upper > 0 && 1 - $below($upper - 2) <= $tail + 1e-12) {
+			$upper--;
+		}
+		$lower = -1;
+		while ($lower < $n && $below($lower + 1) <= $tail + 1e-12) {
+			$lower++;
+		}
+		$regions = match ($side) {
+			'right' => [[$upper, $n]],
+			'left' => [[0, $lower]],
+			default => [[0, $lower], [$upper, $n]],
+		};
+		$regions = array_values(array_filter($regions, fn ($r) => $r[0] <= $r[1]));
+		$in = fn (int $k) => array_reduce($regions, fn ($c, $r) => $c || ($k >= $r[0] && $k <= $r[1]), false);
+		$prob = fn (float $p) => array_sum(array_map(fn ($r) => array_sum(array_map(fn ($k) => Calculator::binomialPdf($n, $p, $k), range($r[0], $r[1]))), $regions));
+		$text = fn (array $r) => $r[0] === $r[1] ? '{' . $r[0] . '}' : '{' . $r[0] . ', …, ' . $r[1] . '}';
+		$out = [
+			'test' => match ($side) { 'right' => 'right-sided: H0: p ≤ ' . $p0, 'left' => 'left-sided: H0: p ≥ ' . $p0, default => 'two-sided: H0: p = ' . $p0 },
+			'n' => $n, 'alpha' => $alpha,
+			'rejection_region' => $regions === [] ? 'empty: no outcome is unlikely enough at this α' : implode(' ∪ ', array_map($text, $regions)),
+			'acceptance_region' => match ($side) {
+				'right' => $text([0, min($n, $upper - 1)]), 'left' => $text([max(0, $lower + 1), $n]), default => $text([max(0, $lower + 1), min($n, $upper - 1)]) },
+			'error_type_1' => self::r($prob($p0)),
+			'expected' => self::r($n * $p0), 'sigma' => self::r(sqrt($n * $p0 * (1 - $p0))),
+		];
+		if ($p1 !== null && $p1 > 0 && $p1 < 1) {
+			$out['error_type_2'] = self::r(1 - $prob($p1)) . ' (if really p = ' . $p1 . ')';
+			$out['power'] = self::r($prob($p1));
+		}
+		if ($observed !== null && $observed >= 0 && $observed <= $n) {
+			$out['observed'] = $observed;
+			$out['decision'] = $in($observed) ? 'reject H0 (k = ' . $observed . ' lies in the rejection region)' : 'H0 is not rejected';
+			$out['p_value'] = self::r(match ($side) {
+				'right' => 1 - $below($observed - 1), 'left' => $below($observed),
+				default => min(1.0, 2 * min($below($observed), 1 - $below($observed - 1))) });
+		}
+		$out['method'] = 'cumulative binomial probabilities F(n; p; k), exactly; on the WTR/CAS as binomcdf';
+		return $out;
+	}
+
+	/** The two-sided quantile of Student's t: P(|T| ≤ t) = confidence. */
+	public static function tQuantile(float $confidence, float $df): float {
+		$lo = 0.0;
+		$hi = 1000.0;
+		for ($i = 0; $i < 200; $i++) {
+			$mid = ($lo + $hi) / 2;
+			self::tTail($mid, $df) > 1 - $confidence ? $lo = $mid : $hi = $mid;
+		}
+		return ($lo + $hi) / 2;
+	}
+
+	/** The confidence interval of a mean (t-distribution) and Cohen's d against mu. */
+	public static function confidence(array $values, float $level = 0.95, ?float $mu = null): array {
+		[$n, $mean, $var] = self::moments($values);
+		$se = sqrt($var / $n);
+		$t = self::tQuantile($level, $n - 1);
+		$out = ['n' => $n, 'mean' => self::r($mean), 'sd' => self::r(sqrt($var)), 'se' => self::r($se),
+			'interval' => '[' . self::r($mean - $t * $se) . '; ' . self::r($mean + $t * $se) . ']', 'level' => $level, 't_quantile' => self::r($t)];
+		if ($mu !== null && $var > 0) {
+			$out['cohens_d'] = self::r(($mean - $mu) / sqrt($var));
+		}
+		$out['apa'] = 'M = ' . self::apa($mean) . ', SD = ' . self::apa(sqrt($var)) . ', ' . round($level * 100) . ' % CI [' . self::apa($mean - $t * $se) . ', ' . self::apa($mean + $t * $se) . ']';
+		return $out;
+	}
+
+	/** One-way ANOVA of groups, with η² and the APA line. */
+	public static function anova(array $groups, float $alpha = 0.05): array {
+		$groups = array_values(array_filter($groups, fn ($g) => count($g) > 0));
+		$k = count($groups);
+		$all = array_merge(...$groups);
+		$n = count($all);
+		if ($k < 2 || $n <= $k) {
+			throw new \InvalidArgumentException('at least two groups and more values than groups');
+		}
+		$grand = array_sum($all) / $n;
+		$between = $within = 0.0;
+		foreach ($groups as $g) {
+			$m = array_sum($g) / count($g);
+			$between += count($g) * ($m - $grand) ** 2;
+			$within += array_sum(array_map(fn ($v) => ($v - $m) ** 2, $g));
+		}
+		$df1 = $k - 1;
+		$df2 = $n - $k;
+		$f = ($between / $df1) / max(1e-300, $within / $df2);
+		$p = self::fTail($f, $df1, $df2);
+		$eta = $between / max(1e-300, $between + $within);
+		return ['test' => 'one-way ANOVA', 'F' => self::r($f), 'df' => [$df1, $df2], 'p' => self::r($p), 'eta_squared' => self::r($eta),
+			'significant_at_' . $alpha => $p < $alpha, 'group_means' => array_map(fn ($g) => self::r(array_sum($g) / count($g)), $groups),
+			'apa' => 'F(' . $df1 . ', ' . $df2 . ') = ' . number_format($f, 2) . ', ' . self::apaP($p) . ', η² = ' . self::apa($eta, true),
+			'assumes' => 'normal distribution in each group and equal variances; otherwise Kruskal-Wallis'];
+	}
+
+	/** Mann-Whitney U test of two independent samples (normal approximation with ties), with r = |z|/√N. */
+	public static function mannWhitney(array $x, array $y, float $alpha = 0.05): array {
+		$n1 = count($x);
+		$n2 = count($y);
+		if ($n1 < 2 || $n2 < 2) {
+			throw new \InvalidArgumentException('two samples of at least two values');
+		}
+		[$ranks, $ties] = self::ranks([...$x, ...$y]);
+		$r1 = array_sum(array_slice($ranks, 0, $n1));
+		$u1 = $r1 - $n1 * ($n1 + 1) / 2;
+		$u = min($u1, $n1 * $n2 - $u1);
+		$n = $n1 + $n2;
+		$sigma = sqrt($n1 * $n2 / 12 * (($n + 1) - $ties / ($n * ($n - 1))));
+		$z = $sigma > 0 ? ($u - $n1 * $n2 / 2) / $sigma : 0.0;
+		$p = 2 * self::normalTail(abs($z));
+		return ['test' => 'Mann-Whitney U', 'U' => self::r($u), 'z' => self::r($z), 'p_two_sided' => self::r($p), 'r' => self::r(abs($z) / sqrt($n)),
+			'significant_at_' . $alpha => $p < $alpha, 'apa' => 'U = ' . self::apa($u) . ', z = ' . number_format($z, 2) . ', ' . self::apaP($p) . ', r = ' . self::apa(abs($z) / sqrt($n), true),
+			'note' => 'normal approximation; for very small samples exact tables are more precise'];
+	}
+
+	/** Wilcoxon signed-rank test of paired values (normal approximation, zero differences dropped). */
+	public static function wilcoxon(array $x, array $y, float $alpha = 0.05): array {
+		$d = [];
+		foreach ($x as $i => $v) {
+			if (isset($y[$i]) && $v != $y[$i]) {
+				$d[] = $v - $y[$i];
+			}
+		}
+		$n = count($d);
+		if ($n < 2) {
+			throw new \InvalidArgumentException('at least two pairs that differ');
+		}
+		[$ranks, $ties] = self::ranks(array_map('abs', $d));
+		$plus = 0.0;
+		foreach ($d as $i => $v) {
+			$plus += $v > 0 ? $ranks[$i] : 0;
+		}
+		$w = min($plus, $n * ($n + 1) / 2 - $plus);
+		$sigma = sqrt($n * ($n + 1) * (2 * $n + 1) / 24 - $ties / 48);
+		$z = ($w - $n * ($n + 1) / 4) / $sigma;
+		$p = 2 * self::normalTail(abs($z));
+		return ['test' => 'Wilcoxon signed-rank', 'W' => self::r($w), 'n' => $n, 'z' => self::r($z), 'p_two_sided' => self::r($p),
+			'r' => self::r(abs($z) / sqrt($n)), 'significant_at_' . $alpha => $p < $alpha,
+			'apa' => 'W = ' . self::apa($w) . ', z = ' . number_format($z, 2) . ', ' . self::apaP($p) . ', r = ' . self::apa(abs($z) / sqrt($n), true)];
+	}
+
+	/** Kruskal-Wallis H test of groups (χ² approximation, corrected for ties). */
+	public static function kruskal(array $groups, float $alpha = 0.05): array {
+		$groups = array_values(array_filter($groups, fn ($g) => count($g) > 0));
+		$all = array_merge(...$groups);
+		$n = count($all);
+		if (count($groups) < 2 || $n < 3) {
+			throw new \InvalidArgumentException('at least two groups');
+		}
+		[$ranks, $ties] = self::ranks($all);
+		$h = 0.0;
+		$at = 0;
+		foreach ($groups as $g) {
+			$h += array_sum(array_slice($ranks, $at, count($g))) ** 2 / count($g);
+			$at += count($g);
+		}
+		$h = (12 / ($n * ($n + 1)) * $h - 3 * ($n + 1)) / (1 - $ties / ($n ** 3 - $n));
+		$df = count($groups) - 1;
+		$p = 1 - self::gammaP($df / 2, $h / 2);
+		return ['test' => 'Kruskal-Wallis H', 'H' => self::r($h), 'df' => $df, 'p' => self::r($p), 'significant_at_' . $alpha => $p < $alpha,
+			'apa' => 'H(' . $df . ') = ' . number_format($h, 2) . ', ' . self::apaP($p)];
+	}
+
+	/** Spearman's rank correlation with its t-test. */
+	public static function spearman(array $x, array $y, float $alpha = 0.05): array {
+		$n = min(count($x), count($y));
+		if ($n < 3) {
+			throw new \InvalidArgumentException('at least three pairs');
+		}
+		[$rx] = self::ranks(array_slice($x, 0, $n));
+		[$ry] = self::ranks(array_slice($y, 0, $n));
+		$rho = (float)(self::regression($rx, $ry)['pearson_r'] ?? 0);
+		$test = abs($rho) < 1 ? self::correlationTest($rho, $n, $alpha) : ['p_two_sided' => '0'];
+		return ['test' => 'Spearman rank correlation', 'rho' => self::r($rho), 'n' => $n, 'p_two_sided' => $test['p_two_sided'],
+			'significant_at_' . $alpha => (float)$test['p_two_sided'] < $alpha, 'apa' => 'rₛ(' . ($n - 2) . ') = ' . self::apa($rho, true) . ', ' . self::apaP((float)$test['p_two_sided'])];
+	}
+
+	/** Cohen's d of two independent samples (pooled SD) and Hedges' g. */
+	public static function effectSize(array $x, array $y): array {
+		[$n1, $m1, $v1] = self::moments($x);
+		[$n2, $m2, $v2] = self::moments($y);
+		$pooled = sqrt((($n1 - 1) * $v1 + ($n2 - 1) * $v2) / ($n1 + $n2 - 2));
+		$d = ($m1 - $m2) / max(1e-300, $pooled);
+		$g = $d * (1 - 3 / (4 * ($n1 + $n2) - 9));
+		return ['cohens_d' => self::r($d), 'hedges_g' => self::r($g), 'reading' => 'by Cohen: 0.2 small, 0.5 medium, 0.8 large',
+			'apa' => 'd = ' . number_format($d, 2)];
+	}
+
+	/** @return array{list<float>, float} average ranks (1 = smallest) and Σ(t³ − t) of the ties */
+	private static function ranks(array $values): array {
+		$order = array_keys($values);
+		usort($order, fn ($a, $b) => $values[$a] <=> $values[$b]);
+		$ranks = [];
+		$ties = 0.0;
+		for ($i = 0; $i < count($order); $i = $j) {
+			for ($j = $i; $j < count($order) && $values[$order[$j]] == $values[$order[$i]]; $j++);
+			$t = $j - $i;
+			$ties += $t ** 3 - $t;
+			for ($k = $i; $k < $j; $k++) {
+				$ranks[$order[$k]] = ($i + $j + 1) / 2;
+			}
+		}
+		ksort($ranks);
+		return [array_values($ranks), $ties];
+	}
+
+	/** P(F > f) for F with df1, df2 degrees of freedom. */
+	private static function fTail(float $f, float $df1, float $df2): float {
+		return $f <= 0 ? 1.0 : self::betaI($df2 / ($df2 + $df1 * $f), $df2 / 2, $df1 / 2);
+	}
+
+	/** P(Z > z) of the standard normal distribution, z ≥ 0. */
+	private static function normalTail(float $z): float {
+		return 0.5 * (1 - self::gammaP(0.5, $z * $z / 2));
+	}
+
+	/** A number as APA writes it: two decimals; without the leading zero for values that cannot pass 1. */
+	private static function apa(float $v, bool $bounded = false): string {
+		$s = number_format($v, 2, '.', '');
+		return $bounded ? preg_replace('/^(-?)0\./', '$1.', $s) ?? $s : $s;
+	}
+
+	private static function apaP(float $p): string {
+		return $p < 0.001 ? 'p < .001' : 'p = ' . (preg_replace('/^0\./', '.', number_format($p, 3, '.', '')) ?? '');
+	}
+
 	/** @return array{int, float, float} n, mean, sample variance */
 	private static function moments(array $values): array {
 		$n = count($values);

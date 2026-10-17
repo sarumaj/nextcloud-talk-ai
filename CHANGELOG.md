@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.7.0 - 2026-10-17
+
+### Added
+- **The Hessian Landesabitur 2027, from the official texts** (tool `abitur`). Per subject
+  (28, also bilingual): exam date, time and BE; the choice of tasks; structure; Hilfsmittel;
+  Pflichtlektüren; and the Themenfelder with the bullets of the GK or the LK. All of it comes
+  from the Abiturerlass of 2 July 2025. The operators of each subject come from the
+  ministry's lists, with their definitions and Anforderungsbereiche. The OAVO's grading
+  (September 2026) is computed:
+  - BE to points (Anlage 9a);
+  - the Fehlerindex and its deduction (9b);
+  - Deutsch, Verstehens- and Darstellungsleistung 70/30;
+  - Latin and Greek translations (9c);
+  - written and oral exam in one subject (10a);
+  - Block I and II with the conditions for passing (§ 26) and the average grade (10b);
+  - the Block II a target grade needs.
+
+  The tool also gives:
+  - the written exams of a person's subjects in order, with times and Nachtermine, as
+    calendar events;
+  - the frame of a mock exam like the real one (Mathe Teil 1 and 2, its hand-in time);
+  - the rules of the oral exam and the Präsentationsprüfung;
+  - a study plan up to the exams, as calendar tasks;
+  - the Latin Stilmittelkatalog.
+- A preference `studies` (school or university, subjects with levels, calculator) that every
+  answer uses.
+- The skill `exam` for the document sandbox: a practice exam or mock Abitur with cover,
+  material with line numbers, tasks with operators and BE, the Erwartungshorizont by AFB,
+  and the key from BE to points (`grading_key.py`).
+- **Studies** (from a sample of 19 study programmes' module handbooks):
+  - `grades`: averages by the rule of the Prüfungsordnung (ECTS or own weights, one or two
+    decimals cut or rounded, best-of groups, double weights), module grades from their
+    parts, the average the remaining credits need, foreign grades by the bayerische Formel,
+    law exam points (0–18), and the workload and phases back from a deadline.
+  - `measurement`: uncertainties for lab reports (GUM, DIN 1319): repeated readings (with
+    t), Gaussian and maximum propagation with partial derivatives and an uncertainty budget,
+    results rounded as the norms ask, and a weighted straight-line fit with χ²/ndf.
+  - `numerics`: roots (Newton, bisection, regula falsi), integrals (trapezoid, Simpson),
+    initial value problems and systems (Euler, Heun, Runge-Kutta 4), eigenvalues, and
+    derivatives at a point, each with its table.
+  - `law`: deadlines by §§ 187–193 BGB, with weekends and each federal state's holidays;
+    the holidays of a year; and the text of a federal norm from gesetze-im-internet.de.
+- `statistics` also does:
+  - the binomial test as at school (rejection region, errors of the first and second
+    kind, decision);
+  - confidence intervals of a mean;
+  - one-way ANOVA and Kruskal-Wallis;
+  - Mann-Whitney U, Wilcoxon signed-rank and Spearman;
+  - Cohen's d and Hedges' g.
+
+  Each test also gives a line in APA style.
+- `chemistry` also does:
+  - pH of strong and weak acids and bases, exact and by the school's approximation;
+  - buffers (Henderson-Hasselbalch);
+  - titration curves from the charge balance, with their characteristic points;
+  - the law of mass action: the concentrations at equilibrium from Kc, or Kc from them.
+- `informatics` also runs:
+  - the register machine of the Hessian Abitur glossary, with a trace;
+  - finite automata on words (deterministic or not, ε too);
+  - regular expressions on words.
+- The help names Abitur and studies.
+
 ## 0.6.0 - 2026-10-16
 
 ### Added

@@ -40,6 +40,20 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   schedules, break-even), physical education (heart-rate zones, pace, race times, BMI,
   calories), informatics (truth tables, encodings, SQL on example tables), history (timelines),
   and mind maps for any topic.
+- **Abitur (Hessen 2027), from the official texts:** the Themenfelder, Pflichtlektüren, dates,
+  times, choice of tasks and Hilfsmittel of every subject (Abiturerlass), the operators with
+  their Anforderungsbereiche (the ministry's lists), and the OAVO's grading computed: BE to
+  points (Anlage 9a), the Fehlerindex (9b), Deutsch 70/30, Latin translations (9c), written
+  and oral together (10a), Block I and II and the average grade (§ 26, 10b), and what a target
+  grade needs. Mock exams like the real ones, the exam dates into the calendar, a study plan.
+- **Studies:** university averages by the rule of your Prüfungsordnung (ECTS, cut or rounded,
+  best-of, double weight), the grade still needed, foreign grades (bayerische Formel), law
+  exam points; measurement uncertainty for lab reports (GUM: propagation, budget, rounding,
+  weighted fits); numerics with tables (Newton, bisection, Simpson, Runge-Kutta, eigenvalues);
+  more tests (binomial test with rejection region, ANOVA, Mann-Whitney, Wilcoxon,
+  Kruskal-Wallis, Spearman, confidence intervals, effect sizes, APA lines); chemistry pH,
+  titration curves and equilibria; register machines, automata and regular expressions;
+  legal deadlines by §§ 187–193 BGB with each state's holidays, and federal norms.
 - **Art:** the palette of a painting or photo, colour harmonies, colour names (pigments too),
   value studies (grayscale, notan), composition grids (thirds, golden ratio), mirrored and
   blurred views, and help with exhibition texts and statements.
@@ -133,6 +147,11 @@ For example:
 - Share a painting and ask "@Claude what is its palette, and what would complement it?"
 - "Put my maths exam on 12 November at 9:00 in my calendar, with a reminder the day before."
 - "A mind map of the causes of the First World War."
+- "When is my maths LK exam, and what comes up?", "a mock exam for English LK", "I got 57 of
+  80 BE: how many points?", "my course points so far: what average, and what do I need for 1.5?"
+- "My grades with ECTS: what is my average under my PO (one decimal, cut off)?"
+- "Pendulum: l = 1.000 ± 0.002 m, T = 2.006 ± 0.005 s: g with its uncertainty."
+- "A one-month deadline from 31 January, in Hesse: when does it end?"
 - Share a photo of the school timetable and ask "make it an .ics file, weekly until the summer
   holidays".
 - "Curve sketching of f(x) = x³ − 3x" or "solve 2x + y − z = 8, −3x − y + 2z = −11, −2x + y + 2z = −3".

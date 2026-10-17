@@ -12,13 +12,15 @@
 - **Maths**: step by step, with exact calculation, formulas in documents, statistics, and graphs and charts as images
 - **Sources**: reads web pages, searches the web, Wikipedia and scholarly papers, and cites by DOI, ISBN or URL in APA, MLA, Chicago, Harvard, IEEE, DIN 1505-2 and other styles
 - **Subjects**: curve sketching, linear algebra and vectors, chemistry, physics units and constants, genetics and DNA, statistics and hypothesis tests, geography and climate diagrams, music theory, interest and loans, sport science, truth tables and SQL, timelines and mind maps
+- **Abitur Hessen 2027 from the official texts**: subjects, Themenfelder, set texts, dates, operators, mock exams, and the OAVO's grading computed (points, Fehlerindex, average grade)
+- **Studies**: university averages by your Prüfungsordnung, measurement uncertainty, numerics, ANOVA and rank tests, pH and equilibria, automata, legal deadlines
 - **Art**: the palette of a painting, colour harmonies, value studies and composition grids
 - **Planning**: events, reminders and tasks in your calendar, and .ics files from dates in a PDF or a photo
 - **Presentations** with 15 layouts, modern themes or its own design, and free photos from Wikimedia Commons; research on the web by default
 - Everything runs **with the asking person's rights**: the bot sees only what they may see
 
 Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@Claude) or replied to. Office formats need Nextcloud Office (Collabora); reading PDFs needs pdftotext, OCR needs Tesseract on the server.]]></description>
-    <version>0.6.0</version>
+    <version>0.7.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAi</namespace>

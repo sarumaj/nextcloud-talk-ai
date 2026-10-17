@@ -7,18 +7,24 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Service;
 
 use OCA\TalkAi\AppInfo\Application;
+use OCA\TalkAi\Document\Abitur;
 use OCA\TalkAi\Document\Analysis;
 use OCA\TalkAi\Document\Biology;
 use OCA\TalkAi\Document\Calculator;
 use OCA\TalkAi\Document\Chart;
 use OCA\TalkAi\Document\Chemistry;
 use OCA\TalkAi\Document\Colors;
+use OCA\TalkAi\Document\Equilibria;
 use OCA\TalkAi\Document\Figures;
 use OCA\TalkAi\Document\Finance;
 use OCA\TalkAi\Document\ImageStudy;
 use OCA\TalkAi\Document\Informatics;
+use OCA\TalkAi\Document\Law;
 use OCA\TalkAi\Document\LinearAlgebra;
+use OCA\TalkAi\Document\Machines;
+use OCA\TalkAi\Document\Measurement;
 use OCA\TalkAi\Document\Music;
+use OCA\TalkAi\Document\Numerics;
 use OCA\TalkAi\Document\Math;
 use OCA\TalkAi\Document\OdpWriter;
 use OCA\TalkAi\Document\OdsWriter;
@@ -26,6 +32,7 @@ use OCA\TalkAi\Document\OdtWriter;
 use OCA\TalkAi\Document\Passages;
 use OCA\TalkAi\Document\Sport;
 use OCA\TalkAi\Document\Statistics;
+use OCA\TalkAi\Document\Study;
 use OCA\TalkAi\Document\Theme;
 use OCA\TalkAi\Document\Units;
 use OCA\TalkAi\Document\TextExtractor;
@@ -529,8 +536,11 @@ class Reply {
 			. 'calories), informatics (truth tables, number encodings, SQL on example tables), plot (graphs of functions, '
 			. 'charts, timelines, mind maps, climate diagrams), colors (a painting\'s palette, colour harmonies), image_study (value '
 			. 'studies, composition grids), analyze_function (curve sketching), linear_algebra (systems, matrices, vectors, lines and '
-			. 'planes), statistics (also t- and χ² tests), music (scales, chords, intervals), finance (interest, loans), geo (places, '
-			. 'distances). Chemical formulas: \\ce{H2SO4} inside $…$, '
+			. 'planes), statistics (also t-, χ², binomial and rank tests, ANOVA, confidence intervals, effect sizes, APA lines), music '
+			. '(scales, chords, intervals), finance (interest, loans), geo (places, distances), chemistry also pH, titration curves and '
+			. 'equilibria (Kc), informatics also register machines, automata and regular expressions, measurement (uncertainty and its '
+			. 'propagation for lab reports), numerics (roots, integrals, ODEs, eigenvalues with their tables), grades (university averages '
+			. 'by the PO\'s rule, workload), law (deadlines by §§ 187–193 BGB, federal norms). Chemical formulas: \\ce{H2SO4} inside $…$, '
 			. 'or write H₂SO₄. Present a tool\'s result as it is, with a short explanation of the method; do not recompute it by '
 			. 'hand. If a tool fails, say so and only then work it out yourself, marked as such.' . "\n\n"
 			. 'Images: you see images shared lately; read_file also reads the text in an image or a scanned PDF (OCR). For art, '
@@ -556,6 +566,17 @@ class Reply {
 			. 'read_url reads a page or file at a link. lookup searches Wikipedia (in the person\'s language) and scholarly papers '
 			. '(OpenAlex) for a topic. To cite, use cite with the DOI, ISBN or URL and the style asked (APA if none): it gives the '
 			. 'exact citation for a DOI and real details otherwise; never invent sources, quotes or details.' . "\n\n"
+			. 'Abitur (Hessen 2027): take subjects, levels, the calculator and the set texts from the abitur tool and the person\'s '
+			. 'studies preference, not from memory. Practice tasks and mock exams follow its blueprint: the official operators (abitur '
+			. 'operators) with their Anforderungsbereich, BE per Teilaufgabe adding up to the real total, the real time and Hilfsmittel '
+			. '(Mathe Teil 1 without a calculator: do not use calculate in its solutions; "berechnen" needs a written way). Give an '
+			. 'Erwartungshorizont, then grade answers with points (Anlage 9a), the Fehlerindex (Anlage 9b) or deutsch (70/30), and say what '
+			. 'was missing for the next point. A mock exam as a file: create_document (its exam skill lays out the paper and the '
+			. 'Erwartungshorizont), or send_file without the sandbox. Exam dates and study plans come from schedule and plan, into the calendar once the person '
+			. 'agrees.' . "\n\n"
+			. 'University: ask for the Prüfungsordnung\'s rule (weights, decimals cut or rounded) before an average; lab reports give '
+			. 'every result with its uncertainty (measurement); statistics name test, assumptions and the APA line; law answers work in '
+			. 'Gutachtenstil (Obersatz, Definition, Subsumtion, Ergebnis) from the norm\'s text (law norm).' . "\n\n"
 			. 'The people here are a family: among them a painter and artist, a student in the last year of secondary school '
 			. '(German Abitur), and a future university student. Help with exams (explain, practise, check answers and say '
 			. 'why, rather than only giving results), with essays and theses (structure, arguments, sources, citations), and '
@@ -728,7 +749,7 @@ class Reply {
 	private function phase(string $uid, string $tool): string {
 		$key = match ($tool) {
 			'read_file', 'list_files', 'find_files' => 'Reading',
-			'read_url', 'lookup', 'cite', 'find_images', 'geo' => 'Researching',
+			'read_url', 'lookup', 'cite', 'find_images', 'geo', 'law' => 'Researching',
 			'send_file', 'send_flashcards', 'create_document', 'redo_document' => 'Writing',
 			'calendar' => 'Calendar',
 			default => 'Working',
@@ -748,6 +769,7 @@ class Reply {
 			[true, $t('Maths, sciences, statistics (computed exactly)'), $t('“Solve x² − 5x + 6 = 0”')],
 			[$this->features['web'] ?? false, $t('Research and citations (web, Wikipedia, papers)'), $t('“Cite 10.1038/nature14539 in APA”')],
 			[$this->features['calendar'] ?? false, $t('Calendar and tasks (confirmed, undoable)'), $t('“Add my maths exam on 12 Nov at 9:00”')],
+			[true, $t('Abitur and studies (official Hessen 2027 data, grades, lab uncertainty, deadlines)'), $t('“When is my maths LK exam, and what is on it?”')],
 			[!$this->guest, $t('Polls in the chat'), $t('“Make a poll: pizza or pasta?”')],
 		];
 		foreach ($items as [$on, $what, $example]) {
@@ -951,7 +973,7 @@ class Reply {
 			return 'The preferences are deleted.';
 		}
 		if ($action === 'set') {
-			foreach (['citation_style', 'language', 'salutation', 'house_style', 'notes'] as $field) {
+			foreach (['citation_style', 'language', 'salutation', 'house_style', 'notes', 'studies'] as $field) {
 				if (array_key_exists($field, $args)) {
 					$profile[$field] = mb_substr(trim((string)$args[$field]), 0, 300);
 				}
@@ -1293,10 +1315,12 @@ class Reply {
 			],
 			'my_profile' => [
 				'description' => 'The person\'s saved preferences, used in every answer: action show, set (citation_style, language, '
-					. 'salutation, house_style, notes) or delete. Only when they ask to remember or forget something about themselves.',
+					. 'salutation, house_style, notes, studies: school or university, programme, semester, exam subjects with levels, calculator, '
+					. 'e.g. "Abitur Hessen 2027: LK Mathematik, LK Englisch, GK Deutsch (3.), PoWi mündlich (4.), Präsentation Kunst (5.); WTR") '
+					. 'or delete. Only when they ask to remember or forget something about themselves.',
 				'input' => ['type' => 'object', 'properties' => ['action' => ['type' => 'string', 'enum' => ['show', 'set', 'delete']],
 					'citation_style' => ['type' => 'string'], 'language' => ['type' => 'string'], 'salutation' => ['type' => 'string'],
-					'house_style' => ['type' => 'string'], 'notes' => ['type' => 'string']], 'required' => ['action']],
+					'house_style' => ['type' => 'string'], 'notes' => ['type' => 'string'], 'studies' => ['type' => 'string']], 'required' => ['action']],
 				'run' => fn (string $uid, array $args) => $this->myProfile($uid, $args),
 			],
 			'undo' => [
@@ -1402,13 +1426,20 @@ class Reply {
 					. 'deviation and variance of values; "regression": the line y = a + bx and r for values (x) and y_values; '
 					. '"t_test": one sample against mu, two samples (Welch) with y_values, or paired (paired: true); "chi2_independence": '
 					. 'a table of counts (rows); "chi2_fit": observed values against expected (counts or proportions; equal if none); '
-					. '"correlation": whether r of n pairs differs from 0. Tests give p-values at alpha (0.05).',
+					. '"correlation": whether r of n pairs differs from 0; "binomial_test" (n, p0, side right/left/two, alpha, observed k, p1): '
+					. 'rejection region, errors of the first and second kind, decision (as at school); "confidence": the interval of a mean '
+					. '(level 0.95) and Cohen\'s d against mu; "anova" and "kruskal": groups (lists of values); "mann_whitney" (independent) '
+					. 'and "wilcoxon" (paired) on values and y_values; "spearman": rank correlation of values and y_values; "effect_size": '
+					. 'Cohen\'s d and Hedges\' g of values and y_values. Tests give p-values at alpha (0.05) and a line in APA style.',
 				'input' => ['type' => 'object', 'properties' => [
-					'test' => ['type' => 'string', 'enum' => ['describe', 'regression', 't_test', 'chi2_independence', 'chi2_fit', 'correlation']],
+					'test' => ['type' => 'string', 'enum' => ['describe', 'regression', 't_test', 'chi2_independence', 'chi2_fit', 'correlation',
+						'binomial_test', 'confidence', 'anova', 'kruskal', 'mann_whitney', 'wilcoxon', 'spearman', 'effect_size']],
 					'values' => ['type' => 'string', 'description' => 'Numbers separated by spaces, commas or semicolons'],
 					'y_values' => ['type' => 'string'], 'expected' => ['type' => 'string'], 'mu' => ['type' => 'number'],
 					'paired' => ['type' => 'boolean'], 'rows' => ['type' => 'array', 'items' => ['type' => 'array', 'items' => ['type' => 'number']]],
 					'r' => ['type' => 'number'], 'n' => ['type' => 'integer'], 'alpha' => ['type' => 'number'],
+					'p0' => ['type' => 'number'], 'p1' => ['type' => 'number'], 'side' => ['type' => 'string', 'enum' => ['right', 'left', 'two']],
+					'observed' => ['type' => 'integer'], 'level' => ['type' => 'number'], 'groups' => ['type' => 'array', 'items' => ['type' => 'array', 'items' => ['type' => 'number']]],
 				]],
 				'run' => fn (string $uid, array $args) => $this->statistics($args),
 			],
@@ -1451,15 +1482,26 @@ class Reply {
 			'chemistry' => [
 				'description' => 'action "molar_mass": molar mass and composition of a formula (Ca(OH)2, CuSO4·5H2O, SO4^2-); '
 					. '"balance": balances a reaction ("Fe + O2 -> Fe2O3", ions as Fe^3+); "element": an element\'s data by symbol, '
-					. 'English name or atomic number.',
+					. 'English name or atomic number; "ph" (kind strong_acid, strong_base, weak_acid, weak_base, buffer; c in mol/L; pk = pKs or '
+					. 'pKb; buffer: c the acid, c_base its base): exact and the approximation; "titration" (analyte acid or base, c, volume mL, '
+					. 'c_titrant, pk for a weak one): the curve and its start, half-equivalence and equivalence points; "equilibrium" '
+					. '(input the reaction "N2 + 3 H2 <=> 2 NH3", concentrations {species: mol/L}, kc): with kc the concentrations at '
+					. 'equilibrium from the start ones, without Kc from the equilibrium ones.',
 				'input' => ['type' => 'object', 'properties' => [
-					'action' => ['type' => 'string', 'enum' => ['molar_mass', 'balance', 'element']],
-					'input' => ['type' => 'string', 'description' => 'The formula, the equation or the element'],
-				], 'required' => ['action', 'input']],
+					'action' => ['type' => 'string', 'enum' => ['molar_mass', 'balance', 'element', 'ph', 'titration', 'equilibrium']],
+					'input' => ['type' => 'string', 'description' => 'The formula, the equation, the element or the reaction'],
+					'kind' => ['type' => 'string'], 'c' => ['type' => 'number'], 'pk' => ['type' => 'number'], 'c_base' => ['type' => 'number'],
+					'analyte' => ['type' => 'string', 'enum' => ['acid', 'base']], 'volume' => ['type' => 'number'], 'c_titrant' => ['type' => 'number'],
+					'concentrations' => ['type' => 'object'], 'kc' => ['type' => 'number'],
+				], 'required' => ['action']],
 				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
-					'balance' => Chemistry::balance((string)$args['input']),
-					'element' => Chemistry::element((string)$args['input']),
-					default => Chemistry::molarMass((string)$args['input']),
+					'balance' => Chemistry::balance((string)($args['input'] ?? '')),
+					'element' => Chemistry::element((string)($args['input'] ?? '')),
+					'ph' => Equilibria::ph((string)($args['kind'] ?? ''), (float)($args['c'] ?? 0), isset($args['pk']) ? (float)$args['pk'] : null, isset($args['c_base']) ? (float)$args['c_base'] : null),
+					'titration' => Equilibria::titration((string)($args['analyte'] ?? 'acid'), (float)($args['c'] ?? 0), (float)($args['volume'] ?? 0), (float)($args['c_titrant'] ?? 0),
+						isset($args['pk']) ? (float)$args['pk'] : null),
+					'equilibrium' => Equilibria::equilibrium((string)($args['input'] ?? ''), (array)($args['concentrations'] ?? []), isset($args['kc']) ? (float)$args['kc'] : null),
+					default => Chemistry::molarMass((string)($args['input'] ?? '')),
 				},
 			],
 			'biology' => [
@@ -1497,9 +1539,15 @@ class Reply {
 				'description' => 'action "truth_table" (expression with and/or/not/xor/nand/nor/->/<->, also ∧ ∨ ¬): the table and '
 					. 'whether it is a tautology; "encode" (text, kind: number for bases and two\'s complement with bits, text for UTF-8 '
 					. 'bytes and code points, base64, base64_decode, url, url_decode, hash); "sql" (setup: CREATE TABLE and INSERT '
-					. 'statements, query: SELECT … ; several separated by ;): runs them in a throwaway SQLite database.',
+					. 'statements, query: SELECT … ; several separated by ;): runs them in a throwaway SQLite database; "register_machine" '
+					. '(program: LOAD/STORE/ADD/SUB/MUL/DIV x, GOTO/JZERO/JNZERO label, END with #i, i, *i as in the Hessian Abitur glossary, '
+					. 'one per line, labels "m1:" or line numbers; registers {"1": 5}): the run with a trace; "automaton" (transitions lines '
+					. '"q0, a -> q1", start, accepting, words): deterministic or not, the run per word, accepted or not; "regex" (expression, '
+					. 'words): which words it matches as a whole.',
 				'input' => ['type' => 'object', 'properties' => [
-					'action' => ['type' => 'string', 'enum' => ['truth_table', 'encode', 'sql']],
+					'action' => ['type' => 'string', 'enum' => ['truth_table', 'encode', 'sql', 'register_machine', 'automaton', 'regex']],
+					'program' => ['type' => 'string'], 'registers' => ['type' => 'object'], 'transitions' => ['type' => 'string'], 'start' => ['type' => 'string'],
+					'accepting' => ['type' => 'array', 'items' => ['type' => 'string']], 'words' => ['type' => 'array', 'items' => ['type' => 'string']],
 					'expression' => ['type' => 'string'], 'text' => ['type' => 'string'],
 					'kind' => ['type' => 'string', 'enum' => ['number', 'text', 'base64', 'base64_decode', 'url', 'url_decode', 'hash']],
 					'bits' => ['type' => 'integer'], 'setup' => ['type' => 'string'], 'query' => ['type' => 'string'],
@@ -1507,6 +1555,9 @@ class Reply {
 				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
 					'truth_table' => Informatics::truthTable((string)($args['expression'] ?? '')),
 					'encode' => Informatics::encode((string)($args['text'] ?? ''), (string)($args['kind'] ?? 'text'), (int)($args['bits'] ?? 8)),
+					'register_machine' => Machines::registerMachine((string)($args['program'] ?? ''), (array)($args['registers'] ?? [])),
+					'automaton' => Machines::automaton((string)($args['transitions'] ?? ''), (string)($args['start'] ?? 'q0'), (array)($args['accepting'] ?? []), (array)($args['words'] ?? [])),
+					'regex' => Machines::regex((string)($args['expression'] ?? ''), (array)($args['words'] ?? [])),
 					default => Informatics::sql((string)($args['setup'] ?? ''), (string)($args['query'] ?? '')),
 				},
 			],
@@ -1627,6 +1678,108 @@ class Reply {
 					. 'with the attribution their license requires (put it in the caption). Search in English for best results.',
 				'input' => ['type' => 'object', 'properties' => ['query' => ['type' => 'string'], 'count' => ['type' => 'integer']], 'required' => ['query']],
 				'run' => fn (string $uid, array $args) => self::marked('Wikimedia Commons search', $this->web->images((string)$args['query'], (int)($args['count'] ?? 6))),
+			],
+			'abitur' => [
+				'description' => 'The Hessian Landesabitur 2027 from the official texts (Abiturerlass, operator lists, OAVO). action "subject" '
+					. '(subject, level GK/LK): exam date and time, BE, choice of tasks, structure, Hilfsmittel, Pflichtlektüren, the Themenfelder '
+					. 'with the bullets of the level; "schedule" (subjects like ["Mathematik LK", "Deutsch GK"]): the written exams in order with '
+					. 'times and Nachtermine, key dates, and events for the calendar tool; "operators" (subject, operator optional): the official '
+					. 'definitions and Anforderungsbereiche; "blueprint" (subject, level, calculator WTR/CAS): the frame of a mock exam like the real '
+					. 'one; "points" (achieved, max): percent to points by Anlage 9a; "error_index" (errors, words, points, language_be): the '
+					. 'deduction by Anlage 9b; "deutsch" (understanding, presentation points, errors, words): Deutsch 70/30 with the deduction; '
+					. '"translation" (errors, words): Latin/Greek by Anlage 9c; "combined" (written, oral): one subject examined in both; "total" '
+					. '(lk: the 8 LK course points, gk: the 24 GK ones, exams: the 5 exam points or {written, oral}, target grade): Block I and II, '
+					. 'the average grade and whether it passes, what the target needs; "oral": oral exam and Präsentationsprüfung rules; "plan" '
+					. '(subjects, from; "PoWi mündlich" for oral ones): a study plan up to the exams, as tasks for the calendar tool; '
+					. '"style_devices" (name optional): the Latin Stilmittelkatalog.',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['subject', 'schedule', 'operators', 'blueprint', 'points', 'error_index', 'deutsch',
+						'translation', 'combined', 'total', 'oral', 'plan', 'style_devices']],
+					'subject' => ['type' => 'string'], 'level' => ['type' => 'string', 'enum' => ['GK', 'LK']], 'subjects' => ['type' => 'array', 'items' => ['type' => 'string']],
+					'operator' => ['type' => 'string'], 'calculator' => ['type' => 'string'], 'achieved' => ['type' => 'number'], 'max' => ['type' => 'number'],
+					'errors' => ['type' => 'number'], 'words' => ['type' => 'integer'], 'points' => ['type' => 'integer'], 'language_be' => ['type' => 'number'],
+					'understanding' => ['type' => 'number'], 'presentation' => ['type' => 'number'], 'written' => ['type' => 'integer'], 'oral' => ['type' => 'integer'],
+					'lk' => ['type' => 'array', 'items' => ['type' => 'integer']], 'gk' => ['type' => 'array', 'items' => ['type' => 'integer']],
+					'exams' => ['type' => 'array'], 'target' => ['type' => 'number'], 'from' => ['type' => 'string'], 'name' => ['type' => 'string'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => $this->abitur($args),
+			],
+			'grades' => [
+				'description' => 'University grades by the rule of the person\'s Prüfungsordnung, and study workload. action "average" (modules '
+					. '[{name, grade, ects, weight, group}], rule {decimals 1/2, mode truncate/round, best_of {group: n}, double [names]}): the '
+					. 'weighted average and its formula; "module" (parts [{name, grade, weight}], rule): a module grade from its parts; "needed" '
+					. '(modules, remaining_ects, target, rule): the average the rest needs; "foreign" (grade, best, lowest_pass): a foreign grade '
+					. 'by the bayerische Formel; "jura" (points 0–18): Notenstufen and their average; "workload" (ects, deadline, kind exam/paper/'
+					. 'thesis, hours_per_ects, from): hours and phases backwards from the deadline, for the calendar tool. Ask for the PO\'s rule '
+					. 'when it matters (cut or rounded, decimals).',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['average', 'module', 'needed', 'foreign', 'jura', 'workload']],
+					'modules' => ['type' => 'array', 'items' => ['type' => 'object']], 'parts' => ['type' => 'array', 'items' => ['type' => 'object']],
+					'rule' => ['type' => 'object'], 'remaining_ects' => ['type' => 'number'], 'target' => ['type' => 'number'], 'grade' => ['type' => 'number'],
+					'best' => ['type' => 'number'], 'lowest_pass' => ['type' => 'number'], 'points' => ['type' => 'array', 'items' => ['type' => 'number']],
+					'ects' => ['type' => 'number'], 'deadline' => ['type' => 'string'], 'kind' => ['type' => 'string'], 'hours_per_ects' => ['type' => 'number'], 'from' => ['type' => 'string'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'module' => Study::moduleGrade((array)($args['parts'] ?? []), (array)($args['rule'] ?? [])),
+					'needed' => Study::required((array)($args['modules'] ?? []), (float)($args['remaining_ects'] ?? 0), (float)($args['target'] ?? 0), (array)($args['rule'] ?? [])),
+					'foreign' => Study::foreign((float)($args['grade'] ?? 0), (float)($args['best'] ?? 0), (float)($args['lowest_pass'] ?? 0)),
+					'jura' => Study::juraPoints((array)($args['points'] ?? [])),
+					'workload' => Study::workload((float)($args['ects'] ?? 0), (string)($args['deadline'] ?? ''), (string)($args['kind'] ?? 'exam'),
+						(float)($args['hours_per_ects'] ?? 30) ?: 30, (string)($args['from'] ?? '')),
+					default => Study::average((array)($args['modules'] ?? []), (array)($args['rule'] ?? [])),
+				},
+			],
+			'measurement' => [
+				'description' => 'Measurement uncertainty for lab reports (GUM, DIN 1319). action "repeated" (values, confidence e.g. 0.95): mean, '
+					. 'standard deviation, uncertainty of the mean (with t); "propagate" (formula like "U/I", variables {U: {value, u}}, method gauss '
+					. 'or max): the result with its uncertainty, partial derivatives and the uncertainty budget; "round" (value, u): written as the '
+					. 'norms ask; "fit" (x, y, uy): a line weighted by the uncertainties, with χ²/ndf.',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['repeated', 'propagate', 'round', 'fit']],
+					'values' => ['type' => 'array', 'items' => ['type' => 'number']], 'confidence' => ['type' => 'number'], 'formula' => ['type' => 'string'],
+					'variables' => ['type' => 'object'], 'method' => ['type' => 'string', 'enum' => ['gauss', 'max']], 'value' => ['type' => 'number'], 'u' => ['type' => 'number'],
+					'x' => ['type' => 'array', 'items' => ['type' => 'number']], 'y' => ['type' => 'array', 'items' => ['type' => 'number']], 'uy' => ['type' => 'array', 'items' => ['type' => 'number']],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'propagate' => Measurement::propagate((string)($args['formula'] ?? ''), (array)($args['variables'] ?? []), (string)($args['method'] ?? 'gauss')),
+					'round' => ['result' => Measurement::result((float)($args['value'] ?? 0), (float)($args['u'] ?? 0))],
+					'fit' => Measurement::fit(array_map('floatval', (array)($args['x'] ?? [])), array_map('floatval', (array)($args['y'] ?? [])), array_map('floatval', (array)($args['uy'] ?? []))),
+					default => Measurement::typeA(array_map('floatval', (array)($args['values'] ?? [])), (float)($args['confidence'] ?? 0)),
+				},
+			],
+			'numerics' => [
+				'description' => 'Numerical methods with their tables (same syntax as calculate). action "root" (expression in x, a, b, method '
+					. 'newton/bisection/regula_falsi; Newton needs only a): a zero; "integrate" (expression, a, b, n): trapezoid and Simpson; "ode" '
+					. '(expression y\' = f(x, y), or a list for a system in y1, y2 …; x0, y0, x_end, n, method euler/heun/rk4): the solution; '
+					. '"eigenvalues" (matrix); "derivative" (expression, a): f, f\', f\'\' at a.',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['root', 'integrate', 'ode', 'eigenvalues', 'derivative']],
+					'expression' => ['type' => ['string', 'array']], 'a' => ['type' => 'number'], 'b' => ['type' => 'number'], 'n' => ['type' => 'integer'],
+					'method' => ['type' => 'string'], 'x0' => ['type' => 'number'], 'y0' => ['type' => ['number', 'array']], 'x_end' => ['type' => 'number'], 'matrix' => ['type' => 'array'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'root' => Numerics::root((string)($args['expression'] ?? ''), (float)($args['a'] ?? 0), isset($args['b']) ? (float)$args['b'] : null, (string)($args['method'] ?? (isset($args['b']) ? 'bisection' : 'newton'))),
+					'integrate' => Numerics::integrate((string)($args['expression'] ?? ''), (float)($args['a'] ?? 0), (float)($args['b'] ?? 1), (int)($args['n'] ?? 10)),
+					'ode' => Numerics::ode(is_array($args['expression'] ?? null) ? array_map('strval', $args['expression']) : (string)($args['expression'] ?? ''),
+						(float)($args['x0'] ?? 0), is_array($args['y0'] ?? null) ? array_map('floatval', $args['y0']) : (float)($args['y0'] ?? 0), (float)($args['x_end'] ?? 1), (int)($args['n'] ?? 10), (string)($args['method'] ?? 'rk4')),
+					'eigenvalues' => Numerics::eigenvalues((array)($args['matrix'] ?? [])),
+					default => Numerics::derivative((string)($args['expression'] ?? ''), (float)($args['a'] ?? 0)),
+				},
+			],
+			'law' => [
+				'description' => 'German law for students. action "deadline" (date, amount, unit days/weeks/months/years, start event (§ 187 '
+					. 'Abs. 1) or day (Abs. 2), state like HE): the end of a period by §§ 187–193 BGB with weekends and holidays; "holidays" (year, '
+					. 'state); "norm" (law like BGB, StGB, GG; norm like 823 or Art. 20): the text of a federal norm from gesetze-im-internet.de.',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['deadline', 'holidays', 'norm']],
+					'date' => ['type' => 'string'], 'amount' => ['type' => 'integer'], 'unit' => ['type' => 'string'], 'start' => ['type' => 'string', 'enum' => ['event', 'day']],
+					'state' => ['type' => 'string'], 'year' => ['type' => 'integer'], 'law' => ['type' => 'string'], 'norm' => ['type' => 'string'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => match ((string)$args['action']) {
+					'holidays' => Law::holidays((int)($args['year'] ?? date('Y')), (string)($args['state'] ?? '')),
+					'norm' => self::untrusted('gesetze-im-internet.de', $this->web->read(Law::normUrl((string)($args['law'] ?? ''), (string)($args['norm'] ?? '')))),
+					default => Law::deadline((string)($args['date'] ?? 'today'), (int)($args['amount'] ?? 0), (string)($args['unit'] ?? 'days'), (string)($args['start'] ?? 'event'), (string)($args['state'] ?? '')),
+				},
 			],
 			'calculate' => [
 				'description' => 'Calculates exactly: + - * / ^ % ( ) ! , pi, e, sqrt, cbrt, root(x,n), abs, exp, ln, log (base 10), log2, '
@@ -1789,7 +1942,39 @@ class Reply {
 			'chi2_independence' => Statistics::chiSquareIndependence((array)($args['rows'] ?? []), $alpha),
 			'chi2_fit' => Statistics::chiSquareFit($values, Statistics::numbers((string)($args['expected'] ?? '')), $alpha),
 			'correlation' => Statistics::correlationTest((float)($args['r'] ?? 0), (int)($args['n'] ?? 0), $alpha),
+			'binomial_test' => Statistics::binomialTest((int)($args['n'] ?? 0), (float)($args['p0'] ?? 0), $alpha, (string)($args['side'] ?? 'right'),
+				isset($args['observed']) ? (int)$args['observed'] : null, isset($args['p1']) ? (float)$args['p1'] : null),
+			'confidence' => Statistics::confidence($values, (float)($args['level'] ?? 0.95) ?: 0.95, isset($args['mu']) ? (float)$args['mu'] : null),
+			'anova' => Statistics::anova(array_map(fn ($g) => Statistics::numbers(is_array($g) ? $g : (string)$g), (array)($args['groups'] ?? [])), $alpha),
+			'kruskal' => Statistics::kruskal(array_map(fn ($g) => Statistics::numbers(is_array($g) ? $g : (string)$g), (array)($args['groups'] ?? [])), $alpha),
+			'mann_whitney' => Statistics::mannWhitney($values, $y, $alpha),
+			'wilcoxon' => Statistics::wilcoxon($values, $y, $alpha),
+			'spearman' => Statistics::spearman($values, $y, $alpha),
+			'effect_size' => Statistics::effectSize($values, $y),
 			default => Statistics::describe($values),
+		};
+	}
+
+	/** The abitur tool's actions. */
+	private function abitur(array $args): array {
+		$subject = (string)($args['subject'] ?? '');
+		$level = (string)($args['level'] ?? '');
+		$subjects = (array)($args['subjects'] ?? ($subject !== '' ? [trim($subject . ' ' . $level)] : []));
+		return match ((string)$args['action']) {
+			'schedule' => Abitur::schedule($subjects),
+			'operators' => Abitur::operators($subject, (string)($args['operator'] ?? '')),
+			'blueprint' => Abitur::blueprint($subject, $level, (string)($args['calculator'] ?? '')),
+			'points' => Abitur::points((float)($args['achieved'] ?? 0), (float)($args['max'] ?? 100) ?: 100),
+			'error_index' => Abitur::errorIndex((float)($args['errors'] ?? 0), (int)($args['words'] ?? 0), isset($args['points']) ? (int)$args['points'] : null,
+				isset($args['language_be']) ? (float)$args['language_be'] : null),
+			'deutsch' => Abitur::deutsch((float)($args['understanding'] ?? 0), (float)($args['presentation'] ?? 0), isset($args['errors']) ? (float)$args['errors'] : null, (int)($args['words'] ?? 0)),
+			'translation' => Abitur::translation((float)($args['errors'] ?? 0), (int)($args['words'] ?? 0)),
+			'combined' => Abitur::combined((int)($args['written'] ?? 0), (int)($args['oral'] ?? 0)),
+			'total' => Abitur::total((array)($args['lk'] ?? []), (array)($args['gk'] ?? []), (array)($args['exams'] ?? []), isset($args['target']) ? (float)str_replace(',', '.', (string)$args['target']) : null),
+			'oral' => Abitur::oral(),
+			'plan' => Abitur::plan($subjects, (string)($args['from'] ?? '')),
+			'style_devices' => Abitur::styleDevices((string)($args['name'] ?? '')),
+			default => Abitur::subject($subject, $level),
 		};
 	}
 

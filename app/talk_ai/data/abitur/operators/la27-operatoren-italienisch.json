@@ -1,0 +1,174 @@
+{
+  "title": "Operatoren im Fach Italienisch",
+  "subjects": [
+    "Italienisch"
+  ],
+  "stand": "1. August 2026",
+  "intro": "In der folgenden Tabelle sind die für die oben genannten Fächer relevanten Operatoren definiert und mit fachspezifischen Beispielen unterlegt. Die Operatoren sind dem Anforderungsbereich zugeordnet, in welchem sie jeweils ihren Schwerpunkt haben. Die konkrete Zuordnung eines Operators zu den Anforderungsbereichen ist vom Kontext der Aufgabenstellung abhängig. Einige Operatoren werden häufig in Aufgabenstellungen verwendet, die mehreren Anforderungsbereichen zuzuordnen sind. Die Anforderungsbereiche werden daher in der letzten Spalte differenziert ausgewiesen. Grundsätzlich wird erwartet, dass Informationen in eigenen Worten wiedergegeben werden. Operatoren mit dem Schwerpunkt in den Anforderungsbereichen II und III erfordern sinnvolle Belege sowie Text- oder Materialbezüge.",
+  "operators": [
+    {
+      "names": [
+        "delineare"
+      ],
+      "de": [
+        "skizzieren"
+      ],
+      "afb": "I–II",
+      "definition": "einen Sachverhalt oder Gedankengang in seinen Grundzügen angeben"
+    },
+    {
+      "names": [
+        "descrivere"
+      ],
+      "de": [
+        "beschreiben"
+      ],
+      "afb": "I–II",
+      "definition": "Aussagen, Sachverhalte, Situationen, Strukturen o. Ä. in eigenen Worten strukturiert und fachsprachlich darlegen"
+    },
+    {
+      "names": [
+        "individuare"
+      ],
+      "de": [
+        "präsentieren",
+        "vorstellen",
+        "nennen"
+      ],
+      "afb": "I–II",
+      "definition": "zielgerichtet Informationen zusammentragen, ohne diese zu kommentieren"
+    },
+    {
+      "names": [
+        "riassumere"
+      ],
+      "de": [
+        "zusammenfassen"
+      ],
+      "afb": "I–II",
+      "definition": "ausgehend von einem Einleitungssatz die wesentlichen Inhalte und Aussagen eines Textes in strukturierter und komprimierter Form unter Verwendung der Fachsprache in eigenen Worten herausstellen"
+    },
+    {
+      "names": [
+        "analizzare",
+        "esaminare"
+      ],
+      "de": [
+        "analysieren",
+        "untersuchen"
+      ],
+      "afb": "II",
+      "definition": "Merkmale eines Textes, Sachverhaltes oder Zusammenhanges kriterienorientiert bzw. aspektgeleitet erschließen und zusammenhängend verdeutlichen"
+    },
+    {
+      "names": [
+        "caratterizzare"
+      ],
+      "de": [
+        "charakterisieren"
+      ],
+      "afb": "II",
+      "definition": "Vorgänge, Sachverhalte, Personen / Figuren in ihrer jeweiligen Eigenart treffend und anschaulich kennzeichnen und ggf. unter einem bestimmten Gesichtspunkt zusammenführen"
+    },
+    {
+      "names": [
+        "mettere in relazione con"
+      ],
+      "de": [
+        "in Beziehung setzen"
+      ],
+      "afb": "I–III",
+      "definition": "Zusammenhänge unter vorgegebenen oder selbst gewählten Gesichtspunkten begründet herstellen"
+    },
+    {
+      "names": [
+        "evidenziare",
+        "mettere in evidenza"
+      ],
+      "de": [
+        "darstellen"
+      ],
+      "afb": "I–II",
+      "definition": "Sachverhalte o. Ä. und deren Bezüge sowie Zusammenhänge aufzeigen"
+    },
+    {
+      "names": [
+        "paragonare",
+        "confrontare"
+      ],
+      "de": [
+        "vergleichen",
+        "gegenüberstellen"
+      ],
+      "afb": "I–III",
+      "definition": "nach vorgegebenen oder selbst gewählten Gesichtspunkten Gemeinsamkeiten, Ähnlichkeiten und Unterschiede begründet darlegen"
+    },
+    {
+      "names": [
+        "spiegare",
+        "illustrare"
+      ],
+      "de": [
+        "erklären"
+      ],
+      "afb": "I–III",
+      "definition": "Materialien, Sachverhalte o. Ä. in einen Begründungszusammenhang stellen, z. B. durch Rückführung auf fachliche Grundprinzipien, Gesetzmäßigkeiten, Funktionszusammenhänge, Modelle oder Regeln"
+    },
+    {
+      "names": [
+        "giustificare"
+      ],
+      "de": [
+        "begründen"
+      ],
+      "afb": "II–III",
+      "definition": "einen Sachverhalt bzw. eine Aussage durch Argumente stützen"
+    },
+    {
+      "names": [
+        "indicare (a proprio giudizio)"
+      ],
+      "de": [
+        "beurteilen"
+      ],
+      "afb": "II–III",
+      "definition": "zu einem Sachverhalt oder einer Aussage unter Verwendung von Fachwissen und Fachmethoden eine begründete Einschätzung geben"
+    },
+    {
+      "names": [
+        "scrivere (+tipo di testo)",
+        "redigere"
+      ],
+      "de": [
+        "gestalten",
+        "entwerfen",
+        "verfassen"
+      ],
+      "afb": "II–III",
+      "definition": "Aufgabenstellungen kreativ und produktorientiert bearbeiten, z. B. auf der Grundlage eines Materials und seiner inhaltlichen oder stilistischen Gegebenheiten eine kreative Idee in ein selbstständiges Produkt umsetzen"
+    },
+    {
+      "names": [
+        "valutare",
+        "esporre (i propri pensieri)"
+      ],
+      "de": [
+        "bewerten",
+        "Stellung nehmen"
+      ],
+      "afb": "II–III",
+      "definition": "wie Operator ‚beurteilen’, aber zusätzlich die eigenen Maßstäbe begründet darlegen"
+    },
+    {
+      "names": [
+        "commentare"
+      ],
+      "de": [
+        "bewerten",
+        "Stellung nehmen"
+      ],
+      "afb": "II-III",
+      "definition": "Die eigene Meinung zu einer These oder Problemstellung begründet darlegen und mit Beispielen belegen."
+    }
+  ]
+}
