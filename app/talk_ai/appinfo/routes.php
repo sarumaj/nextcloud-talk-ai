@@ -19,4 +19,16 @@ return [
 		['name' => 'settings#cancel', 'url' => '/settings/jobs/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'settings#upload', 'url' => '/settings/styles/{style}/files', 'verb' => 'POST'],
 	],
+	'ocs' => [
+		// The bot in Matrix: an adapter hands in the rooms' messages and carries out what the bot does there.
+		['name' => 'matrix#info', 'url' => '/api/v1/matrix/info', 'verb' => 'GET'],
+		['name' => 'matrix#message', 'url' => '/api/v1/matrix/messages', 'verb' => 'POST'],
+		['name' => 'matrix#observe', 'url' => '/api/v1/matrix/observe', 'verb' => 'POST'],
+		['name' => 'matrix#redaction', 'url' => '/api/v1/matrix/redactions', 'verb' => 'POST'],
+		['name' => 'matrix#reaction', 'url' => '/api/v1/matrix/reactions', 'verb' => 'POST'],
+		['name' => 'matrix#joined', 'url' => '/api/v1/matrix/joined', 'verb' => 'POST'],
+		['name' => 'matrix#outbox', 'url' => '/api/v1/matrix/outbox', 'verb' => 'GET'],
+		['name' => 'matrix#acknowledge', 'url' => '/api/v1/matrix/outbox/ack', 'verb' => 'POST'],
+		['name' => 'matrix#posted', 'url' => '/api/v1/matrix/posted', 'verb' => 'POST'],
+	],
 ];

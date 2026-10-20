@@ -1001,8 +1001,7 @@ class Reply {
 
 	/** The conversation's settings, changed by a moderator; what is set now. */
 	private function roomSettings(string $uid, array $args): string {
-		$participant = Server::get('OCA\Talk\Service\ParticipantService')->getParticipant($this->room, $uid);
-		if (!$participant->hasModeratorPermissions()) {
+		if (!$this->conversation->isModerator($this->room, $uid)) {
 			return 'Only moderators of this conversation can change its settings; tell the person so.';
 		}
 		$config = $this->appConfig;
@@ -1050,12 +1049,8 @@ class Reply {
 		if (count($options) < 2) {
 			return 'A poll needs at least two options.';
 		}
-		$poll = Server::get('OCA\Talk\Service\PollService')->createPoll($this->room->getId(), 'bots', Application::botActorId(), $this->bot->name(),
-			mb_substr(trim((string)$args['question']), 0, 32000), $options, self::flag($args['hidden'] ?? false) ? 1 : 0, max(0, (int)($args['max_votes'] ?? 0)), false);
-		Server::get('OCA\Talk\Chat\ChatManager')->addSystemMessage($this->room, null, 'bots', Application::botActorId(),
-			json_encode(['message' => 'object_shared', 'parameters' => ['objectType' => 'talk-poll', 'objectId' => (string)$poll->getId(),
-				'metaData' => ['type' => 'talk-poll', 'id' => (string)$poll->getId(), 'name' => $poll->getQuestion()]]], JSON_THROW_ON_ERROR),
-			new \DateTime(), true);
+		$this->conversation->postPoll($this->room, $this->bot->name(), mb_substr(trim((string)$args['question']), 0, 32000), $options,
+			self::flag($args['hidden'] ?? false), max(0, (int)($args['max_votes'] ?? 0)));
 		return 'The poll is posted.';
 	}
 

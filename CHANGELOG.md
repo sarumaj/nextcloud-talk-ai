@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.0 - 2026-10-20
+
+### Added
+- **The bot in Matrix.** An OCS API (`/ocs/v2.php/apps/talk_ai/api/v1/matrix/…`: messages,
+  observe, redactions, reactions, joined, outbox, outbox/ack, posted, info) lets a Matrix
+  adapter bring the bot into Matrix rooms with all its features: every tool, documents in the
+  sandbox, files both ways, polls, the status message with its steps, cancelling with ❌ and
+  rating with 👍/👎, answering edited questions anew and removing answers to removed ones. A
+  person's message comes with their own login, so the bot answers with their rights, as in
+  Talk.
+- The setting `matrix_service_user`: the adapter's account, which reads the outbox; empty (the
+  default) turns the API off.
+- Tables `talk_ai_mx_rooms`, `talk_ai_mx_members`, `talk_ai_mx_messages` and
+  `talk_ai_mx_outbox` (the Matrix rooms' history, kept under the retention).
+
+### Changed
+- Talk's polls and moderator check moved from `Reply` into `Conversation`, which now routes
+  everything Talk-specific to Talk or Matrix.
+
 ## 0.8.0 - 2026-10-18
 
 ### Added

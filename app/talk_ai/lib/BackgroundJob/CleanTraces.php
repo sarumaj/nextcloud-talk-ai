@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace OCA\TalkAi\BackgroundJob;
 
 use OCA\TalkAi\AppInfo\Application;
+use OCA\TalkAi\Matrix\Store as MatrixStore;
 use OCA\TalkAi\Service\Actions;
 use OCA\TalkAi\Service\Jobs;
 use OCA\TalkAi\Service\Requests;
@@ -25,7 +26,8 @@ use Psr\Log\LoggerInterface;
  * - undo records after a week (undo works for a day);
  * - delivered documents after retention_files_days, when set (default 0: never;
  *   they are the people's files);
- * - hand-offs to background jobs never picked up, after a day.
+ * - hand-offs to background jobs never picked up, after a day;
+ * - the messages of Matrix rooms (and the adapter's undone tasks) after retention_days.
  * Sandbox containers are removed by the runner itself when their time is up.
  */
 class CleanTraces extends TimedJob {
@@ -37,6 +39,7 @@ class CleanTraces extends TimedJob {
 		private Requests $requests,
 		private Actions $actions,
 		private LoggerInterface $logger,
+		private ?MatrixStore $matrix = null,
 	) {
 		parent::__construct($time);
 		$this->setInterval(6 * 3600);
@@ -46,6 +49,11 @@ class CleanTraces extends TimedJob {
 		$now = $this->time->getTime();
 		$keepDays = max(7, $this->days('retention_days', 90));
 		$fileDays = $this->days('retention_files_days', 0);
+		try {
+			$this->matrix?->clean($now - $keepDays * 86400);
+		} catch (\Throwable $e) {
+			$this->logger->info('AI bot: Matrix messages not removed under retention: ' . $e->getMessage());
+		}
 
 		// Protocols of earlier versions (with their page images and previews), whatever their age.
 		foreach ($this->jobs->older($now, 500) as $job) {

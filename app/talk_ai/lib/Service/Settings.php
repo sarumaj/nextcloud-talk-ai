@@ -23,6 +23,7 @@ class Settings {
 		'context_tokens' => ['general', 'int', '0', 0, 2000000, 'Context size of the model (tokens)', '0: known from the model\'s name. The context is cut to fit.'],
 		'transparency_text' => ['general', 'text', '', null, null, 'Notice when the bot is enabled in a conversation', 'Empty: names the AI provider and model from AI-Hub, and the location below.'],
 		'provider_location' => ['general', 'string', '', null, null, 'Where the AI provider processes the data', 'For the notice, e.g. "the USA (Anthropic)" or "this server (Ollama)".'],
+		'matrix_service_user' => ['general', 'string', '', null, null, 'Account of the Matrix adapter', 'The Nextcloud account the Matrix bridge of the bot signs in with (outbox, others\' messages). Empty: the bot is not in Matrix.'],
 		'max_jobs_per_user' => ['quotas', 'int', '2', 1, 20, 'Document jobs per person at the same time', 'Waiting or running; more are refused until one is done.'],
 		'quota_jobs' => ['quotas', 'int', '0', 0, 1000, 'Document jobs per person and day', '0: no limit.'],
 		'quota_seconds' => ['quotas', 'int', '0', 0, 86400, 'Seconds of document building per person and day', '0: no limit.'],

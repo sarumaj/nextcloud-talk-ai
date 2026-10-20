@@ -118,8 +118,11 @@ class BotInvokeListener implements IEventListener {
 		$this->question($event, $actorId, $token, $messageId, $text !== '' ? $text : '{file}', $parent !== null && $parent->getActorType() === 'bots');
 	}
 
-	/** A message to answer, or not: the bot named, a reply to it, a confirmation open, or a conversation with it alone. */
-	private function question(Event $event, string $actorId, string $token, int $messageId, string $text, bool $repliesToBot): void {
+	/**
+	 * A message to answer, or not: the bot named, a reply to it, a confirmation open, or a conversation with it alone.
+	 * $event is Talk's BotInvokeEvent, or anything with its addReaction() and addAnswer() (a Matrix room's, MatrixEvent).
+	 */
+	public function question(object $event, string $actorId, string $token, int $messageId, string $text, bool $repliesToBot): void {
 		$userId = self::userOf($actorId);
 		if ($token === '' || $userId === '' || $messageId === 0 || trim($text) === '') {
 			return;
