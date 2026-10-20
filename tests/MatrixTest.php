@@ -135,8 +135,18 @@ class MatrixTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->store = new FakeStore();
+		// The app's settings in memory (the new chat's start, the conversation's summary).
+		$settings = $this->createMock(IAppConfig::class);
+		$settings->method('getValueString')->willReturnCallback(fn ($app, $key, $default = '') => $this->config[$key] ?? $default);
+		$settings->method('setValueString')->willReturnCallback(function ($app, $key, $value) {
+			$this->config[$key] = $value;
+			return true;
+		});
+		$settings->method('deleteKey')->willReturnCallback(function ($app, $key) {
+			unset($this->config[$key]);
+		});
 		$this->conversation = new Conversation($this->createMock(IRootFolder::class), $this->createMock(IShareManager::class),
-			$this->createMock(IFactory::class), new NullLogger(), $this->store);
+			$this->createMock(IFactory::class), new NullLogger(), $this->store, $settings);
 	}
 
 	private function controller(?string $userId): MatrixController {
@@ -249,6 +259,30 @@ class MatrixTest extends TestCase {
 		// The bot's own name comes from the server (a placeholder here).
 		$this->assertSame(['Ewa', 'Jan (matrix.org)'], array_slice(array_column($history, 'actor'), 0, 2));
 		$this->assertSame([false, false, true], array_column($history, 'bot'));
+	}
+
+	public function testANewChatForgetsWhatCameBeforeButKeepsTheChat(): void {
+		$this->controller('ewa')->message(self::ROOM, '$1', 'Claude, my secret plan');
+		$room = $this->store->room(Store::token(self::ROOM));
+		$this->conversation->postText($room, 'Noted.', 1);
+		$this->controller('ewa')->message(self::ROOM, '$3', 'Claude, new chat');
+		$this->config['memory_' . $room->getToken()] = '{"text": "Ewa has a secret plan"}';
+		$this->conversation->newChat($room, 3);
+		$this->controller('ewa')->message(self::ROOM, '$4', 'Claude, what now?');
+		$this->assertSame(['Claude, what now?'], array_column($this->conversation->history($room, 'ewa'), 'text'));
+		$this->assertArrayNotHasKey('memory_' . $room->getToken(), $this->config);
+		$this->assertSame(3, $this->conversation->contextStart($room->getToken())['after']);
+		// The chat keeps every message.
+		$this->assertCount(4, $this->store->messages);
+	}
+
+	public function testANewChatIsAskedForInEachLanguage(): void {
+		foreach (['/new', 'new chat', 'New chat!', 'start over', '/neu', 'Neuer Chat', 'von vorne anfangen', 'nowy czat', 'Zacznij od nowa.'] as $text) {
+			$this->assertTrue(\OCA\TalkAi\Service\Reply::isNewChat($text), $text);
+		}
+		foreach (['a new chat app for my phone?', 'new chats are fun', 'start over the essay from the second paragraph'] as $text) {
+			$this->assertFalse(\OCA\TalkAi\Service\Reply::isNewChat($text), $text);
+		}
 	}
 
 	public function testEditIsAnsweredAnew(): void {

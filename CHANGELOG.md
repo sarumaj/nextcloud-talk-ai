@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.10.0 - 2026-10-20
+
+### Added
+- **A new chat without deleting the conversation.** "new chat", "neuer Chat", "nowy czat",
+  "start over" or `/new` (`/neu`, `/nowy`), or asked in other words (the tool `new_chat`):
+  from then on the bot reads only the messages after it, and the conversation's summary and
+  its earlier document jobs are no longer in its context. The messages stay in the chat. In
+  a group only its moderators may, as the conversation is everyone's; in Talk and in Matrix
+  alike. The start is the setting `context_<token>`.
+
+### Fixed
+- `share_file` with a Matrix room as the conversation shared with a Talk room that does not
+  exist, so nothing arrived in Matrix: the file is now posted in the room, read with its
+  owner's rights.
+
 ## 0.9.0 - 2026-10-20
 
 ### Added

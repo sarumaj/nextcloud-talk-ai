@@ -36,6 +36,7 @@ use OCA\TalkAi\Document\Study;
 use OCA\TalkAi\Document\Theme;
 use OCA\TalkAi\Document\Units;
 use OCA\TalkAi\Document\TextExtractor;
+use OCA\TalkAi\Matrix\Room as MatrixRoom;
 use OCP\Files\File;
 use OCP\Server;
 use Psr\Log\LoggerInterface;
@@ -178,6 +179,10 @@ class Reply {
 		}
 		if (!$this->guest && preg_match('/^(rückgängig|undo|cofnij|mach das rückgängig)\b/iu', $question) === 1) {
 			$this->say('↩️ ' . $this->undone($userId, $this->actions->undo($userId, $room->getToken())));
+			return;
+		}
+		if (!$this->guest && self::isNewChat($question)) {
+			$this->say($this->newChat($userId) ?? '🆕 ' . $this->text($userId, 'New chat'));
 			return;
 		}
 		$over = $this->jobs->overQuota($userId, false);
@@ -388,7 +393,9 @@ class Reply {
 		if (trim((string)($memory['text'] ?? '')) !== '') {
 			$out .= "Earlier in this conversation (a summary):\n" . $memory['text'] . "\n\n";
 		}
-		$jobs = $this->jobs->ofRoom($room->getToken(), 10);
+		// After a new chat, only the documents made since.
+		$since = (int)($this->conversation->contextStart($room->getToken())['time'] ?? 0);
+		$jobs = array_values(array_filter($this->jobs->ofRoom($room->getToken(), 10), fn (array $job) => (int)$job['created_at'] >= $since));
 		if ($jobs !== []) {
 			$out .= "Document jobs in this conversation (earlier work, newest first, not a to-do; their files by id for follow-ups the message asks for):\n";
 			foreach ($jobs as $job) {
@@ -662,7 +669,7 @@ class Reply {
 		];
 		if ($this->guest) {
 			foreach (['list_files', 'read_file', 'find_files', 'send_file', 'send_flashcards', 'calendar', 'create_document', 'redo_document',
-				'document_status', 'room_settings', 'my_profile', 'undo', 'share_file', 'delete_my_data', 'create_poll', 'image_study', 'colors'] as $name) {
+				'document_status', 'room_settings', 'my_profile', 'undo', 'share_file', 'delete_my_data', 'create_poll', 'image_study', 'colors', 'new_chat'] as $name) {
 				unset($tools[$name]);
 			}
 		}
@@ -789,6 +796,7 @@ class Reply {
 			[$this->features['calendar'] ?? false, $t('Calendar and tasks (confirmed, undoable)'), $t('“Add my maths exam on 12 Nov at 9:00”')],
 			[true, $t('Exams and studies (grading tables, mock exams, study plans, grades, lab uncertainty, deadlines)'), $t('“I got 57 of 80 marks: how many points?”')],
 			[!$this->guest, $t('Polls in the chat'), $t('“Make a poll: pizza or pasta?”')],
+			[!$this->guest, $t('A fresh start: I forget what was said before, the chat keeps it'), $t('“new chat” or /new')],
 		];
 		foreach ($items as [$on, $what, $example]) {
 			if ($on) {
@@ -810,6 +818,25 @@ class Reply {
 	}
 
 	/** Shortcuts: "/todo" and others stand for a whole request (U-10). */
+	/** Whether the message asks for a new chat: "/new", "new chat", "neuer Chat", "nowy czat" … */
+	public static function isNewChat(string $question): bool {
+		return preg_match('#^(/(new|neu|nowy|reset)|new chat|start over|start a new chat|neuer chat|neu anfangen|von vorne( anfangen)?'
+			. '|nowy czat|nowa rozmowa|zacznij od nowa)\s*[!.]*$#iu', trim($question)) === 1;
+	}
+
+	/**
+	 * Starts a new chat after the current message: the bot forgets what came before (the
+	 * chat keeps it). In a group only a moderator may, as it is everyone's conversation. Null
+	 * when done, or why not.
+	 */
+	private function newChat(string $uid): ?string {
+		if ($this->conversation->numberOfPeople($this->room->getToken()) > 1 && !$this->conversation->isModerator($this->room, $uid)) {
+			return '⚠️ ' . $this->text($uid, 'New chat moderators');
+		}
+		$this->conversation->newChat($this->room, $this->messageId);
+		return null;
+	}
+
 	private function shortcut(string $question): string {
 		if (preg_match('#^/(\w+)\s*(.*)$#su', $question, $m) !== 1) {
 			return $question;
@@ -1166,6 +1193,11 @@ class Reply {
 			default => \OCP\Share\IShare::TYPE_GROUP,
 		};
 		if ($type === \OCP\Share\IShare::TYPE_ROOM) {
+			if ($this->room instanceof MatrixRoom) {
+				// No Talk room to share with: the file is posted, read with its owner's rights.
+				$this->conversation->postFile($this->room, $file, $this->messageId);
+				return $file->getName() . ' → ' . $this->text($uid, 'this chat');
+			}
 			$with = $this->room->getToken();
 		}
 		$manager = Server::get(\OCP\Share\IManager::class);
@@ -1240,6 +1272,9 @@ class Reply {
 			'No transcription' => 'I cannot listen to voice messages here (no speech recognition installed). Please write to me.',
 			'Undo hint' => '(“undo” reverts this within 24 h)',
 			'Long answer' => 'shortened; the whole answer is in the file',
+			'New chat' => 'New chat: I no longer read the messages before this one (they stay in the chat).',
+			'this chat' => 'this chat',
+			'New chat moderators' => 'Only the moderators of this conversation can start a new chat here, as it is everyone\'s.',
 		];
 		return $this->texts->t($this->guest ? '' : $uid, $en[$key] ?? $key);
 	}
@@ -1363,6 +1398,14 @@ class Reply {
 					. 'cancel: a job id of the person to stop.',
 				'input' => ['type' => 'object', 'properties' => ['cancel' => ['type' => 'integer']]],
 				'run' => fn (string $uid, array $args) => $this->documentStatus($uid, $args),
+			],
+			'new_chat' => [
+				'description' => 'Starts a new chat: from the next message on, you no longer see the messages before it nor the '
+					. 'conversation\'s summary (the chat itself keeps them). Only when the person asks to start over or to forget '
+					. 'what was said here, not for a change of topic. In a group only its moderators may.',
+				'input' => ['type' => 'object', 'properties' => new \stdClass()],
+				'run' => fn (string $uid, array $args) => $this->newChat($uid)
+					?? 'Done: a new chat starts after this message. Tell the person briefly that earlier messages are no longer in your memory (they stay in the chat).',
 			],
 			'room_settings' => [
 				'description' => 'Settings of this conversation (only its moderators may change them): persona (a role or tone for you '

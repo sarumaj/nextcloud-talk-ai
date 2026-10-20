@@ -209,7 +209,12 @@
         "Done.": "Gotowe.",
         "Make a to-do list from this conversation: task, who, by when.": "Zrób z tej rozmowy listę zadań: zadanie, kto, do kiedy.",
         "/summary, /todo, /event, /minutes · \"stop\" · \"undo\"": "/podsumuj, /zadania, /spotkanie, /protokol · „stop” · „cofnij”",
-        "Thinking": "Myślę"
+        "Thinking": "Myślę",
+        "New chat: I no longer read the messages before this one (they stay in the chat).": "Nowy czat: nie czytam już wiadomości sprzed tej (zostają w czacie).",
+        "Only the moderators of this conversation can start a new chat here, as it is everyone's.": "Tylko moderatorzy tej rozmowy mogą tu zacząć nowy czat, bo należy ona do wszystkich.",
+        "this chat": "ten czat",
+        "A fresh start: I forget what was said before, the chat keeps it": "Od nowa: zapominam, co było wcześniej, czat to zachowuje",
+        "“new chat” or /new": "„nowy czat” lub /nowy"
     },
     "pluralForm": "nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);"
 }

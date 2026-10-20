@@ -36,6 +36,8 @@ lists what it can do here.
 - **Voice messages**: it listens (when speech recognition is installed) and quotes what
   it understood.
 - **Shortcuts**: `/zusammenfassen` (summary), `/todo`, `/termin …`, `/protokoll`.
+- **A new chat**: "new chat" (or `/new`) and it forgets what was said before, also its
+  summary; the messages stay in the chat. In a group, only its moderators can.
 - **Edited your question?** It answers the new version (within an hour); delete a
   question and its answer goes too.
 - **Your preferences**: "remember that I cite in APA"; "forget my preferences".
@@ -73,6 +75,8 @@ ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
 - **Sprachnachrichten**: er hört zu (wenn Spracherkennung installiert ist) und zitiert,
   was er verstanden hat.
 - **Kurzbefehle**: `/zusammenfassen`, `/todo`, `/termin …`, `/protokoll`.
+- **Neuer Chat**: „neuer Chat“ (oder `/neu`), und es vergisst, was vorher gesagt wurde, auch
+  die Zusammenfassung; die Nachrichten bleiben im Chat. In einer Gruppe nur deren Moderatoren.
 - **Frage bearbeitet?** Er beantwortet die neue Fassung (innerhalb einer Stunde); löschst
   du eine Frage, verschwindet auch seine Antwort.
 - **Vorlieben**: „merk dir, dass ich in APA zitiere“; „vergiss meine Vorlieben“.
@@ -107,6 +111,8 @@ co tu potrafi.
 - **Ankiety**: „zrób ankietę: pizza czy makaron?”
 - **Wiadomości głosowe**: słucha (jeśli jest rozpoznawanie mowy) i cytuje, co zrozumiał.
 - **Skróty**: `/podsumuj`, `/zadania`, `/spotkanie …`, `/protokol`.
+- **Nowy czat**: „nowy czat” (albo `/nowy`), a zapomina, co było wcześniej, także
+  podsumowanie; wiadomości zostają w czacie. W grupie tylko jej moderatorzy.
 - **Poprawione pytanie?** Odpowiada na nową wersję (w ciągu godziny); usunięcie pytania
   usuwa też odpowiedź.
 - **Preferencje**: „zapamiętaj, że cytuję w APA”; „zapomnij moje preferencje”.

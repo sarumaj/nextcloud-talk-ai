@@ -45,7 +45,12 @@ class Conversation {
 		private IFactory $l10nFactory,
 		private LoggerInterface $logger,
 		private ?MatrixStore $matrix = null,
+		private ?\OCP\IAppConfig $appConfig = null,
 	) {
+	}
+
+	private function appConfig(): \OCP\IAppConfig {
+		return $this->appConfig ??= Server::get(\OCP\IAppConfig::class);
 	}
 
 	public function room(string $token): object {
@@ -97,8 +102,9 @@ class Conversation {
 	 * @return list<array{id: int, actor: string, time: string, bot: bool, text: string, files: list<array{id: int, name: string, mime: string, size: int}>}>
 	 */
 	public function history(object $room, string $userId, int $limit = self::HISTORY): array {
+		$from = $this->contextStart($room->getToken())['after'];
 		if ($room instanceof MatrixRoom) {
-			return $this->matrixHistory($room, $limit);
+			return array_values(array_filter($this->matrixHistory($room, $limit), fn (array $m) => $m['id'] > $from));
 		}
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parser = Server::get('OCA\Talk\Chat\MessageParser');
@@ -106,6 +112,9 @@ class Conversation {
 		$l = $this->l10nFactory->get('spreed', $this->l10nFactory->getUserLanguage(Server::get(\OCP\IUserManager::class)->get($userId)));
 		$messages = [];
 		foreach ($chat->getHistory($room, 0, $limit, false) as $comment) {
+			if ((int)$comment->getId() <= $from) {
+				break; // newest first: the rest is from before the new chat
+			}
 			try {
 				$message = $parser->createMessage($room, $participant, $comment, $l);
 				$parser->parseMessage($message);
@@ -297,6 +306,24 @@ class Conversation {
 		} finally {
 			QuietFolderShareListener::$quietFor = null;
 		}
+	}
+
+	/**
+	 * Where the bot's memory of the conversation starts (a "new chat"): the messages after
+	 * message `after` (0: all), since `time`. The chat itself keeps everything.
+	 *
+	 * @return array{after: int, time: int}
+	 */
+	public function contextStart(string $token): array {
+		$start = json_decode($this->appConfig()->getValueString(Application::APP_ID, 'context_' . $token, '{}', lazy: true), true);
+		return ['after' => (int)($start['after'] ?? 0), 'time' => (int)($start['time'] ?? 0)];
+	}
+
+	/** Starts a new chat after this message: the bot forgets the messages up to it and the conversation's summary. */
+	public function newChat(object $room, int $after): void {
+		$config = $this->appConfig();
+		$config->setValueString(Application::APP_ID, 'context_' . $room->getToken(), json_encode(['after' => $after, 'time' => time()]), lazy: true);
+		$config->deleteKey(Application::APP_ID, 'memory_' . $room->getToken());
 	}
 
 	/** Whether document jobs in this conversation show a preview before delivering (on unless turned off). */

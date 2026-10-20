@@ -1,6 +1,11 @@
 OC.L10N.register(
     "talk_ai",
     {
+        "New chat: I no longer read the messages before this one (they stay in the chat).": "Nowy czat: nie czytam już wiadomości sprzed tej (zostają w czacie).",
+        "Only the moderators of this conversation can start a new chat here, as it is everyone's.": "Tylko moderatorzy tej rozmowy mogą tu zacząć nowy czat, bo należy ona do wszystkich.",
+        "this chat": "ten czat",
+        "A fresh start: I forget what was said before, the chat keeps it": "Od nowa: zapominam, co było wcześniej, czat to zachowuje",
+        "“new chat” or /new": "„nowy czat” lub /nowy",
         "Building “%s”": "Tworzę „%s”",
         "Reading the guide for “%s”": "Czytam instrukcję dla „%s”",
         "Checking the layout of “%s”": "Sprawdzam układ „%s”",
