@@ -59,6 +59,8 @@ class Reply {
 	/** Seconds the answer waits for the rest of a batch: at most, and without a new file. */
 	private const BATCH_WAIT = 30;
 	private const BATCH_QUIET = 4;
+	/** Files read_file reads in one call. */
+	private const MAX_READ_FILES = 8;
 	private const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 	private const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 	/** Formats send_file writes as they are given. */
@@ -513,7 +515,10 @@ class Reply {
 					. 'and why ("I check the dates in the timetable before I add them"); the person sees it while you work, so name '
 					. 'nothing private of others.'
 				: '') . "\n\n"
-			. 'Files: read_file reads a file by id (Word, Excel, PowerPoint, OpenDocument, PDF, text; old .doc/.xls/.ppt too); '
+			. 'One tool block per reply: only the first is run, a second one is lost. A tool you did not get a result from did '
+			. 'not run, so it did not fail either: call it in your next reply.' . "\n\n"
+			. 'Files: read_file reads a file by id (Word, Excel, PowerPoint, OpenDocument, PDF, text; old .doc/.xls/.ppt too), '
+			. 'several files (to compare them, or all the files shared with a question) in one call with ids; '
 			. 'list_files lists the files shared here; find_files finds the person\'s own files by name. When asked about "the file", '
 			. '"the slides" or "the document", read the latest one that fits. You act with the rights of the person asking.' . $pdf . "\n\n"
 			. 'Sending files: when the person asks for a document, a file, a PDF, slides, a spreadsheet or a table to download, use '
@@ -762,7 +767,7 @@ class Reply {
 		$private = match ($tool) {
 			'calendar' => in_array((string)($args['action'] ?? ''), ['events', 'calendars'], true),
 			'find_files' => true,
-			'read_file' => !in_array((int)($args['id'] ?? 0), array_map(fn ($f) => (int)$f['id'], $this->sharedFiles), true),
+			'read_file' => array_diff(self::fileIds($args), array_map(fn ($f) => (int)$f['id'], $this->sharedFiles)) !== [],
 			default => false,
 		};
 		if (!$private) {
@@ -1371,9 +1376,11 @@ class Reply {
 				'description' => 'The text of a file by its id (from the conversation or find_files): Word, Excel (each sheet), PowerPoint '
 					. '(each slide with its notes), OpenDocument, old .doc/.xls/.ppt, PDF, Markdown, CSV, HTML or text.',
 				'input' => ['type' => 'object', 'properties' => ['id' => ['type' => 'integer'],
+					'ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Several files at once (to compare or sum them up): '
+						. 'their ids, instead of id; each comes back in turn, all in one call'],
 					'query' => ['type' => 'string', 'description' => 'For long files: what you look for; the best-matching passages come back'],
-					'pages' => ['type' => 'string', 'description' => 'For long files: passages by number, e.g. "3-5"']], 'required' => ['id']],
-				'run' => fn (string $uid, array $args) => $this->readFile($uid, (int)$args['id'], (string)($args['query'] ?? ''), (string)($args['pages'] ?? '')),
+					'pages' => ['type' => 'string', 'description' => 'For long files: passages by number, e.g. "3-5"']]],
+				'run' => fn (string $uid, array $args) => $this->readFiles($uid, self::fileIds($args), (string)($args['query'] ?? ''), (string)($args['pages'] ?? '')),
 			],
 			'find_files' => [
 				'description' => 'The person\'s files whose names contain the words: id, path, type and size, newest first. With days '
@@ -1956,7 +1963,35 @@ class Reply {
 		];
 	}
 
-	private function readFile(string $uid, int $id, string $query = '', string $pages = ''): string {
+	/** The files read_file is asked for: ids, else id (numbers as text too, as lenient() lets through), each once. */
+	public static function fileIds(array $args): array {
+		$ids = is_array($args['ids'] ?? null) && $args['ids'] !== [] ? $args['ids'] : [$args['id'] ?? 0];
+		return array_values(array_unique(array_filter(array_map(fn ($id) => is_numeric($id) ? (int)$id : 0, $ids), fn (int $id) => $id > 0)));
+	}
+
+	/**
+	 * Several files in one call: AI-Hub runs only the first tool block of a reply, so the
+	 * model, asked to compare two files, read one and said the other had failed (2026-10-25).
+	 * They share the length one file may have.
+	 */
+	private function readFiles(string $uid, array $ids, string $query, string $pages): string {
+		if ($ids === []) {
+			return 'Give the file\'s id (id), or several (ids).';
+		}
+		if (count($ids) === 1) {
+			return $this->readFile($uid, $ids[0], $query, $pages);
+		}
+		$ids = array_slice($ids, 0, self::MAX_READ_FILES);
+		$share = intdiv($this->readBudget(), count($ids));
+		return implode("\n\n", array_map(fn (int $id) => '## File id ' . $id . "\n" . $this->readFile($uid, $id, $query, '', $share), $ids));
+	}
+
+	/** Characters of a file shown at once: a quarter of the model's context (K-03). */
+	private function readBudget(): int {
+		return max(20000, intdiv((int)($this->caps['context'] ?? 32000) * 4, 4));
+	}
+
+	private function readFile(string $uid, int $id, string $query = '', string $pages = '', int $budget = 0): string {
 		$file = $this->conversation->userFile($uid, $id);
 		if ($file === null) {
 			return 'No file with this id that the person may read.';
@@ -1982,8 +2017,8 @@ class Reply {
 		if ($text === null) {
 			return 'This kind of file (' . $file->getMimetype() . ') cannot be read as text.';
 		}
-		// Larger than a quarter of the model's context: passages, the best for the question (K-03).
-		$budget = max(20000, intdiv((int)($this->caps['context'] ?? 32000) * 4, 4));
+		// Larger than its budget: passages, the best for the question (K-03).
+		$budget = $budget > 0 ? $budget : $this->readBudget();
 		if (mb_strlen($text) > $budget) {
 			$passages = Passages::split($text);
 			if (preg_match('/^(\d+)(?:-(\d+))?$/', trim($pages), $m) === 1) {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.2 - 2026-10-25
+
+### Fixed
+- Asked to compare two files, the bot read one and said reading the other had failed. With
+  a command line tool (AI-Hub's CLI mode) the model calls a tool by a block in its reply, and
+  AI-Hub runs only the first block of a reply: the second read was dropped without a word,
+  so nothing failed and nothing was logged. `read_file` now reads several files in one call
+  (`ids`, up to eight, sharing the length one file may have), and the prompt says that only
+  the first tool block runs and that a tool without a result did not fail.
+
 ## 0.10.1 - 2026-10-25
 
 ### Fixed

@@ -74,6 +74,18 @@ class ContextSwitchTest extends TestCase {
 		$this->assertSame([21], array_column(Reply::requestFiles($late, 3), 'id'), 'ten minutes later it is a new file');
 	}
 
+	/**
+	 * Comparing two files: AI-Hub runs one tool block per reply, so both go into one
+	 * read_file call (2026-10-25: the second block was dropped and called a failure).
+	 */
+	public function testReadFileTakesSeveralIds(): void {
+		$this->assertSame([49931, 49932], Reply::fileIds(['ids' => [49931, '49932', 49931]]));
+		$this->assertSame([7], Reply::fileIds(['id' => '7']));
+		$this->assertSame([7], Reply::fileIds(['id' => 7, 'ids' => []]), 'an empty ids falls back to id');
+		$this->assertSame([], Reply::fileIds(['ids' => ['x', 0, -3]]));
+		$this->assertSame([], Reply::fileIds([]));
+	}
+
 	public function testTheQuestionNamesItsFiles(): void {
 		$asked = Reply::withFiles('mach mir dazu einen Lernzettel', Reply::requestFiles(self::history(), 5));
 		$this->assertStringStartsWith('mach mir dazu einen Lernzettel', $asked);
