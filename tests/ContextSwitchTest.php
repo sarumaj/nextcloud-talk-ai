@@ -15,8 +15,8 @@ use PHPUnit\Framework\TestCase;
  * one for this": the bot went on with the old one, 2026-10-17).
  */
 class ContextSwitchTest extends TestCase {
-	private static function message(int $id, string $actor, string $text, array $files = [], bool $bot = false): array {
-		return ['id' => $id, 'actor' => $actor, 'time' => '2026-10-17 15:0' . ($id % 10), 'bot' => $bot, 'text' => $text,
+	private static function message(int $id, string $actor, string $text, array $files = [], bool $bot = false, int $at = 0): array {
+		return ['id' => $id, 'actor' => $actor, 'time' => '2026-10-17 15:0' . ($id % 10), 'at' => $at > 0 ? $at : 1792249200 + $id * 60, 'bot' => $bot, 'text' => $text,
 			'files' => array_map(fn ($f) => ['id' => $f[0], 'name' => $f[1], 'mime' => $f[2] ?? 'application/pdf', 'size' => 1], $files),
 			'replyTo' => 0];
 	}
@@ -43,6 +43,35 @@ class ContextSwitchTest extends TestCase {
 		$history = [...array_slice(self::history(), 0, 2), self::message(3, 'Maciej', '[file "Ethik Q3.docx", id 21] und hierzu?', [[21, 'Ethik Q3.docx']])];
 		$this->assertSame([21], array_column(Reply::requestFiles($history, 3), 'id'));
 		$this->assertSame([], Reply::requestFiles($history, 99), 'an unknown message has none');
+	}
+
+	/**
+	 * Several files with a caption from Talk's mobile apps: posted side by side, the captioned
+	 * one first, the bot's status message among them (2026-10-25: it answered about one file).
+	 */
+	public function testTheRestOfACaptionedBatchBelongsToIt(): void {
+		$at = 1792250000;
+		$history = [
+			...array_slice(self::history(), 0, 2),
+			self::message(3, 'Maciej', '[file "a.pdf", id 21] @Claude fasse alle zusammen', [[21, 'a.pdf']], false, $at),
+			self::message(4, 'Claude', '⏳ …', [], true, $at + 1),
+			self::message(5, 'Maciej', '[file "b.pdf", id 22]', [[22, 'b.pdf']], false, $at + 3),
+			self::message(6, 'Maciej', '[file "c.jpg", id 23]', [[23, 'c.jpg', 'image/jpeg']], false, $at + 20),
+			self::message(7, 'Ewa', 'Danke!', [], false, $at + 30),
+			self::message(8, 'Maciej', '[file "d.pdf", id 24]', [[24, 'd.pdf']], false, $at + 40),
+		];
+		// Not after someone else's message.
+		$this->assertSame([21, 22, 23], array_column(Reply::requestFiles($history, 3), 'id'));
+	}
+
+	public function testABatchEndsWithTheAuthorsNextTextOrAfterItsTime(): void {
+		$at = 1792250000;
+		$base = [...array_slice(self::history(), 0, 2), self::message(3, 'Maciej', '[file "a.pdf", id 21] und hierzu?', [[21, 'a.pdf']], false, $at)];
+		$text = [...$base, self::message(4, 'Maciej', '[file "b.pdf", id 22] und das?', [[22, 'b.pdf']], false, $at + 5),
+			self::message(5, 'Maciej', '[file "c.pdf", id 23]', [[23, 'c.pdf']], false, $at + 6)];
+		$this->assertSame([21], array_column(Reply::requestFiles($text, 3), 'id'), 'a file with its own caption is its own question');
+		$late = [...$base, self::message(4, 'Maciej', '[file "b.pdf", id 22]', [[22, 'b.pdf']], false, $at + 600)];
+		$this->assertSame([21], array_column(Reply::requestFiles($late, 3), 'id'), 'ten minutes later it is a new file');
 	}
 
 	public function testTheQuestionNamesItsFiles(): void {

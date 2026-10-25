@@ -54,6 +54,11 @@ class Reply {
 	private const LONG_ANSWER = 30000;
 
 	private const MAX_IMAGES = 4;
+	/** Seconds after a captioned file within which the rest of its batch counts as the question's. */
+	private const BATCH_SECONDS = 120;
+	/** Seconds the answer waits for the rest of a batch: at most, and without a new file. */
+	private const BATCH_WAIT = 30;
+	private const BATCH_QUIET = 4;
 	private const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 	private const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 	/** Formats send_file writes as they are given. */
@@ -215,7 +220,7 @@ class Reply {
 			return;
 		}
 		$this->lastQuestion = $question;
-		$history = $this->guest ? [] : $this->conversation->history($room, $userId, $this->window());
+		$history = $this->guest ? [] : $this->awaitBatch($room, $userId, $this->conversation->history($room, $userId, $this->window()), $messageId);
 		$this->sharedFiles = array_merge(...array_map(fn (array $m) => $m['files'], $history) ?: [[]]);
 		// A voice message: transcribed and answered as text, its transcript quoted.
 		$audio = array_values(array_filter($this->filesOf($history, $messageId), fn ($f) => str_starts_with($f['mime'], 'audio/')));
@@ -864,7 +869,11 @@ class Reply {
 
 	/**
 	 * The files a message is about: its own, and those its author shared since the bot last
-	 * spoke (a file sent first, the question after it). Later messages do not count.
+	 * spoke (a file sent first, the question after it). Later messages do not count, except
+	 * the rest of a batch: files sent together are one message each, the caption on the last
+	 * chosen, and Talk's mobile apps post them side by side, so the captioned one can come
+	 * first. The author's messages of files alone right after a captioned file, within
+	 * BATCH_SECONDS, are therefore its own.
 	 *
 	 * @return list<array{id: int, name: string, mime: string, size: int}>
 	 */
@@ -892,7 +901,48 @@ class Reply {
 				}
 			}
 		}
+		if ($asked['files'] !== []) {
+			foreach ($history as $m) {
+				if ($m['id'] <= $messageId || $m['bot']) {
+					continue; // the bot's status message comes in between
+				}
+				if ($m['actor'] !== $asked['actor'] || !self::filesAlone($m) || $m['at'] - $asked['at'] > self::BATCH_SECONDS) {
+					break;
+				}
+				foreach ($m['files'] as $f) {
+					$files[$f['id']] ??= $f;
+				}
+			}
+		}
 		return array_values($files);
+	}
+
+	/** Whether a message is files without a caption: its text their names alone. */
+	private static function filesAlone(array $m): bool {
+		return $m['files'] !== [] && trim(preg_replace('/\[file "[^"]*", id \d+\]/', '', $m['text']) ?? '') === '';
+	}
+
+	/**
+	 * The history once a captioned file's batch is in (see requestFiles): read again until
+	 * no further file of it came for BATCH_QUIET seconds, BATCH_WAIT at most. A text question
+	 * or a voice message does not wait; a batch posted in order (Talk's web client, the
+	 * caption last) waits BATCH_QUIET.
+	 */
+	private function awaitBatch(object $room, string $userId, array $history, int $messageId): array {
+		$own = array_filter($this->filesOf($history, $messageId), fn (array $f) => !str_starts_with($f['mime'], 'audio/'));
+		if ($own === []) {
+			return $history;
+		}
+		$count = count(self::requestFiles($history, $messageId));
+		$quiet = 0;
+		for ($waited = 0; $waited < self::BATCH_WAIT && $quiet < self::BATCH_QUIET; $waited++) {
+			sleep(1);
+			$history = $this->conversation->history($room, $userId, $this->window());
+			$now = count(self::requestFiles($history, $messageId));
+			$quiet = $now === $count ? $quiet + 1 : 0;
+			$count = $now;
+		}
+		return $history;
 	}
 
 	/** The question with the files it is about named after it, as the context names files. */

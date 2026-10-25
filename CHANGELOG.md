@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.1 - 2026-10-25
+
+### Fixed
+- Several files sent with one caption were answered as one: Talk posts each file as a message
+  of its own, the caption on the last chosen, and its mobile apps post them side by side, so
+  the captioned file could come first and the answer took only that one. The person's files
+  without a caption right after a captioned file (within two minutes, until a message of
+  someone else or a new caption) now belong to its question, and the answer waits for them
+  until none came for four seconds (thirty at most).
+
 ## 0.10.0 - 2026-10-20
 
 ### Added

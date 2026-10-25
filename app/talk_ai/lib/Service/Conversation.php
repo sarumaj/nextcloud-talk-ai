@@ -97,9 +97,9 @@ class Conversation {
 
 	/**
 	 * The recent messages, oldest first, as the person sees them:
-	 * [{id, actor (name), bot (bool), text, files: [{id, name, mime, size}], replyTo}].
+	 * [{id, actor (name), time, at (its Unix time), bot (bool), text, files: [{id, name, mime, size}], replyTo}].
 	 *
-	 * @return list<array{id: int, actor: string, time: string, bot: bool, text: string, files: list<array{id: int, name: string, mime: string, size: int}>}>
+	 * @return list<array{id: int, actor: string, time: string, at: int, bot: bool, text: string, files: list<array{id: int, name: string, mime: string, size: int}>}>
 	 */
 	public function history(object $room, string $userId, int $limit = self::HISTORY): array {
 		$from = $this->contextStart($room->getToken())['after'];
@@ -140,6 +140,7 @@ class Conversation {
 				'id' => (int)$comment->getId(),
 				'actor' => $message->getActorDisplayName(),
 				'time' => $comment->getCreationDateTime()->format('Y-m-d H:i'),
+				'at' => $comment->getCreationDateTime()->getTimestamp(),
 				'bot' => $message->getActorType() === 'bots',
 				'text' => self::render($message->getMessage(), $parameters),
 				'files' => $files,
@@ -514,7 +515,7 @@ class Conversation {
 	private function matrixHistory(MatrixRoom $room, int $limit): array {
 		$messages = [];
 		foreach ($this->matrixStore()->recent($room->getToken(), $limit) as $m) {
-			$messages[] = ['id' => $m->id, 'actor' => $m->actor, 'time' => date('Y-m-d H:i', $m->time), 'bot' => $m->bot,
+			$messages[] = ['id' => $m->id, 'actor' => $m->actor, 'time' => date('Y-m-d H:i', $m->time), 'at' => $m->time, 'bot' => $m->bot,
 				'text' => $m->text, 'files' => $m->files, 'replyTo' => $m->replyTo];
 		}
 		return array_reverse($messages);
