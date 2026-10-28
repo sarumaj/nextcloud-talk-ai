@@ -13,7 +13,7 @@ USES = {
     "lib/Events/BotInvokeEvent.php": [("BotInvokeEvent::getBotUrl", r"function getBotUrl\("), ("BotInvokeEvent::getMessage", r"function getMessage\("),
         ("BotInvokeEvent::addReaction", r"function addReaction\(string \$emoji"), ("BotInvokeEvent::addAnswer", r"function addAnswer\(string \$message, bool\|int \$reply")],
     "lib/Events/BotEnabledEvent.php": [("BotEnabledEvent::getBotServer", r"function getBotServer\(")],
-    "lib/Events/BotInstallEvent.php": [("BotInstallEvent(name, secret, url, description, features)", r"__construct\(\s*(?:\w+ )*string \$name,\s*(?:\w+ )*string \$secret,\s*(?:\w+ )*string \$url,\s*(?:\w+ )*string \$description = '',\s*(?:\w+ )*\?int \$features")],
+    "lib/Events/BotInstallEvent.php": [("BotInstallEvent(name, secret, url, description, features)", r"__construct\(\s*(?:#\[[^\]]*\]\s*)*(?:\w+ )*string \$name,\s*(?:#\[[^\]]*\]\s*)*(?:\w+ )*string \$secret,\s*(?:#\[[^\]]*\]\s*)*(?:\w+ )*string \$url,\s*(?:#\[[^\]]*\]\s*)*(?:\w+ )*string \$description = '',\s*(?:#\[[^\]]*\]\s*)*(?:\w+ )*\?int \$features")],
     "lib/Model/BotServerMapper.php": [("BotServerMapper::findByUrl", r"function findByUrl\(string \$url")],
     "lib/Model/BotServer.php": [("BotServer::setFeatures", r"(?:@method void setFeatures\(int|function setFeatures\()")],
     "lib/Model/Bot.php": [("Bot::FEATURE_EVENT", r"FEATURE_EVENT = 4"), ("Bot::FEATURE_REACTION", r"FEATURE_REACTION = 8")],

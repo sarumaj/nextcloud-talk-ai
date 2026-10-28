@@ -8,9 +8,6 @@ namespace OCA\TalkAi\Service;
 
 use OCA\TalkAi\AppInfo\Application;
 use OCA\TalkAi\Listener\QuietFolderShareListener;
-use OCA\TalkAi\Matrix\Message as MatrixMessage;
-use OCA\TalkAi\Matrix\Room as MatrixRoom;
-use OCA\TalkAi\Matrix\Store as MatrixStore;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -27,12 +24,6 @@ use Psr\Log\LoggerInterface;
  * taken by name (the app installs without Talk); the parts that are not Talk's
  * public API are those of Talk 25 (ChatManager, MessageParser, the conversation
  * folders), as the bot's own messages in Talk's bot API are.
- *
- * A Matrix room (a token "mx-…", MatrixStore) takes the same calls: its messages come
- * from the Matrix adapter, and what the bot posts, edits or removes there goes to the
- * adapter's outbox, which it carries out in Matrix. Files the bot makes for a Matrix room
- * are kept in the person's folder "Matrix/<room>", where the adapter also puts what
- * people send there.
  */
 class Conversation {
 	/** How many recent messages the bot reads. */
@@ -44,7 +35,6 @@ class Conversation {
 		private IShareManager $shareManager,
 		private IFactory $l10nFactory,
 		private LoggerInterface $logger,
-		private ?MatrixStore $matrix = null,
 		private ?\OCP\IAppConfig $appConfig = null,
 	) {
 	}
@@ -54,25 +44,16 @@ class Conversation {
 	}
 
 	public function room(string $token): object {
-		if (MatrixStore::isMatrix($token)) {
-			return $this->matrix?->room($token) ?? throw new \RuntimeException('no Matrix room ' . $token);
-		}
 		return Server::get('OCA\Talk\Manager')->getRoomByToken($token);
 	}
 
 	/** How many people (not bots) take part. */
 	public function numberOfPeople(string $token): int {
-		if (MatrixStore::isMatrix($token)) {
-			return $this->matrix?->room($token)?->people() ?? 0;
-		}
 		return Server::get('OCA\Talk\Service\ParticipantService')->getNumberOfUsers($this->room($token));
 	}
 
 	/** Whether the person may change the conversation's settings (a moderator). */
 	public function isModerator(object $room, string $userId): bool {
-		if ($room instanceof MatrixRoom) {
-			return $this->matrix?->isModerator($room->getToken(), $userId) ?? false;
-		}
 		try {
 			return Server::get('OCA\Talk\Service\ParticipantService')->getParticipant($room, $userId)->hasModeratorPermissions();
 		} catch (\Throwable) {
@@ -82,11 +63,6 @@ class Conversation {
 
 	/** A poll in the conversation, posted by the bot (named $botName). */
 	public function postPoll(object $room, string $botName, string $question, array $options, bool $hidden, int $maxVotes): void {
-		if ($room instanceof MatrixRoom) {
-			$this->matrix?->push($room->getToken(), 'poll', ['question' => $question, 'options' => array_values($options),
-				'hidden' => $hidden, 'max_votes' => $maxVotes]);
-			return;
-		}
 		$poll = Server::get('OCA\Talk\Service\PollService')->createPoll($room->getId(), 'bots', Application::botActorId(), $botName,
 			$question, $options, $hidden ? 1 : 0, $maxVotes, false);
 		Server::get('OCA\Talk\Chat\ChatManager')->addSystemMessage($room, null, 'bots', Application::botActorId(),
@@ -103,9 +79,6 @@ class Conversation {
 	 */
 	public function history(object $room, string $userId, int $limit = self::HISTORY): array {
 		$from = $this->contextStart($room->getToken())['after'];
-		if ($room instanceof MatrixRoom) {
-			return array_values(array_filter($this->matrixHistory($room, $limit), fn (array $m) => $m['id'] > $from));
-		}
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parser = Server::get('OCA\Talk\Chat\MessageParser');
 		$participant = Server::get('OCA\Talk\Service\ParticipantService')->getParticipant($room, $userId);
@@ -167,11 +140,6 @@ class Conversation {
 	/** Posts the bot's text (Markdown) in reply to a message. */
 	/** @return object the posted comment (IComment), to edit it later */
 	public function postText(object $room, string $text, int $replyTo): object {
-		if ($room instanceof MatrixRoom) {
-			$message = $this->matrixStore()->addMessage($room->getToken(), '', '', $this->botName(), true, $text, [], $replyTo);
-			$this->matrixStore()->push($room->getToken(), 'text', ['message_id' => $message->id, 'text' => $text] + $this->replyOf($room, $replyTo));
-			return $message;
-		}
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parent = $replyTo > 0 ? $this->comment($room, $replyTo) : null;
 		return $chat->sendMessage($room, null, 'bots', Application::botActorId(), $text, new \DateTime(), $parent, '', false, false);
@@ -197,13 +165,6 @@ class Conversation {
 
 	/** Removes what the bot posted in reply to a message (its answer, pictures, files); how many. */
 	public function removeBotReplies(object $room, int $messageId): int {
-		if ($room instanceof MatrixRoom) {
-			$replies = $this->matrixStore()->botReplies($room->getToken(), $messageId);
-			foreach ($replies as $reply) {
-				$this->removeMessage($room, $reply);
-			}
-			return count($replies);
-		}
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$removed = 0;
 		foreach ($chat->getHistory($room, 0, 100, false) as $comment) {
@@ -222,12 +183,6 @@ class Conversation {
 
 	/** Removes one of the bot's messages (a status that is no longer needed). */
 	public function removeMessage(object $room, object $comment): void {
-		if ($room instanceof MatrixRoom) {
-			$this->matrixStore()->markDeleted($room->getToken(), (int)$comment->getId());
-			$this->matrixStore()->push($room->getToken(), 'redact', ['message_id' => (int)$comment->getId(),
-				'event_id' => $comment instanceof MatrixMessage ? $comment->eventId : '']);
-			return;
-		}
 		try {
 			Server::get('OCA\Talk\Chat\ChatManager')->deleteMessage($room, $comment, $this->botParticipant($room), new \DateTime());
 		} catch (\Throwable $e) {
@@ -245,11 +200,6 @@ class Conversation {
 
 	/** Changes a message the bot posted (a status that moves on); false when Talk refuses. */
 	public function editText(object $room, object $comment, string $text): bool {
-		if ($room instanceof MatrixRoom) {
-			$this->matrixStore()->setText($room->getToken(), (int)$comment->getId(), $text);
-			$this->matrixStore()->push($room->getToken(), 'edit', ['message_id' => (int)$comment->getId(), 'text' => $text]);
-			return true;
-		}
 		try {
 			$attendee = new \OCA\Talk\Model\Attendee();
 			$attendee->setActorType('bots');
@@ -282,9 +232,7 @@ class Conversation {
 			throw new \RuntimeException('you may not write to the folder ' . $folderPath);
 		}
 		$file = $folder->newFile($this->freeName($folder, $name), $data);
-		if (!$room instanceof MatrixRoom) {
-			$this->share($room, $userId, $file);
-		}
+		$this->share($room, $userId, $file);
 		return $file;
 	}
 
@@ -295,9 +243,6 @@ class Conversation {
 	 * can change it through the conversation.
 	 */
 	public function share(object $room, string $userId, File $file): void {
-		if ($room instanceof MatrixRoom) {
-			return; // the adapter posts the file itself, read with the person's own rights
-		}
 		QuietFolderShareListener::$quietFor = $room->getToken();
 		try {
 			$share = $this->shareManager->newShare();
@@ -347,9 +292,6 @@ class Conversation {
 	 * folder"), under the name or "name (2)" when that is taken.
 	 */
 	public function saveFile(object $room, string $userId, string $name, string $data): File {
-		if ($room instanceof MatrixRoom) {
-			return $this->deliver($room, $userId, self::matrixFolder($room), $name, $data);
-		}
 		$config = Server::get('OCA\Talk\Config');
 		if (!method_exists($config, 'isConversationSubfoldersEnabled')) {
 			// Talk before conversation subfolders (Nextcloud 32, 33): the attachment folder, the file shared on its own.
@@ -369,15 +311,6 @@ class Conversation {
 
 	/** Posts a saved file as the bot's message: Talk's file message by file id, as Talk 25's attachments are; the message. */
 	public function postFile(object $room, File $file, int $replyTo): ?object {
-		if ($room instanceof MatrixRoom) {
-			$owner = $file->getOwner()?->getUID() ?? '';
-			$entry = ['id' => $file->getId(), 'name' => $file->getName(), 'mime' => $file->getMimetype(), 'size' => $file->getSize()];
-			$message = $this->matrixStore()->addMessage($room->getToken(), '', '', $this->botName(), true, '{file}', [$entry], $replyTo);
-			$path = $owner === '' ? null : $this->rootFolder->getUserFolder($owner)->getRelativePath($file->getPath());
-			$this->matrixStore()->push($room->getToken(), 'file', ['message_id' => $message->id, 'file_id' => $file->getId(), 'owner' => $owner,
-				'path' => (string)$path, 'name' => $file->getName(), 'mime' => $file->getMimetype(), 'size' => $file->getSize()] + $this->replyOf($room, $replyTo));
-			return $message;
-		}
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parent = $replyTo > 0 ? $this->comment($room, $replyTo) : null;
 		return $chat->addSystemMessage(
@@ -388,9 +321,6 @@ class Conversation {
 	}
 
 	public function comment(object $room, int $id): ?object {
-		if ($room instanceof MatrixRoom) {
-			return $this->matrixStore()->message($room->getToken(), $id);
-		}
 		try {
 			return Server::get('OCA\Talk\Chat\ChatManager')->getComment($room, (string)$id);
 		} catch (\Throwable) {
@@ -499,44 +429,5 @@ class Conversation {
 		}
 		usort($found, fn (array $a, array $b) => $b['mtime'] <=> $a['mtime']);
 		return array_map(fn (array $f) => array_diff_key($f, ['mtime' => 0]), array_slice($found, 0, $limit));
-	}
-
-	/** The folder of a Matrix room in the person's files: "Matrix/<room>", where the adapter also puts what people send. */
-	public static function matrixFolder(object $room): string {
-		$name = trim(preg_replace('/[\\\\\/:*?"<>|\x00-\x1f]+/u', ' ', $room->getName()) ?? '');
-		return 'Matrix/' . ($name !== '' ? mb_substr($name, 0, 100) : 'Chat');
-	}
-
-	/**
-	 * A Matrix room's recent messages, oldest first, as history() gives Talk's.
-	 *
-	 * @return list<array{id: int, actor: string, time: string, bot: bool, text: string, files: list<array{id: int, name: string, mime: string, size: int}>, replyTo: int}>
-	 */
-	private function matrixHistory(MatrixRoom $room, int $limit): array {
-		$messages = [];
-		foreach ($this->matrixStore()->recent($room->getToken(), $limit) as $m) {
-			$messages[] = ['id' => $m->id, 'actor' => $m->actor, 'time' => date('Y-m-d H:i', $m->time), 'at' => $m->time, 'bot' => $m->bot,
-				'text' => $m->text, 'files' => $m->files, 'replyTo' => $m->replyTo];
-		}
-		return array_reverse($messages);
-	}
-
-	/** What a Matrix reply answers: the message's ID and its event (once it has one). */
-	private function replyOf(MatrixRoom $room, int $replyTo): array {
-		$parent = $replyTo > 0 ? $this->matrixStore()->message($room->getToken(), $replyTo) : null;
-		return ['reply_to' => $replyTo, 'reply_event' => $parent?->eventId ?? ''];
-	}
-
-	private function matrixStore(): MatrixStore {
-		return $this->matrix ?? throw new \RuntimeException('Matrix is not available');
-	}
-
-	/** The bot's name in Matrix histories (its messages there are stored under it). */
-	private function botName(): string {
-		try {
-			return Server::get(Bot::class)->name();
-		} catch (\Throwable) {
-			return 'AI';
-		}
 	}
 }

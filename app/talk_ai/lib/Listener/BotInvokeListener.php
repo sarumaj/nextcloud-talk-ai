@@ -120,7 +120,7 @@ class BotInvokeListener implements IEventListener {
 
 	/**
 	 * A message to answer, or not: the bot named, a reply to it, a confirmation open, or a conversation with it alone.
-	 * $event is Talk's BotInvokeEvent, or anything with its addReaction() and addAnswer() (a Matrix room's, MatrixEvent).
+	 * $event is Talk's BotInvokeEvent, or anything with its addReaction() and addAnswer().
 	 */
 	public function question(object $event, string $actorId, string $token, int $messageId, string $text, bool $repliesToBot): void {
 		$userId = self::userOf($actorId);

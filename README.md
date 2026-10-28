@@ -217,15 +217,6 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   and files are removed when the job ends (protocols of earlier versions are removed by
   `lib/BackgroundJob/CleanTraces.php`). The skills (`skills/<format>/SKILL.md` and scripts)
   tell the model how to build each format.
-- **Matrix:** the same bot answers in Matrix rooms through an adapter (a Matrix account outside
-  Nextcloud) and the OCS API `/ocs/v2.php/apps/talk_ai/api/v1/matrix`
-  (`lib/Controller/MatrixController.php`). The adapter hands in each message, edit, removal and
-  reaction with the writer's own login (an app password), so the bot answers with their rights,
-  and with the account named in the setting `matrix_service_user` it reads the outbox of what the
-  bot does there (text, edits, removals, reactions, files, polls). `lib/Service/Conversation.php`
-  routes everything Talk-specific to Talk or to Matrix (`lib/Matrix/`, rooms by the token
-  `mx-…`); a Matrix room's history and members are kept in the tables `talk_ai_mx_*`, deleted
-  after the retention. With the setting empty, the API is off.
 - **Name:** `lib/Service/Bot.php` installs the bot and renames it (Talk updates a bot installed
   again with the same address and secret) when the AI or the setting changes.
 

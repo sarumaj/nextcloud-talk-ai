@@ -36,7 +36,6 @@ use OCA\TalkAi\Document\Study;
 use OCA\TalkAi\Document\Theme;
 use OCA\TalkAi\Document\Units;
 use OCA\TalkAi\Document\TextExtractor;
-use OCA\TalkAi\Matrix\Room as MatrixRoom;
 use OCP\Files\File;
 use OCP\Server;
 use Psr\Log\LoggerInterface;
@@ -1248,11 +1247,6 @@ class Reply {
 			default => \OCP\Share\IShare::TYPE_GROUP,
 		};
 		if ($type === \OCP\Share\IShare::TYPE_ROOM) {
-			if ($this->room instanceof MatrixRoom) {
-				// No Talk room to share with: the file is posted, read with its owner's rights.
-				$this->conversation->postFile($this->room, $file, $this->messageId);
-				return $file->getName() . ' → ' . $this->text($uid, 'this chat');
-			}
 			$with = $this->room->getToken();
 		}
 		$manager = Server::get(\OCP\Share\IManager::class);

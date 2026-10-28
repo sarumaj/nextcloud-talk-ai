@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 - 2026-10-28
+
+### Removed
+- **The bot in Matrix.** The Matrix homeserver and its adapter are gone, so the bot answers
+  in Talk only. The OCS API `/ocs/v2.php/apps/talk_ai/api/v1/matrix/…` (`MatrixController`),
+  the Matrix rooms in `Conversation` (`lib/Matrix/`, tokens `mx-…`), `share_file`'s posting
+  into a Matrix room and the retention of Matrix messages in `CleanTraces` are removed.
+- The setting `matrix_service_user`.
+- The tables `talk_ai_mx_rooms`, `talk_ai_mx_members`, `talk_ai_mx_messages` and
+  `talk_ai_mx_outbox`: the migration `Version001100Date20261028` drops them with their
+  indexes where they exist, and deletes the setting and the Matrix rooms' own keys
+  (`context_`, `memory_`, `preview_off_` and `room_` of a token `mx-…`). Job and answer
+  records of Matrix rooms stay until the retention removes them.
+
 ## 0.10.2 - 2026-10-25
 
 ### Fixed
