@@ -1,0 +1,8 @@
+# Gemini CLI runs with no tools of its own (Engine\GeminiCli): read_file, glob and
+# grep_search would otherwise run unasked and could read the credentials in its home.
+# An admin policy outranks the CLI's bundled rules. A fixed file of the app, so a
+# sandbox around the CLI can grant it this folder and nothing else.
+[[rule]]
+toolName = "*"
+decision = "deny"
+priority = 999

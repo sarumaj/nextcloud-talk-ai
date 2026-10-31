@@ -47,6 +47,7 @@ class GeminiCliTest extends TestCase {
 		$log = $this->log()[0];
 		$this->assertStringContainsString('decision = "deny"', $log['policy']);
 		$this->assertStringContainsString('toolName = "*"', $log['policy']);
+		$this->assertSame(GeminiCli::POLICY, $log['argv'][array_search('--admin-policy', $log['argv'], true) + 1], 'a fixed file a sandbox can grant');
 		$this->assertStringStartsWith('Be kind.', $log['prompt'], 'the prompt on stdin, not as an argument');
 		$this->assertNotContains('Hi', $log['argv']);
 	}

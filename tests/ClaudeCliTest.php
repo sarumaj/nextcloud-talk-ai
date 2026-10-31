@@ -128,6 +128,7 @@ class ClaudeCliTest extends TestCase {
 		// The second process got the history as a transcript and the result as words.
 		$second = implode("\n", array_column(end($log)['user'], 'text'));
 		$this->assertStringContainsString('Earlier in this conversation', $second);
+		$this->assertGreaterThan(3, count(end($log)['user']), 'a block per earlier turn, for the prompt cache');
 		$this->assertStringContainsString('"tool_results"', $second);
 	}
 

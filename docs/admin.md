@@ -70,6 +70,12 @@ nothing else of the server's environment, without its own tools, and gives it th
 tools through a small MCP server over a private socket; `occ talk_ai:check` names any flag
 the installed version lacks. Gemini CLI the same way (`--home`, its login inside).
 
+In a sandbox around the CLI (Landlock, a container) that lets it start no other program, its
+tools cannot reach the app's MCP server (PHP): switch MCP off (`--off mcp`). Tools then go as
+text, a process per step, with the earlier steps as separate blocks so the provider's prompt
+cache serves them. Gemini CLI reads its no-tools policy from the app
+(`lib/Ai/Engine/policy/no-tools.toml`): a sandbox has to let it read that folder.
+
 Limits (Administration, AI limits and access): questions per person and minute (10), questions
 at once on the server (4; more wait a minute, then get "busy"), tool calls per answer (20;
 document jobs have their own), images per question, the size of a tool's result, remembered

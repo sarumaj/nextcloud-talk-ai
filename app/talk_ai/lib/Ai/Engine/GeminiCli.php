@@ -30,6 +30,9 @@ use OCA\TalkAi\Ai\Usage;
  * (default auto), timeout (600), path.
  */
 final class GeminiCli implements Engine {
+	/** Denies every tool of the CLI's own; a fixed file, so a sandbox can grant just its folder. */
+	public const POLICY = __DIR__ . '/policy/no-tools.toml';
+
 	private ?string $help = null;
 
 	public function __construct(
@@ -68,9 +71,8 @@ final class GeminiCli implements Engine {
 		}
 		try {
 			$dir = CliProcess::tempDir();
-			file_put_contents($dir . '/no-tools.toml', "[[rule]]\ntoolName = \"*\"\ndecision = \"deny\"\npriority = 999\n");
 			$json = str_contains($this->helpText(), '--output-format');
-			$argv = [$this->binary(), '--model', $this->model(), '--admin-policy', $dir . '/no-tools.toml', ...($json ? ['--output-format', 'json'] : [])];
+			$argv = [$this->binary(), '--model', $this->model(), '--admin-policy', self::POLICY, ...($json ? ['--output-format', 'json'] : [])];
 			$process = new CliProcess($argv, $this->env(), $dir);
 			$process->write(self::prompt($request));
 			$process->closeInput();
@@ -129,6 +131,8 @@ final class GeminiCli implements Engine {
 			preg_match('/log ?in|auth|credential|api key/i', $text) === 1 => Errors::NO_KEY,
 			preg_match('/quota|rate.?limit|\b429\b|resource.?exhausted/i', $text) === 1 => Errors::RATE_LIMITED,
 			preg_match('/overloaded|unavailable|\b503\b/i', $text) === 1 => Errors::BUSY,
+			// A watcher around the CLI stops it when nothing comes for a while.
+			preg_match('/stalled|time(d)? ?out/i', $text) === 1 => Errors::TIMEOUT,
 			default => Errors::provider($text),
 		};
 	}

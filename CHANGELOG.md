@@ -30,6 +30,8 @@
   are an MCP server of the app's that hands each call back over a private socket, so the
   tools run in the app's loop with the asking person's rights. Images, PDFs, search,
   structured answers, streaming, usage and cost. Every flag is checked against `--help` first.
+  In a sandbox that lets the CLI start no other program, MCP is switched off and tools go as
+  text; Gemini's no-tools policy is a file of the app, so a sandbox can grant just that folder.
 - **Nextcloud's own AI as an engine** (`taskprocessing`), and the app's engine as a
   **TaskProcessing provider** for Nextcloud's Assistant, Mail and Talk (`ai_provider`, off by
   default): text, chat, chat with tools, summaries and headlines.

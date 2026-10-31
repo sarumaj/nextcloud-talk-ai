@@ -342,9 +342,13 @@ final class ClaudeCli implements Engine {
 			$parts = [Request::text(TextProtocol::results(Request::parts($last, 'tool_result'))), ...array_filter($parts, fn ($p) => $p['kind'] !== 'tool_result')];
 		}
 		if ($messages !== []) {
-			$lines = array_map(fn (array $t) => '[' . $t['role'] . "]\n" . $t['text'] . ($t['images'] !== [] ? "\n[" . count($t['images']) . ' image(s), no longer attached]' : ''),
-				TextProtocol::flatten($messages));
-			array_unshift($parts, Request::text("Earlier in this conversation:\n\n" . implode("\n\n", $lines) . "\n\nNow:"));
+			// A block per turn: the turns of the last run come again unchanged, so the prompt
+			// cache serves them and only what is new is paid in full (one block was new each time).
+			$earlier = [Request::text('Earlier in this conversation:')];
+			foreach (TextProtocol::flatten($messages) as $t) {
+				$earlier[] = Request::text('[' . $t['role'] . "]\n" . $t['text'] . ($t['images'] !== [] ? "\n[" . count($t['images']) . ' image(s), no longer attached]' : ''));
+			}
+			$parts = [...$earlier, Request::text('Now:'), ...$parts];
 		}
 		return $parts;
 	}
@@ -379,7 +383,8 @@ final class ClaudeCli implements Engine {
 			preg_match('/log ?in|logged in|invalid api key|authenticat|credit balance|oauth/i', $text) === 1 => Errors::NO_KEY,
 			preg_match('/rate.?limit|usage limit|limit reached|\b429\b/i', $text) === 1 => Errors::RATE_LIMITED,
 			preg_match('/overloaded|\b529\b/i', $text) === 1 => Errors::BUSY,
-			preg_match('/time(d)? ?out/i', $text) === 1 => Errors::TIMEOUT,
+			// "stalled": a watcher around the CLI stopped it when nothing came for a while.
+			preg_match('/time(d)? ?out|stalled/i', $text) === 1 => Errors::TIMEOUT,
 			default => Errors::provider($text),
 		};
 	}
