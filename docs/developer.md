@@ -106,6 +106,14 @@ settings it reads.
   for a long run), web search on Anthropic's side, structured answers
   (`output_config.format`), adaptive thinking, streaming, usage from the response, the
   model list. Thinking blocks go back unchanged in the message's `raw`.
+- `Engine/OpenAiCompatible.php`: chat/completions for OpenAI, OpenRouter, DeepSeek,
+  Mistral, Groq, Ollama, vLLM and LM Studio: a base URL, an optional key, extra headers.
+  Tools, images, structured answers and streaming can be switched off where a server
+  claims them but fails; tools and answers then go by `TextProtocol`.
+- `Engine/Gemini.php`: generateContent: function declarations, images and PDFs inline,
+  Google Search, structured answers, thinking, streaming. Gemini 3's thought signatures go
+  back with their calls; on Gemini 2.x, search and a structured answer are left out next to
+  tools (the API takes them together only from Gemini 3).
 - `Engine/AiHub.php`: for now, AI-Hub's engines behind `Engine`, with `TextProtocol`.
 
 ## Skills

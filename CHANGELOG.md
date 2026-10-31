@@ -16,6 +16,9 @@
 - **Anthropic's API as an engine** (`ai_engine` = `anthropic`): native tool calls, up to 20
   images, PDFs sent as they are, prompt caching with the cached tokens reported, web search,
   structured answers, thinking, streaming, and the model list from the API.
+- **OpenAI-compatible servers** (`openai`: OpenAI, OpenRouter, DeepSeek, Mistral, Groq,
+  Ollama, vLLM, LM Studio) and **Gemini** (`gemini`) as engines, with tools, images,
+  structured answers, streaming and usage; switches for servers that claim more than they do.
 
 ## 0.11.0 - 2026-10-28
 
