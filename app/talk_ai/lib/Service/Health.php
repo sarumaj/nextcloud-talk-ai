@@ -6,6 +6,10 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Service;
 
+use OCA\TalkAi\Ai\Admin;
+use OCA\TalkAi\Ai\Engine\ClaudeCli;
+use OCA\TalkAi\Ai\Engine\GeminiCli;
+use OCA\TalkAi\Ai\Engines;
 use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\AppInfo\Application;
 use OCP\App\IAppManager;
@@ -27,6 +31,8 @@ class Health {
 		private Sandbox $sandbox,
 		private Capabilities $capabilities,
 		private Hub $hub,
+		private Admin $admin,
+		private Engines $engines,
 	) {
 	}
 
@@ -37,7 +43,9 @@ class Health {
 		$out = [];
 		$status = $this->hub->status(Reply::SCENARIO);
 		$out[] = self::item('AI connection', $status->ready, $status->ready ? $status->engine . ': ' . $status->provider . ' ' . $status->model
-			: 'not ready (' . $status->reason . ')', 'the bot cannot answer at all');
+			. ' (images ' . ($status->images ? $status->maxImages : 'no') . ', search ' . ($status->search ? 'yes' : 'no') . ', PDFs ' . ($status->documents ? 'yes' : 'no')
+			. ', streaming ' . ($status->streaming ? 'yes' : 'no') . ')' : 'not ready (' . $status->reason . ')', 'the bot cannot answer at all');
+		$out = [...$out, ...$this->engineItems()];
 		if ($status->ready) {
 			if ($deep) {
 				$this->capabilities->reset();
@@ -75,6 +83,29 @@ class Health {
 		$out[] = self::item('Speech-to-text', $stt ? true : null, $stt ? 'a provider is installed' : 'no provider', 'voice messages are not understood');
 		$out[] = self::item('PHP zip', extension_loaded('zip'), extension_loaded('zip') ? phpversion('zip') : 'missing', 'no office files read or written');
 		$out[] = $this->cron();
+		return $out;
+	}
+
+	/** The chosen engine and its fallbacks one by one, what a CLI lacks, the limits and today's use. */
+	private function engineItems(): array {
+		$out = [];
+		foreach (array_values(array_unique([$this->engines->chosen(), ...$this->engines->fallback()])) as $i => $name) {
+			$engine = $this->engines->get($name);
+			$status = $engine->status();
+			$missing = $engine instanceof ClaudeCli || $engine instanceof GeminiCli ? $engine->missingFlags() : [];
+			$out[] = self::item(($i === 0 ? 'Engine ' : 'Fallback ') . $name, $i === 0 ? $status->ready : ($status->ready ? true : null),
+				($status->ready ? 'ready, ' . $status->model : 'not ready (' . $status->reason . ')') . ($missing !== [] ? '; the CLI lacks ' . implode(' ', $missing) : '')
+				. ($engine instanceof ClaudeCli && $status->ready ? '; tools ' . ($engine->mcpOn() ? 'by MCP' : 'as text') : ''),
+				$i === 0 ? 'the bot cannot answer' : 'no fallback when the first engine fails');
+		}
+		$setting = fn (string $key, string $default) => $this->engines->setting($key, $default);
+		$out[] = self::item('AI limits', true, sprintf('%s questions per person and minute, %s at once, %s tool calls per answer, provider for Nextcloud %s',
+			$setting('ai_rate_per_minute', '10'), $setting('ai_concurrent', '4'), $setting('ai_max_tools', '20'), $setting('ai_provider', 'no') === 'yes' ? 'on' : 'off'), '');
+		$usage = $this->admin->usage(1);
+		$today = array_filter($usage['days'], fn ($r) => $r['day'] === date('Y-m-d'));
+		$out[] = self::item('AI use today', true, sprintf('%d questions, %d errors, %d tokens in (%d cached), %d out, $%.2f; %d running now',
+			array_sum(array_column($today, 'questions')), array_sum(array_column($today, 'errors')), array_sum(array_column($today, 'tokens_in')),
+			array_sum(array_column($today, 'tokens_cached')), array_sum(array_column($today, 'tokens_out')), array_sum(array_column($today, 'cost')), $usage['running']), '');
 		return $out;
 	}
 

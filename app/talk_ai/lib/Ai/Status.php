@@ -38,6 +38,15 @@ final class Status {
 			$this->search && $search, $this->documents && $documents, $this->structured, $this->streaming && $streaming, $this->caching && $caching, $this->engine);
 	}
 
+	/** The same status with at most $max images (the administrator's limit; 0: the engine's own). */
+	public function capped(int $max): self {
+		if ($max <= 0 || $max >= $this->maxImages) {
+			return $this;
+		}
+		return new self($this->ready, $this->reason, $this->provider, $this->model, $this->images, $max, $this->search, $this->documents,
+			$this->structured, $this->streaming, $this->caching, $this->engine);
+	}
+
 	/** @return array<string, bool|int|string> for JSON (OCS, occ) */
 	public function toArray(): array {
 		return get_object_vars($this);

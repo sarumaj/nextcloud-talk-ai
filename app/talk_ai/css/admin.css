@@ -11,3 +11,9 @@
 #talk-ai-admin .talk-ai-table th, #talk-ai-admin .talk-ai-table td { border-bottom: 1px solid var(--color-border); padding: .3em .5em; text-align: start; vertical-align: top; }
 #talk-ai-admin .talk-ai-table caption { text-align: start; font-weight: 600; }
 #talk-ai-admin pre { white-space: pre-wrap; font-size: .9em; }
+#talk-ai-admin #talk-ai-connection { margin: 1em 0 2em; }
+#talk-ai-admin #talk-ai-connection h4 { margin: 1.2em 0 .3em; font-weight: 600; }
+#talk-ai-admin .talk-ai-engine legend { padding: 0 .3em; }
+#talk-ai-admin #talk-ai-fallback li { margin: .3em 0; }
+#talk-ai-admin #talk-ai-fallback details { display: inline-block; vertical-align: top; min-width: 60%; }
+#talk-ai-admin #talk-ai-scenarios textarea, #talk-ai-admin #talk-ai-scenarios input { width: 100%; }

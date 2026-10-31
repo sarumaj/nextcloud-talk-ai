@@ -32,7 +32,7 @@ class Conversations {
 	/** A question and its answer added; the oldest turns go beyond the limit. */
 	public function append(string $userId, string $token, string $question, string $answer): void {
 		$turns = [...$this->turns($userId, $token), ['role' => 'user', 'text' => $question], ['role' => 'assistant', 'text' => $answer]];
-		$max = max(2, $this->appConfig->getValueInt(Engines::APP, 'ai_conversation_turns', 40, lazy: true));
+		$max = max(2, (int)$this->appConfig->getValueString(Engines::APP, 'ai_conversation_turns', '40'));
 		$turns = array_slice($turns, -$max);
 		$this->appConfig->setValueString(Engines::APP, self::key($userId, $token),
 			(string)json_encode(['turns' => $turns, 'updated' => time()], JSON_UNESCAPED_UNICODE), lazy: true);
@@ -86,7 +86,7 @@ class Conversations {
 	}
 
 	private function lapsed(array $stored): bool {
-		$hours = max(1, $this->appConfig->getValueInt(Engines::APP, 'ai_conversation_hours', 12, lazy: true));
+		$hours = max(1, (int)$this->appConfig->getValueString(Engines::APP, 'ai_conversation_hours', '12'));
 		return time() - (int)($stored['updated'] ?? 0) > $hours * 3600;
 	}
 

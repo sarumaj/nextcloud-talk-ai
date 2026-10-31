@@ -18,6 +18,15 @@ return [
 		['name' => 'settings#status', 'url' => '/settings/status', 'verb' => 'GET'],
 		['name' => 'settings#cancel', 'url' => '/settings/jobs/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'settings#upload', 'url' => '/settings/styles/{style}/files', 'verb' => 'POST'],
+		// The AI connection on the administration page.
+		['name' => 'settings#ai', 'url' => '/settings/ai', 'verb' => 'GET'],
+		['name' => 'settings#choose', 'url' => '/settings/ai/choice', 'verb' => 'PUT'],
+		['name' => 'settings#saveScenarios', 'url' => '/settings/ai/scenarios', 'verb' => 'PUT'],
+		['name' => 'settings#saveEngine', 'url' => '/settings/ai/engines/{name}', 'verb' => 'PUT'],
+		['name' => 'settings#clearKey', 'url' => '/settings/ai/engines/{name}/key', 'verb' => 'DELETE'],
+		['name' => 'settings#models', 'url' => '/settings/ai/engines/{name}/models', 'verb' => 'GET'],
+		['name' => 'settings#test', 'url' => '/settings/ai/engines/{name}/test', 'verb' => 'POST'],
+		['name' => 'settings#probe', 'url' => '/settings/ai/engines/{name}/probe', 'verb' => 'POST'],
 		// A question of the OCS API, handed over the same way (Ai\Tickets).
 		['name' => 'ticket#run', 'url' => '/api/v1/run', 'verb' => 'POST'],
 	],

@@ -31,6 +31,58 @@ administration page show each part: present, version, and what is lost without i
    worker (`occ background-job:worker`): queued answers and document jobs wait for
    them when the direct hand-off fails.
 
+## The AI connection
+
+The app talks to the AI itself. Choose an engine under Administration → Assistant → AI in
+Talk (AI connection), or with `occ talk_ai:engine`:
+
+| Engine | For | Needs |
+|---|---|---|
+| `anthropic` | Claude by API key | a key from console.anthropic.com |
+| `gemini` | Gemini by API key | a key from aistudio.google.com |
+| `openai` | OpenAI, OpenRouter, DeepSeek, Mistral, Groq, Ollama, vLLM, LM Studio | a base URL; a key where the server needs one |
+| `claude-cli` | Claude with a subscription (Claude Code on the server) | the `claude` binary, a directory with its login for the web server's user, PHP's command line |
+| `gemini-cli` | Gemini with a Google account (Gemini CLI on the server) | the `gemini` binary and a directory with its login; no images, no search |
+| `taskprocessing` | whatever AI Nextcloud has (another app's provider) | a TaskProcessing provider for chat |
+
+Keys are encrypted in the database and never shown again; the page and `--show` say only
+whether one is set. Features a server claims but fails at (tools, images, structured
+answers, streaming) can be switched off per engine. A base URL may be plain `http://` and on the
+server's own network (Ollama, vLLM): only administrators set it, and it is the point of those. A fallback chain names the engines that
+answer, in order, when the chosen one is not ready, busy, rate-limited or failing (5xx).
+
+```bash
+# An API key, from stdin (never as an argument: the process list and the history show those).
+printf '%s' "$KEY" | occ talk_ai:engine anthropic --model claude-opus-5-5 --key-stdin
+occ talk_ai:engine anthropic --use --fallback openai    # questions go to it, then to openai
+occ talk_ai:engine openai --base-url http://localhost:11434/v1 --model qwen3 --off images
+occ talk_ai:engine                                      # every engine, ready or why not
+occ talk_ai:engine anthropic --show                     # its settings; the key as set or not set
+occ talk_ai:models anthropic                            # the models its API offers
+occ talk_ai:ask "What is 2 + 3?"                        # one question through the app
+occ talk_ai:ask --scenario probe "Call ping"             # whether the model calls tools
+```
+
+Claude Code on the server: install it for the web server's user, log in once with `HOME`
+set to a directory of its own (`sudo -u www-data HOME=/var/lib/talk-ai/claude claude`,
+then `/login`), and give that directory as `--home`. The app runs it with that `HOME` and
+nothing else of the server's environment, without its own tools, and gives it the bot's
+tools through a small MCP server over a private socket; `occ talk_ai:check` names any flag
+the installed version lacks. Gemini CLI the same way (`--home`, its login inside).
+
+Limits (Administration, AI limits and access): questions per person and minute (10), questions
+at once on the server (4; more wait a minute, then get "busy"), tool calls per answer (20;
+document jobs have their own), images per question, the size of a tool's result, remembered
+conversations (40 turns, 12 hours), and who may ask (everyone, or groups). The use per day
+and engine (questions, errors, tokens, cost where the provider reports it) is on the page and
+in `occ talk_ai:check`; no message content is kept for it. Per scenario (answers in Talk,
+memory, document jobs, the OCS API, Nextcloud's features) another engine, model or an extra
+instruction can be set.
+
+Nextcloud's own AI features (Assistant, Mail, Talk's summaries) can use the app's engine:
+switch on "Nextcloud's Assistant, Mail and Talk use this engine". Their tasks count against
+the limits as the account `nextcloud` where they have no person.
+
 ## The document sandbox
 
 Documents built with code run in a container per job, started by a small runner

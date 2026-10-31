@@ -4,6 +4,7 @@
 /** @var \OCP\IL10N $l */
 $sections = [
 	'general' => [$l->t('General'), $l->t('Who the bot answers and what goes with each question.')],
+	'ai' => [$l->t('AI limits and access'), $l->t('For every question to the AI, in Talk, document jobs and the OCS API.')],
 	'quotas' => [$l->t('Quotas and costs'), $l->t('Limits per person and day; 0 means no limit.')],
 	'documents' => [$l->t('Document sandbox'), $l->t('Limits of the documents built with code. The runner (sandbox/runner.py) caps them with its own limits.')],
 	'retention' => [$l->t('Retention'), $l->t('How long what the app keeps is kept. People can delete their own data at once ("delete my data").')],
@@ -13,7 +14,7 @@ $docs = 'https://git.ciepiela.org/dawid/nextcloud-talk-ai/src/branch/main/docs/a
 ?>
 <div id="talk-ai-admin" class="section">
 	<h2><?php p($l->t('AI in Talk')); ?></h2>
-	<p class="settings-hint"><?php p($l->t('The assistant in Talk answers through AI-Hub.')); ?>
+	<p class="settings-hint"><?php p($l->t('The assistant in Talk answers through the AI connection below.')); ?>
 		<a href="<?php p($docs); ?>" target="_blank" rel="noreferrer"><?php p($l->t('Administrator\'s guide')); ?> ↗</a></p>
 
 	<h3><?php p($l->t('Status')); ?></h3>
@@ -22,6 +23,45 @@ $docs = 'https://git.ciepiela.org/dawid/nextcloud-talk-ai/src/branch/main/docs/a
 		<thead><tr><th scope="col"><?php p($l->t('Part')); ?></th><th scope="col"><?php p($l->t('State')); ?></th><th scope="col"><?php p($l->t('Without it')); ?></th></tr></thead>
 		<tbody><tr><td colspan="3"><?php p($l->t('Loading …')); ?></td></tr></tbody>
 	</table>
+
+	<section id="talk-ai-connection" aria-labelledby="talk-ai-connection-title">
+		<h3 id="talk-ai-connection-title"><?php p($l->t('AI connection')); ?></h3>
+		<p class="settings-hint"><?php p($l->t('The engine that answers. Keys are stored encrypted and never shown again; the page only says whether one is set. Also: occ talk_ai:engine.')); ?></p>
+		<div class="talk-ai-field">
+			<label for="talk-ai-engine"><?php p($l->t('Engine')); ?></label>
+			<select id="talk-ai-engine"></select>
+			<span id="talk-ai-engine-state" role="status"></span>
+		</div>
+		<div id="talk-ai-engine-panel"></div>
+
+		<h4><?php p($l->t('Fallback chain')); ?></h4>
+		<p class="settings-hint"><?php p($l->t('When the engine is not ready, busy, rate-limited or fails on the provider\'s side, the next one answers.')); ?></p>
+		<ol id="talk-ai-fallback"></ol>
+		<div class="talk-ai-field">
+			<label for="talk-ai-fallback-add"><?php p($l->t('Add to the chain')); ?></label>
+			<select id="talk-ai-fallback-add"></select>
+			<button type="button" id="talk-ai-fallback-add-button"><?php p($l->t('Add')); ?></button>
+		</div>
+		<p><button type="button" class="primary" id="talk-ai-choose"><?php p($l->t('Use this engine and chain')); ?></button> <span id="talk-ai-choose-state" role="status"></span></p>
+
+		<h4><?php p($l->t('Scenarios')); ?></h4>
+		<p class="settings-hint"><?php p($l->t('Per kind of question: another engine or model, and instructions added to its prompt.')); ?></p>
+		<table class="talk-ai-table" id="talk-ai-scenarios" aria-label="<?php p($l->t('Scenarios')); ?>">
+			<thead><tr><th scope="col"><?php p($l->t('Scenario')); ?></th><th scope="col"><?php p($l->t('Engine')); ?></th><th scope="col"><?php p($l->t('Model')); ?></th>
+				<th scope="col"><?php p($l->t('Extra prompt')); ?></th></tr></thead>
+			<tbody></tbody>
+		</table>
+		<p><button type="button" id="talk-ai-scenarios-save"><?php p($l->t('Save the scenarios')); ?></button> <span id="talk-ai-scenarios-state" role="status"></span></p>
+
+		<h4><?php p($l->t('Use per day (30 days)')); ?></h4>
+		<p class="settings-hint" id="talk-ai-running"></p>
+		<table class="talk-ai-table" id="talk-ai-usage" aria-label="<?php p($l->t('Use per day')); ?>">
+			<thead><tr><th scope="col"><?php p($l->t('Day')); ?></th><th scope="col"><?php p($l->t('Engine')); ?></th><th scope="col"><?php p($l->t('Questions')); ?></th>
+				<th scope="col"><?php p($l->t('Errors')); ?></th><th scope="col"><?php p($l->t('Tokens in')); ?></th><th scope="col"><?php p($l->t('Tokens out')); ?></th>
+				<th scope="col"><?php p($l->t('From the cache')); ?></th><th scope="col"><?php p($l->t('Cost (USD, where reported)')); ?></th></tr></thead>
+			<tbody></tbody>
+		</table>
+	</section>
 
 	<form id="talk-ai-form" novalidate>
 	<?php foreach ($sections as $section => [$title, $hint]) { ?>
@@ -47,6 +87,13 @@ $docs = 'https://git.ciepiela.org/dawid/nextcloud-talk-ai/src/branch/main/docs/a
 						<?php } ?>
 					<?php } ?>
 					<p class="settings-hint" id="talk-ai-<?php p($key); ?>-help"><?php p($l->t($help)); ?> <span class="talk-ai-error" role="alert"></span></p>
+				</div>
+			<?php } ?>
+			<?php if ($section === 'ai') { ?>
+				<div class="talk-ai-field">
+					<label for="talk-ai-ai-groups"><?php p($l->t('Who may ask the AI (group ids, separated by commas)')); ?></label>
+					<input id="talk-ai-ai-groups" type="text" placeholder="<?php p($l->t('everyone')); ?>" aria-describedby="talk-ai-ai-groups-help">
+					<p class="settings-hint" id="talk-ai-ai-groups-help"><?php p($l->t('Empty: everyone. Guests follow "Answer guests" above.')); ?></p>
 				</div>
 			<?php } ?>
 		</fieldset>

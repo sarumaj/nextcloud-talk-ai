@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Ai;
 
+use OCP\IGroupManager;
+
 /**
  * What the app asks instead of a model. A scenario says what the assistant is and
  * which tools it may run; ask() runs a question through Loop on the chosen engine
@@ -33,6 +35,9 @@ class Hub {
 	public function __construct(
 		private Engines $engines,
 		private ?Conversations $conversations = null,
+		private ?Limits $limits = null,
+		private ?Counters $counters = null,
+		private ?IGroupManager $groups = null,
 	) {
 	}
 
@@ -52,7 +57,8 @@ class Hub {
 			'search' => (bool)($spec['search'] ?? false),
 			'answer' => $spec['answer'] ?? null,
 			'allow' => $spec['allow'] ?? null,
-			'maxTools' => (int)($spec['maxTools'] ?? 20),
+			// Without its own budget: the administrator's (ai_max_tools).
+			'maxTools' => isset($spec['maxTools']) ? (int)$spec['maxTools'] : null,
 			'ocs' => (bool)($spec['ocs'] ?? false),
 			'description' => (string)($spec['description'] ?? ''),
 		];
@@ -75,7 +81,10 @@ class Hub {
 		if (is_callable($spec['allow']) && !($spec['allow'])($userId)) {
 			return Errors::USER_NOT_ALLOWED;
 		}
-		$status = $this->engine($scenario)->status();
+		if (!$this->mayAsk($userId)) {
+			return Errors::USER_NOT_ALLOWED;
+		}
+		$status = $this->status($scenario);
 		if (!$status->ready) {
 			return $status->reason !== '' ? $status->reason : Errors::NOT_READY;
 		}
@@ -86,13 +95,33 @@ class Hub {
 		return isset($this->scenarios[$name]);
 	}
 
-	/** The engine a scenario's questions go to. */
+	/** The engine a scenario's questions go to: the administrator's choice for it, else the chosen one. */
 	public function engine(?string $scenario = null): Engine {
-		return $this->engines->get();
+		$choice = $scenario !== null ? $this->engines->scenario($scenario) : [];
+		return $this->engines->get(($choice['engine'] ?? '') ?: null, ($choice['model'] ?? '') ?: null);
 	}
 
+	/** What a scenario's engine can do, with the administrator's limit of images. */
 	public function status(?string $scenario = null): Status {
-		return $this->engine($scenario)->status();
+		return $this->engine($scenario)->status()->capped((int)$this->engines->setting('ai_max_images', '0'));
+	}
+
+	/**
+	 * Whether the person may ask at all (ai_groups: empty for everyone). Guests and
+	 * federated people (an id with ":") are the bot's own rule (allow_guests); a task
+	 * of Nextcloud's own features without a person asks as "nextcloud".
+	 */
+	private function mayAsk(string $userId): bool {
+		$groups = json_decode($this->engines->setting('ai_groups', '[]'), true);
+		if (!is_array($groups) || $groups === [] || $this->groups === null || str_contains($userId, ':') || $userId === 'nextcloud') {
+			return true;
+		}
+		foreach ($groups as $group) {
+			if ($this->groups->isInGroup($userId, (string)$group)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -117,7 +146,7 @@ class Hub {
 		}
 		$spec = $this->scenarios[$scenario];
 		$engine = $this->engine($scenario);
-		$status = $engine->status();
+		$status = $this->status($scenario);
 		$messages = self::normalize($messages);
 		$conversation = (string)($options['conversation'] ?? '');
 		if ($conversation !== '' && $this->conversations !== null && $messages !== []) {
@@ -137,8 +166,9 @@ class Hub {
 		if (array_filter($messages[$last]['parts'], fn (array $p) => $p['kind'] !== 'text' || trim((string)$p['text']) !== '') === []) {
 			return self::failed(Errors::EMPTY);
 		}
+		$extra = trim((string)($this->engines->scenario($scenario)['prompt'] ?? ''));
 		$request = new Request(
-			system: $spec['system'],
+			system: $spec['system'] . ($extra !== '' ? "\n\nAdditional instructions from this server's administrator:\n" . $extra : ''),
 			messages: $messages,
 			tools: array_map(fn (array $t) => ['description' => (string)($t['description'] ?? ''), 'input' => (array)($t['input'] ?? ['type' => 'object'])], $spec['tools']),
 			search: ($options['search'] ?? $spec['search']) && $spec['search'] && $status->search,
@@ -147,7 +177,29 @@ class Hub {
 			onDelta: $status->streaming ? ($options['onDelta'] ?? null) : null,
 			session: $options['session'] ?? null,
 		);
-		$result = (new Loop($engine))->run($userId, $request, $spec['tools'], ['maxTools' => $spec['maxTools']] + $options);
+		$slot = null;
+		if ($this->limits !== null && ($options['limits'] ?? true)) {
+			$slot = $this->limits->acquire($userId, $scenario, (int)($options['wait'] ?? 60));
+			if (isset($slot['error'])) {
+				return self::failed($slot['error']);
+			}
+			$heartbeat = $options['heartbeat'] ?? null;
+			$options['heartbeat'] = function (int $round, int $calls) use ($heartbeat, $slot): bool {
+				$this->limits?->renew($slot['id']);
+				return $heartbeat === null || $heartbeat($round, $calls) !== false;
+			};
+		}
+		try {
+			$result = (new Loop($engine))->run($userId, $request, $spec['tools'], [
+				'maxTools' => $spec['maxTools'] ?? (int)$this->engines->setting('ai_max_tools', '20'),
+				'resultChars' => (int)$this->engines->setting('ai_result_chars', (string)Loop::RESULT_CHARS),
+			] + $options);
+		} finally {
+			if (isset($slot['id'])) {
+				$this->limits?->release($slot['id']);
+			}
+		}
+		$this->counters?->add($status->engine, $result['state'] === 'done', $result['usage']->toArray());
 		if ($conversation !== '' && $this->conversations !== null && $result['state'] === 'done') {
 			// Words only: an image is a mark in its place, so a later question never sends it again.
 			$this->conversations->append($userId, $conversation, trim(($images !== [] ? '[' . count($images) . ' image(s)] ' : '') . $question), $result['text']);

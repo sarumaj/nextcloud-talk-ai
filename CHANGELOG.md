@@ -28,6 +28,14 @@
 - **Nextcloud's own AI as an engine** (`taskprocessing`), and the app's engine as a
   **TaskProcessing provider** for Nextcloud's Assistant, Mail and Talk (`ai_provider`, off by
   default): text, chat, chat with tools, summaries and headlines.
+- **The AI connection on the settings page and in occ**: engine, key (encrypted, shown only as
+  set), model from the provider's list, features, a connection test and a tool-calling probe,
+  a fallback chain, per-scenario engine, model and instructions, and the use per day and
+  engine (`talk_ai_ai_daily`, numbers only). `occ talk_ai:engine` (key from stdin, for
+  Ansible), `occ talk_ai:models`, `occ talk_ai:ask`; `occ talk_ai:check` reports it all.
+- **Limits**: questions per person and minute, questions at once on the server (slots in
+  `talk_ai_ai_slots`, a crashed worker's slot runs out), tool calls per answer, images per
+  question, the size of a tool's result; access for everyone or groups.
 - **An OCS API** (`/ocs/v2.php/apps/talk_ai/api/v1/`: `status`, `ask`, `result/{id}`, `forget`)
   with tickets for clients that must not wait, remembered conversations, and a conversation
   saved to Files as Markdown with a summary (docs/developer.md).

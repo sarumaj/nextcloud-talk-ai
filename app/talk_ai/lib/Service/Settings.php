@@ -21,12 +21,12 @@ class Settings {
 		'show_steps' => ['general', 'bool', 'yes', null, null, 'Show the steps while answering', 'The status message of a slow answer lists what the bot does and why, a line per tool it uses; the answer then takes its place.'],
 		'history_window' => ['general', 'int', '30', 5, 200, 'Messages per answer', 'How many recent messages of the conversation go with each question; older ones are summarized.'],
 		'context_tokens' => ['general', 'int', '0', 0, 2000000, 'Context size of the model (tokens)', '0: known from the model\'s name. The context is cut to fit.'],
-		'transparency_text' => ['general', 'text', '', null, null, 'Notice when the bot is enabled in a conversation', 'Empty: names the AI provider and model from AI-Hub, and the location below.'],
+		'transparency_text' => ['general', 'text', '', null, null, 'Notice when the bot is enabled in a conversation', 'Empty: names the AI provider and model of the chosen engine, and the location below.'],
 		'provider_location' => ['general', 'string', '', null, null, 'Where the AI provider processes the data', 'For the notice, e.g. "the USA (Anthropic)" or "this server (Ollama)".'],
 		'max_jobs_per_user' => ['quotas', 'int', '2', 1, 20, 'Document jobs per person at the same time', 'Waiting or running; more are refused until one is done.'],
 		'quota_jobs' => ['quotas', 'int', '0', 0, 1000, 'Document jobs per person and day', '0: no limit.'],
 		'quota_seconds' => ['quotas', 'int', '0', 0, 86400, 'Seconds of document building per person and day', '0: no limit.'],
-		'quota_tokens' => ['quotas', 'int', '0', 0, 100000000, 'Tokens per person and day (estimated)', '0: no limit. AI-Hub reports no use; the app estimates from the characters sent and received.'],
+		'quota_tokens' => ['quotas', 'int', '0', 0, 100000000, 'Tokens per person and day', '0: no limit. As the provider reports them; estimated from the characters sent and received where it reports none.'],
 		'cost_in' => ['quotas', 'float', '0', 0, 1000, 'Cost per million input tokens', 'For the cost estimate in the statistics (in your currency).'],
 		'cost_out' => ['quotas', 'float', '0', 0, 1000, 'Cost per million output tokens', 'For the cost estimate in the statistics.'],
 		'document_max_tools' => ['documents', 'int', '60', 5, 300, 'Tool calls per document job', 'The hard limit of the model\'s steps (F-01).'],
@@ -39,6 +39,14 @@ class Settings {
 		'preview_wait' => ['documents', 'int', '120', 0, 600, 'Seconds to wait for an answer to a preview', '0: no preview before delivering. People can switch previews off per conversation.'],
 		'retention_days' => ['retention', 'int', '90', 7, 3650, 'Days to keep job and answer records, use and conversation memories', 'Then they are deleted.'],
 		'retention_files_days' => ['retention', 'int', '0', 0, 3650, 'Days to keep delivered documents', '0: never deleted (they are the people\'s files).'],
+		'ai_rate_per_minute' => ['ai', 'int', '10', 0, 1000, 'Questions per person and minute', '0: no limit. More are refused with "too many questions"; a person\'s questions to the OCS API count too.'],
+		'ai_concurrent' => ['ai', 'int', '4', 0, 100, 'Questions at the same time (server)', '0: no limit. More wait up to a minute for a free slot, then are refused as busy; protects the provider\'s quota and a subscription.'],
+		'ai_max_tools' => ['ai', 'int', '20', 1, 300, 'Tool calls per answer', 'Document jobs have their own limit (below).'],
+		'ai_max_images' => ['ai', 'int', '0', 0, 100, 'Images per question', '0: as many as the engine takes.'],
+		'ai_result_chars' => ['ai', 'int', '100000', 1000, 1000000, 'Characters of a tool result the model gets', 'Longer results are cut.'],
+		'ai_conversation_turns' => ['ai', 'int', '40', 2, 400, 'Turns of a remembered conversation (OCS API)', 'The oldest go first.'],
+		'ai_conversation_hours' => ['ai', 'int', '12', 1, 720, 'Hours a remembered conversation is kept', 'Counted from its last use.'],
+		'ai_provider' => ['ai', 'bool', 'no', null, null, 'Nextcloud\'s Assistant, Mail and Talk use this engine', 'As a TaskProcessing provider; takes effect from the next request. Never while the engine is Nextcloud\'s own AI.'],
 		'debug_hours' => ['debug', 'int', '0', 0, 24, 'Debug log for the next hours', 'Questions and answers go to the Nextcloud log, with e-mail addresses, IBANs and numbers masked. Ends by itself.'],
 	];
 
@@ -65,6 +73,7 @@ class Settings {
 			'styles' => json_decode($this->get('styles', '[]'), true) ?: [],
 			'rooms_off' => $this->switches->list('rooms_off'),
 			'users_off' => $this->switches->list('users_off'),
+			'ai_groups' => json_decode($this->get('ai_groups', '[]'), true) ?: [],
 		];
 	}
 
@@ -105,6 +114,11 @@ class Settings {
 				}
 			}
 			$this->set('features', json_encode((object)$features));
+		}
+		// Who may ask the AI at all: group ids; none for everyone.
+		if (isset($input['ai_groups']) && is_array($input['ai_groups'])) {
+			$groups = array_values(array_unique(array_filter(array_map(fn ($g) => mb_substr(trim((string)$g), 0, 64), $input['ai_groups']), fn ($g) => $g !== '')));
+			$this->set('ai_groups', (string)json_encode($groups));
 		}
 		foreach (['rooms_off' => 'room', 'users_off' => 'user'] as $key => $scope) {
 			if (isset($input[$key]) && is_array($input[$key])) {

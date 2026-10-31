@@ -114,7 +114,7 @@ class Capabilities {
 			'maxTools' => 2,
 		]);
 		try {
-			$hub->ask($userId, 'probe', [['role' => 'user', 'text' => 'Call the tool ping once, then answer with the word done.']], ['search' => false, 'retries' => 1]);
+			$hub->ask($userId, 'probe', [['role' => 'user', 'text' => 'Call the tool ping once, then answer with the word done.']], ['search' => false, 'retries' => 1, 'limits' => false]);
 		} catch (\Throwable) {
 		}
 		return $called;

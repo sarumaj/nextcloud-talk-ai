@@ -39,7 +39,7 @@ class Application extends App implements IBootstrap {
 		// The app's AI for Nextcloud's own features (Assistant, Mail, Talk's summaries): off unless the
 		// administrator turns it on, and never while the app itself asks through TaskProcessing (a loop).
 		$config = \OCP\Server::get(IAppConfig::class);
-		if ($config->getValueBool(self::APP_ID, 'ai_provider', false) && $config->getValueString(self::APP_ID, 'ai_engine', '') !== 'taskprocessing') {
+		if ($config->getValueString(self::APP_ID, 'ai_provider', 'no') === 'yes' && $config->getValueString(self::APP_ID, 'ai_engine', '') !== 'taskprocessing') {
 			foreach ([Provider\TextToText::class, Provider\TextToTextChat::class, Provider\TextToTextChatWithTools::class,
 				Provider\TextToTextSummary::class, Provider\TextToTextHeadline::class] as $provider) {
 				$context->registerTaskProcessingProvider($provider);

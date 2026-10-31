@@ -49,8 +49,6 @@ use Psr\Log\LoggerInterface;
  */
 class Reply {
 	public const SCENARIO = 'chat';
-	/** Tool calls for one answer: AI-Hub's eight were too few for a research with citations. */
-	private const MAX_TOOLS = 20;
 	/** Characters of text above which an answer goes as a file (Talk takes 32000 per message). */
 	private const LONG_ANSWER = 30000;
 
@@ -259,7 +257,6 @@ class Reply {
 			'context' => $context,
 			'search' => $this->features['web'] && $status->search,
 			'images' => $images,
-			'maxTools' => self::MAX_TOOLS,
 			'onRetry' => fn () => $this->status('⏳ ' . $this->text($userId, 'Retrying')),
 		]);
 		$this->tokensIn += (int)$result['usage']['in'];
