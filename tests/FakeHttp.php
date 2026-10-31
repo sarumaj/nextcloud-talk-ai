@@ -78,7 +78,8 @@ class FakeHttp implements IClientService {
 		};
 	}
 
-	public function newClient(): IClient {
+	/** $handler: Nextcloud 35 added it; an optional parameter fits the older interface too. */
+	public function newClient(?callable $handler = null): IClient {
 		return self::client($this);
 	}
 

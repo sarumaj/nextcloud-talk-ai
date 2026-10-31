@@ -122,7 +122,8 @@ class TicketsTest extends TestCase {
 			$this->saved = $content;
 		});
 		$file->method('getPath')->willReturn('/ewa/files/AI conversations/x.md');
-		$folder = $this->createMock(Folder::class);
+		// Newer Nextcloud returns IUserFolder (a Folder) from getUserFolder().
+		$folder = $this->createMock(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
 		$folder->method('nodeExists')->willReturn(false);
 		$folder->method('newFolder')->willReturn($folder);
 		$folder->method('newFile')->willReturn($file);
