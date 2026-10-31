@@ -43,6 +43,7 @@ Enable the bot in a conversation (conversation settings, Bots). In a conversatio
         <job>OCA\TalkAi\BackgroundJob\SyncName</job>
         <job>OCA\TalkAi\BackgroundJob\CleanTraces</job>
         <job>OCA\TalkAi\BackgroundJob\RunQueue</job>
+        <job>OCA\TalkAi\Ai\CleanJob</job>
     </background-jobs>
     <repair-steps>
         <post-migration>

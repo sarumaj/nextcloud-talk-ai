@@ -18,5 +18,14 @@ return [
 		['name' => 'settings#status', 'url' => '/settings/status', 'verb' => 'GET'],
 		['name' => 'settings#cancel', 'url' => '/settings/jobs/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'settings#upload', 'url' => '/settings/styles/{style}/files', 'verb' => 'POST'],
+		// A question of the OCS API, handed over the same way (Ai\Tickets).
+		['name' => 'ticket#run', 'url' => '/api/v1/run', 'verb' => 'POST'],
+	],
+	// The AI layer for other clients: /ocs/v2.php/apps/talk_ai/api/v1/… (docs/developer.md).
+	'ocs' => [
+		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],
+		['name' => 'api#ask', 'url' => '/api/v1/ask', 'verb' => 'POST'],
+		['name' => 'api#result', 'url' => '/api/v1/result/{id}', 'verb' => 'GET'],
+		['name' => 'api#forget', 'url' => '/api/v1/forget', 'verb' => 'POST'],
 	],
 ];

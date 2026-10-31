@@ -11,6 +11,7 @@
   runs twice. Page images come back with the render's result, without an extra turn to
   look. Token use comes from the provider where it reports it, else estimated as before.
 - The question's context goes with the question, never into the system prompt.
+- The chat's rolling memory is written by the AI layer (`Hub::fold`).
 
 ### Added
 - **Anthropic's API as an engine** (`ai_engine` = `anthropic`): native tool calls, up to 20
@@ -24,6 +25,12 @@
   are an MCP server of the app's that hands each call back over a private socket, so the
   tools run in the app's loop with the asking person's rights. Images, PDFs, search,
   structured answers, streaming, usage and cost. Every flag is checked against `--help` first.
+- **Nextcloud's own AI as an engine** (`taskprocessing`), and the app's engine as a
+  **TaskProcessing provider** for Nextcloud's Assistant, Mail and Talk (`ai_provider`, off by
+  default): text, chat, chat with tools, summaries and headlines.
+- **An OCS API** (`/ocs/v2.php/apps/talk_ai/api/v1/`: `status`, `ask`, `result/{id}`, `forget`)
+  with tickets for clients that must not wait, remembered conversations, and a conversation
+  saved to Files as Markdown with a summary (docs/developer.md).
 
 ## 0.11.0 - 2026-10-28
 

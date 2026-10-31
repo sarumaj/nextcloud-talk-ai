@@ -129,7 +129,45 @@ settings it reads.
 - `Engine/GeminiCli.php`: Gemini CLI, one run per turn with the prompt on stdin, its own
   tools denied by an admin policy, tools by `TextProtocol`; no images, no search.
 - `Engine/CliProcess.php`: the command line tools' processes: an argv array, never a shell.
+- `Engine/TaskProcessing.php`: whatever provider Nextcloud has for chat with tools (else
+  chat, else plain text with `TextProtocol`), through `IManager`; never our own provider.
+- `Provider/`: the Hub as Nextcloud's TaskProcessing provider for text, chat, chat with tools
+  (one turn: the caller runs its tools), summary and headline, so the Assistant, Mail and
+  Talk's own features use the app's engine. Off unless `ai_provider` is on; a task without
+  a person asks as `nextcloud`.
+- `Tickets`, `TicketJob`, `Conversations`, `CleanJob`: questions that do not wait, and
+  remembered conversations (see the OCS API below).
 - `Engine/AiHub.php`: for now, AI-Hub's engines behind `Engine`, with `TextProtocol`.
+
+## OCS API
+
+The AI layer for other clients, at `/ocs/v2.php/apps/talk_ai/api/v1/`, with the person's
+login (a session or an app password) and the header `OCS-APIRequest: true`. Only scenarios
+registered with `'ocs' => true` can be asked; the app registers `assistant` (no tools, web
+search where the engine has it). Questions run with the asking person's rights and limits.
+
+| Method and path | Parameters | Answer |
+|---|---|---|
+| `GET status` | | `ready`, `reason`, `provider`, `model`, `images`, `maxImages`, `search`, `documents`, `scenarios` (name → description) |
+| `POST ask` | `scenario`, `messages` (`[{role, text}]`, the question last), `conversation`, `images` (`[{type, data}]`), `search` | `202` with `id`; `400` with `error` (see below); `429` when too many questions |
+| `GET result/{id}` | | `state` (`queued`, `running`, `done`, `error`), `text`, `answer`, `usage`, `tools`, `error`; `404` for an unknown or another person's ticket |
+| `POST forget` | `conversation`, `save`, `summary` | drops a remembered conversation; with `save` first as Markdown in *AI conversations* in the person's files (`saved`: its path), with `summary` with the model's summary at the top |
+
+A question gets a ticket at once and is worked out apart (a signed request to the app's own
+`/api/v1/run`, else a background job); results are kept 30 minutes. With `conversation` (a
+token of the client's), only the last message counts: the remembered turns are the history,
+kept 40 turns and 12 hours from the last use (`ai_conversation_turns`,
+`ai_conversation_hours`), words only.
+
+```bash
+curl -u ewa:APP-PASSWORD -H 'OCS-APIRequest: true' -H 'Accept: application/json' \
+  -X POST https://cloud.example/ocs/v2.php/apps/talk_ai/api/v1/ask \
+  -d scenario=assistant -d conversation=tab-1 -d 'messages[0][role]=user' -d 'messages[0][text]=Hello'
+```
+
+Errors: `not-ready`, `no-key`, `no-cli`, `no-model`, `user-not-allowed`, `app-not-allowed`,
+`no-scenario`, `empty`, `busy`, `rate-limited`, `timeout`, `no-images`, `too-many-images`,
+`image-too-large`, `image-type`, `bad-answer`, `provider:<message>`.
 
 ## Skills
 

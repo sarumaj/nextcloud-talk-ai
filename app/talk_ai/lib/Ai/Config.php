@@ -57,7 +57,8 @@ class Config {
 		return $this->secret($name, $field) !== '';
 	}
 
-	private function secret(string $name, string $field): string {
+	/** A secret, decrypted; '' when none is set or it cannot be decrypted. */
+	public function secret(string $name, string $field): string {
 		$stored = $this->appConfig->getValueString(Engines::APP, 'ai_secret_' . $name . '_' . $field, '', lazy: true);
 		if ($stored === '') {
 			return '';
