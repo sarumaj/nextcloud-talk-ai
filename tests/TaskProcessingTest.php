@@ -213,4 +213,10 @@ class TaskProcessingTest extends TestCase {
 		$this->expectException(ProcessingException::class);
 		(new TextToTextChatWithTools($this->hub(new ScriptEngine([Turn::failed(Errors::BUSY)]))))->process('ewa', ['input' => 'x', 'history' => [], 'tool_message' => '', 'tools' => '[]'], fn () => true);
 	}
+
+	public function testPlainTextHistoryAlternatesThePersonAndTheAssistant(): void {
+		$messages = \OCA\TalkAi\Ai\Engine\TaskProcessingFormat::messages(['What is 2+3?', 'Five.', json_encode(['role' => 'human', 'content' => 'And 4+4?'])]);
+		$this->assertSame(['user', 'assistant', 'user'], array_column($messages, 'role'));
+		$this->assertSame('Five.', $messages[1]['parts'][0]['text']);
+	}
 }

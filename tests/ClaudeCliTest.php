@@ -82,6 +82,13 @@ class ClaudeCliTest extends TestCase {
 		$this->assertSame(['text', 'image'], array_column($user['user'], 'type'));
 	}
 
+	public function testUsageFromWholeMessagesWhenNoStreamEventsCome(): void {
+		touch($this->home . '/whole-messages');
+		$turn = $this->engine([[['text' => 'Hello.']]])->turn(self::ask('Hi'));
+		$this->assertSame('Hello.', $turn->text);
+		$this->assertSame([115, 7, 100], [$turn->usage->in, $turn->usage->out, $turn->usage->cachedIn]);
+	}
+
 	public function testToolCallsGoThroughTheMcpBridgeAndLoopRunsThem(): void {
 		$engine = $this->engine([[['call' => ['name' => 'add', 'args' => ['a' => 2, 'b' => 3]]], ['call' => ['name' => 'add', 'args' => ['a' => 4, 'b' => 5]]], ['text' => 'Five and nine.']]]);
 		$result = (new Loop($engine))->run('ewa', self::ask('2+3 and 4+5?'), $this->tools());

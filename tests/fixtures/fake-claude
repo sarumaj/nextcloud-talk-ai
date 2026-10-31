@@ -39,7 +39,8 @@ $out = function (array $event): void {
 	fwrite(STDOUT, json_encode($event, JSON_UNESCAPED_SLASHES) . "\n");
 	fflush(STDOUT);
 };
-$partial = in_array('--include-partial-messages', $argv, true);
+// $HOME/whole-messages: as a watcher that passes on only whole messages (no stream events).
+$partial = in_array('--include-partial-messages', $argv, true) && !is_file($home . '/whole-messages');
 $script = json_decode((string)@file_get_contents($home . '/script.json'), true) ?: [];
 
 // The MCP server, as Claude Code starts it.

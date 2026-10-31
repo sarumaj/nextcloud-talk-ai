@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.1 - 2026-10-31
+
+### Fixed
+- With a watcher around Claude Code that passes on only whole messages (the homelab's
+  sandbox), the tokens of an answer were counted as 0: they now come from the messages.
+- Nextcloud's chat tasks with a history of plain texts (as AI-Hub took them) lost their
+  history: plain texts are read as the person's and the assistant's turns in turn.
+
 ## 0.12.0 - 2026-10-31
 
 ### Removed

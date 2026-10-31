@@ -69,10 +69,15 @@ final class TaskProcessingFormat {
 	/** @return list<array{role: string, parts: list<array>}> history entries as our messages */
 	public static function messages(array $history): array {
 		$out = [];
-		foreach ($history as $entry) {
+		foreach ($history as $i => $entry) {
 			$m = is_array($entry) ? $entry : json_decode((string)$entry, true);
 			if (!is_array($m)) {
-				continue;
+				// Plain text, as some callers send it (AI-Hub took it): the person's and the
+				// assistant's turns alternate, the person's first.
+				if (!is_string($entry) || trim($entry) === '') {
+					continue;
+				}
+				$m = ['role' => $i % 2 === 0 ? 'human' : 'assistant', 'content' => $entry];
 			}
 			$role = (string)($m['role'] ?? 'human');
 			$text = self::content($m['content'] ?? '');

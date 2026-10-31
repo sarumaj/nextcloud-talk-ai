@@ -212,6 +212,8 @@ final class ClaudeCli implements Engine {
 		$stopForTools = false;
 		$partial = $this->streamingOn();
 		$seen = [];
+		// Whether stream events came: a watcher around the CLI may pass on only whole messages.
+		$streamed = false;
 		// Calls Loop has not had yet: some may have come before this turn's reading began.
 		$quietSince = $session->waiting !== [] ? microtime(true) : null;
 		while (true) {
@@ -254,6 +256,7 @@ final class ClaudeCli implements Engine {
 				}
 				$type = (string)($event['type'] ?? '');
 				if ($type === 'stream_event') {
+					$streamed = true;
 					$e = (array)($event['event'] ?? []);
 					match ($e['type'] ?? '') {
 						'message_start' => [$announced, $stopForTools] = [[], false],
@@ -266,7 +269,7 @@ final class ClaudeCli implements Engine {
 				} elseif ($type === 'assistant') {
 					$message = (array)($event['message'] ?? []);
 					$id = (string)($message['id'] ?? '');
-					if (!$partial && !isset($seen[$id])) {
+					if ((!$partial || !$streamed) && !isset($seen[$id])) {
 						// Without partial messages each block comes as an event of its own, all with the message's usage.
 						$seen[$id] = true;
 						$usage = $usage->add(self::usage((array)($message['usage'] ?? [])));
