@@ -10,7 +10,7 @@ use OCA\TalkAi\Service\Bot;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 
-/** Renames the bot in Talk when AI-Hub's AI for it or the name setting changed. */
+/** Renames the bot in Talk when the AI that answers or the name setting changed. */
 class SyncName extends TimedJob {
 	public function __construct(
 		ITimeFactory $time,

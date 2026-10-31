@@ -6,16 +6,17 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Service;
 
+use OCA\TalkAi\Ai\Hub;
+use OCA\TalkAi\Ai\Status;
 use OCA\TalkAi\AppInfo\Application;
 use OCP\IAppConfig;
 
 /**
- * What the AI connection AI-Hub is set up with can do, checked when it changes and
- * once a day: tool calls (a probe with one tool), image input (AI-Hub's status),
- * its context size and model family (by the model's name; context_tokens
- * overrides). The family picks the prompt profile: a common core with small
- * additions per family. JSON mode and streaming are AI-Hub's business: the app
- * uses neither.
+ * What the AI connection can do, checked when it changes and once a day: tool
+ * calls (a probe with one tool, through Loop), image input, PDFs and structured
+ * answers (the engine's status), its context size and model family (by the
+ * model's name; context_tokens overrides). The family picks the prompt profile:
+ * a common core with small additions per family.
  */
 class Capabilities {
 	/** Context sizes in tokens by model name, first match wins. */
@@ -31,27 +32,34 @@ class Capabilities {
 	}
 
 	/**
-	 * @return array{tools: bool, images: bool, context: int, family: string, model: string, provider: string, checked: int}
+	 * @return array{tools: bool, images: bool, documents: bool, structured: bool, context: int, family: string, model: string, provider: string, checked: int}
 	 */
-	public function of(object $hub, array $status, string $userId): array {
-		$engine = $status['provider'] . '|' . ($status['mode'] ?? '') . '|' . $status['model'];
+	public function of(Hub $hub, Status $status, string $userId): array {
+		$engine = self::engineKey($status);
 		$known = json_decode($this->appConfig->getValueString(Application::APP_ID, 'capabilities', '{}'), true);
 		if (is_array($known) && ($known['engine'] ?? '') === $engine && time() - (int)($known['checked'] ?? 0) < 86400) {
 			return $known['caps'];
 		}
 		$caps = [
-			'tools' => $this->probeTools($hub, $userId),
-			'images' => (bool)($status['images'] ?? false),
-			'context' => $this->context((string)$status['model']),
-			'family' => self::family((string)$status['provider'] . ' ' . (string)$status['model']),
-			'model' => (string)$status['model'],
-			'provider' => (string)$status['provider'],
+			'tools' => self::probeTools($hub, $userId),
+			'images' => $status->images,
+			'documents' => $status->documents,
+			'structured' => $status->structured,
+			'context' => $this->context($status->model),
+			'family' => self::family($status->provider . ' ' . $status->model),
+			'model' => $status->model,
+			'provider' => $status->provider,
 			'checked' => time(),
 		];
 		$this->appConfig->setValueString(Application::APP_ID, 'capabilities', json_encode(['engine' => $engine, 'checked' => time(), 'caps' => $caps]));
 		// The document jobs' own probe agrees with this one.
 		$this->appConfig->setValueString(Application::APP_ID, 'tool_probe', json_encode(['engine' => $engine, 'ok' => $caps['tools'], 'time' => time()]));
 		return $caps;
+	}
+
+	/** Which engine a check was made with: another engine, provider or model is checked anew. */
+	public static function engineKey(Status $status): string {
+		return $status->engine . '|' . $status->provider . '|' . $status->model;
 	}
 
 	/** Forgets the last check (after a change, or for the health check). */
@@ -93,18 +101,20 @@ class Capabilities {
 		};
 	}
 
-	private function probeTools(object $hub, string $userId): bool {
+	/** Whether the model calls a tool: one question with the tool ping. Also used by the document jobs. */
+	public static function probeTools(Hub $hub, string $userId): bool {
 		$called = false;
-		$hub->registerScenario(Application::APP_ID, 'probe', [
+		$hub->registerScenario('probe', [
 			'system' => 'You test whether tools can be called.',
 			'tools' => ['ping' => ['description' => 'Answers pong.', 'input' => ['type' => 'object'], 'run' => function () use (&$called): string {
 				$called = true;
 				return 'pong';
 			}]],
 			'search' => false,
+			'maxTools' => 2,
 		]);
 		try {
-			$hub->askNow($userId, Application::APP_ID, 'probe', [['role' => 'user', 'text' => 'Call the tool ping once, then answer with the word done.']], ['search' => false]);
+			$hub->ask($userId, 'probe', [['role' => 'user', 'text' => 'Call the tool ping once, then answer with the word done.']], ['search' => false, 'retries' => 1]);
 		} catch (\Throwable) {
 		}
 		return $called;

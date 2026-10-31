@@ -33,7 +33,7 @@ class ToolChoiceTest extends TestCase {
 		$reply = new Reply($this->createMock(Conversation::class), $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class),
 			$this->createMock(OdsWriter::class), $this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class),
 			$this->createMock(Web::class), $this->createMock(Calendar::class), $this->createMock(Requests::class), $this->createMock(Actions::class),
-			$this->createMock(Capabilities::class), $this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class),
+			$this->createMock(Capabilities::class), $this->createMock(\OCA\TalkAi\Ai\Hub::class), $this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class),
 			$this->createMock(Policy::class), $this->createMock(Confirmations::class), new FakeProgress(), $this->createMock(\OCP\IConfig::class),
 			$this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
 		$set = function (string $name, mixed $value) use ($reply): void {

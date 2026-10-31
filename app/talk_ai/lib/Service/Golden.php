@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Service;
 
+use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\AppInfo\Application;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -15,7 +16,7 @@ use OCP\IUserManager;
 use OCP\Server;
 
 /**
- * The golden set against the AI connection AI-Hub uses now (P-07, F-47): the
+ * The golden set against the AI connection the app uses now (P-07, F-47): the
  * acceptance cases as real document jobs of a test account in a temporary
  * conversation, each result judged by the sandbox's checks. The results are kept
  * per provider and model (golden_results), so a change of model can be judged
@@ -42,14 +43,14 @@ class Golden {
 		private IRootFolder $rootFolder,
 		private IUserManager $users,
 		private IAppConfig $appConfig,
+		private Hub $hub,
 	) {
 	}
 
 	/** Runs the cases (all, or the named ones) as the account; their results. */
 	public function run(string $userId, array $only, callable $progress): array {
-		$hub = Server::get('OCA\AIHub\Service\HubService');
-		$status = $hub->status(Application::APP_ID);
-		$engine = $status['provider'] . ' ' . $status['model'];
+		$status = $this->hub->status(DocumentJob::SCENARIO);
+		$engine = $status->provider . ' ' . $status->model;
 		$user = $this->users->get($userId) ?? throw new \RuntimeException('no such account: ' . $userId);
 		Server::get(\OCP\IUserSession::class)->setUser($user);
 		$rooms = Server::get('OCA\Talk\Service\RoomService');

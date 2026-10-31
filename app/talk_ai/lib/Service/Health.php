@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Service;
 
+use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\AppInfo\Application;
 use OCP\App\IAppManager;
 use OCP\IAppConfig;
@@ -14,7 +15,7 @@ use OCP\Server;
 
 /**
  * What the bot needs and what it loses without it (occ talk_ai:check and the
- * administration): AI-Hub and its connection's abilities, the document sandbox
+ * administration): the AI connection and its abilities, the document sandbox
  * with LibreOffice, Poppler and the libraries, Collabora, pdftotext, pdftoppm,
  * Tesseract, speech-to-text, PHP's zip, and how often background jobs run.
  */
@@ -25,6 +26,7 @@ class Health {
 		private IAppManager $apps,
 		private Sandbox $sandbox,
 		private Capabilities $capabilities,
+		private Hub $hub,
 	) {
 	}
 
@@ -33,19 +35,14 @@ class Health {
 	 */
 	public function check(bool $deep = false, string $userId = ''): array {
 		$out = [];
-		$hub = class_exists('OCA\AIHub\Service\HubService') ? Server::get('OCA\AIHub\Service\HubService') : null;
-		$status = null;
-		if ($hub === null) {
-			$out[] = self::item('AI-Hub', false, 'not installed', 'the bot cannot answer at all');
-		} else {
-			$status = $hub->status(Application::APP_ID);
-			$out[] = self::item('AI-Hub', (bool)$status['ready'], $status['ready'] ? $status['provider'] . ' ' . $status['model'] : 'not set up', 'the bot cannot answer at all');
-		}
-		if ($hub !== null && $status !== null && $status['ready']) {
+		$status = $this->hub->status(Reply::SCENARIO);
+		$out[] = self::item('AI connection', $status->ready, $status->ready ? $status->engine . ': ' . $status->provider . ' ' . $status->model
+			: 'not ready (' . $status->reason . ')', 'the bot cannot answer at all');
+		if ($status->ready) {
 			if ($deep) {
 				$this->capabilities->reset();
 			}
-			$caps = $this->capabilities->of($hub, $status, $userId !== '' ? $userId : 'admin');
+			$caps = $this->capabilities->of($this->hub, $status, $userId !== '' ? $userId : 'admin');
 			$out[] = self::item('Tool calling', $caps['tools'], $caps['tools'] ? 'works (probe)' : 'the model did not call the probe tool', 'only chat, reading files and summaries; no documents, calendar, calculations');
 			$out[] = self::item('Image input', $caps['images'] ? true : null, $caps['images'] ? 'yes' : 'no', 'photos only via OCR; document layout checked as text');
 			$out[] = self::item('Context', true, number_format($caps['context'], 0, '.', ' ') . ' tokens (' . $caps['family'] . ')', '');

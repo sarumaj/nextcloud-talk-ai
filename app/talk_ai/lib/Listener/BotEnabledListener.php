@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Listener;
 
+use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\AppInfo\Application;
 use OCA\TalkAi\Service\Bot;
 use OCA\TalkAi\Service\Conversation;
@@ -18,8 +19,8 @@ use Psr\Log\LoggerInterface;
 /**
  * When a moderator enables the bot in a conversation (BotEnabledEvent): a notice
  * that an AI answers here, which provider processes the messages and where
- * (transparency_text, else one made from AI-Hub's settings and the app's
- * provider_location).
+ * (transparency_text, else one made from the engine's provider and model and
+ * the app's provider_location).
  *
  * @template-implements IEventListener<Event>
  */
@@ -50,12 +51,12 @@ class BotEnabledListener implements IEventListener {
 			return 'ℹ️ ' . $custom;
 		}
 		$provider = $this->texts->t('', 'the AI provider set up by the administrator');
-		if (class_exists('OCA\AIHub\Service\HubService')) {
-			try {
-				$status = \OCP\Server::get('OCA\AIHub\Service\HubService')->status(Application::APP_ID);
-				$provider = trim($status['provider'] . ' (' . $status['model'] . ')');
-			} catch (\Throwable) {
+		try {
+			$status = \OCP\Server::get(Hub::class)->status();
+			if ($status->provider !== '') {
+				$provider = trim($status->provider . ' (' . $status->model . ')');
 			}
+		} catch (\Throwable) {
 		}
 		$where = trim($this->appConfig->getValueString(Application::APP_ID, 'provider_location', ''));
 		return 'ℹ️ ' . $this->texts->t('', '%1$s is an AI assistant. Messages that address it, with the files and images it reads for the answer, are processed by %2$s. It answers with the rights of the person asking. Write "@%1$s help" to see what it can do.',

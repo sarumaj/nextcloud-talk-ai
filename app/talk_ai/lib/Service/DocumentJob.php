@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Service;
 
+use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\AppInfo\Application;
 use OCP\Files\Folder;
 use OCP\Files\IAppData;
@@ -20,12 +21,12 @@ use Psr\Log\LoggerInterface;
  * A document job: the model builds an office file with code in a sandbox, renders it,
  * looks at the pages, corrects it, and delivers it into the person's files.
  *
- * The loop: AI-Hub runs up to eight tool calls per question, so the job asks in
- * segments (each with the job's history and a trace of what was done) until the model
- * calls finish, or the tool calls, the time or the corrections are used up. Page images
- * the model renders or reads go with the next segment (AI-Hub takes four images per
- * question; a contact sheet shows all pages at once). Without image input the model
- * gets the pages' text and the automatic checks instead.
+ * The loop: one run of Ai\Loop with the job's whole budget of tool calls, until the
+ * model calls finish, or the tool calls, the time or the corrections are used up; a
+ * model that stops without finish is reminded (three times at most). Page images the
+ * model renders or reads come back with the tool's result (as many as the engine
+ * takes; a contact sheet shows all pages at once). Without image input the model gets
+ * the pages' text and the automatic checks instead.
  *
  * Tools: bash, read_file, write_file, edit_file, list_files, render_document,
  * deliver_file, finish; paths stay inside /work (the runner refuses others).
@@ -59,18 +60,18 @@ class DocumentJob {
 	private float $started = 0;
 	private int $tools = 0;
 	private int $rounds = 0;
-	private int $chars = 0;
+	/** Tokens of the job's turns so far (reported, or estimated by Loop). */
+	private int $tokens = 0;
 	private int $maxTools = 60;
 	/** 0: no limit; a job ends when it stops making progress (stalled steps) or has used its tool calls. */
 	private int $maxSeconds = 0;
 	private int $budget = 3;
 	private bool $images = false;
+	private int $maxImages = 4;
 	private bool $cancelled = false;
 	/** @var array<string, int> renders per file */
 	private array $renders = [];
-	/** @var array<string, int> identical tool calls (tool and arguments) */
-	private array $repeats = [];
-	/** @var list<array{type: string, data: string}> images for the next segment */
+	/** @var list<array{type: string, data: string}> images for the model with the next tool results */
 	private array $pending = [];
 	/** @var array<string, string> the last render's images: name => PNG */
 	private array $renderImages = [];
@@ -81,8 +82,6 @@ class DocumentJob {
 	/** @var list<string> input files in /work/input that are office documents (for the diff) */
 	private array $originals = [];
 	private int $previews = 0;
-	/** Page images wait for the next round: until then no further tool runs (the model must look first). */
-	private bool $mustLook = false;
 	private bool $finished = false;
 	private string $summary = '';
 	private string $openIssues = '';
@@ -96,7 +95,7 @@ class DocumentJob {
 	/** @var list<object> */
 	private array $previewMessages = [];
 	private string $skillsVersion = '';
-	/** @var array<string, array> this job's tools, also for tool calls that come as plain text */
+	/** @var array<string, array> this job's tools */
 	private array $toolSet = [];
 
 	public function __construct(
@@ -115,17 +114,13 @@ class DocumentJob {
 		private Texts $texts,
 		private Progress $progress,
 		private LoggerInterface $logger,
+		private Hub $hub,
 	) {
 	}
 
 	/** Waits before asking again (tests skip it). */
 	protected function pause(int $seconds): void {
 		sleep($seconds);
-	}
-
-	/** AI-Hub's service, or null when it is not installed. */
-	protected function hub(): ?object {
-		return class_exists('OCA\AIHub\Service\HubService') ? Server::get('OCA\AIHub\Service\HubService') : null;
 	}
 
 	/** Whether this person may have documents built (the feature "sandbox"). */
@@ -167,16 +162,12 @@ class DocumentJob {
 		$outcome = '';
 		$state = Jobs::FAILED;
 		try {
-			$hub = $this->hub();
-			if ($hub === null) {
-				throw new \RuntimeException('AI-Hub is not installed');
+			$status = $this->hub->status(self::SCENARIO);
+			if (!$status->ready) {
+				throw new \RuntimeException(Reply::explain($status->reason ?: 'not-ready'));
 			}
-			$status = $hub->status(Application::APP_ID);
-			if (!$status['ready']) {
-				throw new \RuntimeException('the AI connection is not set up (AI-Hub, admin settings)');
-			}
-			if (!$this->toolsWork($hub, $status)) {
-				throw new \RuntimeException('the AI connection (' . $status['provider'] . ' ' . $status['model'] . ') does not call tools, which building documents needs; an administrator can choose another model in AI-Hub');
+			if (!$this->toolsWork($status)) {
+				throw new \RuntimeException('the AI connection (' . $status->provider . ' ' . $status->model . ') does not call tools, which building documents needs; an administrator can choose another model');
 			}
 			// The document goes into the person's files: with no room there, all the work would only fail at the
 			// delivery (2026-10-15: a full test account's jobs spent 66 tool calls before giving up).
@@ -188,7 +179,8 @@ class DocumentJob {
 			if (is_numeric($free) && $free >= 0 && $free < self::MIN_FREE) {
 				throw new \RuntimeException($this->say('Storage full', self::size((int)$free)));
 			}
-			$this->images = (bool)$status['images'];
+			$this->images = $status->images;
+			$this->maxImages = max(1, $status->maxImages);
 			try {
 				$this->box = $this->sandbox->create([
 					'cpus' => $this->setting('document_cpus', 2), 'memory_mb' => $this->setting('document_memory_mb', 2048),
@@ -212,12 +204,12 @@ class DocumentJob {
 			$style = $this->copyStyle();
 			$this->skillsVersion = trim($this->sandbox->exec($this->box, 'cat /skills/VERSION 2>/dev/null', 10)['stdout']);
 			$this->toolSet = $this->tools();
-			$hub->registerScenario(Application::APP_ID, self::SCENARIO, [
+			$this->hub->registerScenario(self::SCENARIO, [
 				'system' => $this->systemPrompt(),
 				'tools' => array_map(fn (array $tool) => ['input' => Reply::lenient($tool['input'])] + $tool, $this->toolSet),
 				'search' => false,
 			]);
-			[$state, $outcome] = $this->loop($hub, $inputs, $style);
+			[$state, $outcome] = $this->loop($inputs, $style);
 		} catch (\Throwable $e) {
 			$this->logger->warning('AI bot: document job failed: ' . $e->getMessage(), ['exception' => $e]);
 			$outcome = '⚠️ ' . $this->say('Not built', $name) . ': ' . mb_substr($e->getMessage(), 0, 300);
@@ -234,13 +226,13 @@ class DocumentJob {
 
 	private function end(int $id, string $state, string $outcome): void {
 		$this->progress->done('job-' . $id);
-		$tokens = $this->tokens();
+		$tokens = $this->tokens;
 		$this->jobs->beat($id, $this->tools, $this->rounds, $tokens);
 		$this->jobs->finish($id, $state, $outcome, $this->delivered, '');
 		$this->jobs->use((string)$this->job['userId'], 0, 0, $tokens);
 		// The administration's log: one line per job.
 		$this->logger->info('AI bot: document job ended', ['job' => $id, 'user' => $this->job['userId'], 'state' => $state,
-			'seconds' => (int)$this->elapsed(), 'tool_calls' => $this->tools, 'rounds' => $this->rounds, 'tokens_estimated' => $tokens,
+			'seconds' => (int)$this->elapsed(), 'tool_calls' => $this->tools, 'rounds' => $this->rounds, 'tokens' => $tokens,
 			'renders' => array_sum($this->renders), 'delivered' => count($this->delivered), 'version' => self::VERSION]);
 		// Only the result: the steps stay in the job's memory and go nowhere (no protocol, no page images).
 		$this->setStatus($outcome, true);
@@ -250,26 +242,47 @@ class DocumentJob {
 		}
 	}
 
-	/** The segments of the loop until finish or a limit: [state, outcome line]. */
-	private function loop(object $hub, array $inputs, string $style): array {
+	/** The loop until finish or a limit: [state, outcome line]. */
+	private function loop(array $inputs, string $style): array {
 		$name = (string)$this->job['name'];
 		$messages = [['role' => 'user', 'text' => $this->firstMessage($inputs, $style)]];
 		$idle = 0;
-		for ($segment = 1; $segment <= 40; $segment++) {
+		while (true) {
 			$before = $this->tools;
-			$images = $this->images ? array_slice($this->pending, 0, 4) : [];
-			$this->pending = [];
-			$this->mustLook = false;
-			$result = $this->ask($hub, $messages, $images);
-			$this->rounds++;
-			$text = trim((string)($result['text'] ?? ''));
-			$this->chars += mb_strlen($text);
-			$messages[] = ['role' => 'assistant', 'text' => $text !== '' ? mb_substr($text, 0, 4000) : '(worked with the tools)'];
+			$result = $this->hub->ask((string)$this->job['userId'], self::SCENARIO, $messages, [
+				'search' => false,
+				// The wrapper refuses all but delivering and finishing after the budget; this ends a model that keeps on.
+				'maxTools' => max(0, $this->maxTools + 5 - $this->tools),
+				'resultChars' => self::TEXT_LIMIT * 2,
+				'repeatable' => ['render_document', 'list_files'],
+				// Alive between turns too (retries can take a while), and a "stop" is seen before the next one.
+				'heartbeat' => function (): bool {
+					if (!$this->cancelled && !$this->jobs->beat((int)$this->job['id'], $this->tools, $this->rounds, $this->tokens)) {
+						$this->cancelled = true;
+					}
+					return !$this->cancelled;
+				},
+				'afterTools' => fn () => $this->attachments(),
+				'pause' => fn (int $seconds) => $this->pause($seconds),
+			]);
+			$this->rounds += (int)($result['rounds'] ?? 0);
+			$this->tokens += (int)$result['usage']['in'] + (int)$result['usage']['out'];
+			$messages = $result['messages'] !== [] ? $result['messages'] : $messages;
+			$text = trim((string)$result['text']);
 			if ($this->cancelled) {
 				return [Jobs::CANCELLED, '✋ ' . $this->say('Cancelled', $name) . $this->deliveredNote()];
 			}
 			if ($this->finished) {
 				break;
+			}
+			if ($result['state'] !== 'done') {
+				if ($result['stop'] === 'max-tools') {
+					return [Jobs::FAILED, '⚠️ ' . $this->say('Too many steps', $name) . $this->deliveredNote()];
+				}
+				if ($result['stop'] === 'repeat') {
+					return [Jobs::FAILED, '⚠️ ' . $this->say('Stopped', $name) . ($text !== '' ? ': ' . mb_substr($text, 0, 300) : '') . $this->deliveredNote()];
+				}
+				throw new \RuntimeException(Reply::explain((string)$result['error']));
 			}
 			if ($this->overTime()) {
 				return [Jobs::FAILED, '⚠️ ' . $this->say('Time is up', $name) . $this->deliveredNote()];
@@ -277,91 +290,36 @@ class DocumentJob {
 			if ($this->tools >= $this->maxTools + 5) {
 				return [Jobs::FAILED, '⚠️ ' . $this->say('Too many steps', $name) . $this->deliveredNote()];
 			}
-			// A tool call written as plain JSON or <invoke> (the model lost AI-Hub's tool format): run it all the same.
-			$stray = $this->tools === $before ? $this->strayCall($text) : null;
-			if ($stray !== null) {
-				$messages[] = ['role' => 'user', 'text' => 'Your last tool call came as plain text; it was run anyway. Use the tool block format '
-					. "from the instructions for the next ones.\nResult of " . $stray[0] . ":\n" . mb_substr($stray[1], 0, 20000)];
-				$messages[] = ['role' => 'assistant', 'text' => '(noted)'];
-			}
+			// The model stopped without finish: reminded, three times in a row at most.
 			$idle = $this->tools === $before ? $idle + 1 : 0;
 			if ($idle >= 3) {
 				return [Jobs::FAILED, '⚠️ ' . $this->say('Stopped', $name) . ($text !== '' ? ': ' . mb_substr($text, 0, 300) : '') . $this->deliveredNote()];
 			}
-			$messages[] = ['role' => 'user', 'text' => $this->nextMessage($idle > 0)];
-			// AI-Hub keeps forty turns: the task and the latest ones.
-			if (count($messages) > 30) {
-				$messages = [$messages[0], ...array_slice($messages, -27)];
-				if ($messages[1]['role'] !== 'assistant') {
-					array_splice($messages, 1, 1);
-				}
-			}
-		}
-		if (!$this->finished) {
-			return [Jobs::FAILED, '⚠️ ' . $this->say('Not finished', $name) . $this->deliveredNote()];
+			$messages[] = ['role' => 'user', 'parts' => [['kind' => 'text', 'text' => $this->nextMessage($idle > 0)]]];
 		}
 		$files = implode("\n", array_map(fn ($d) => '📄 ' . $d['name'] . ' — ' . $this->say('Open in Office', $d['link']), $this->delivered));
 		return [Jobs::DONE, '✅ ' . ($this->summary !== '' ? mb_substr($this->summary, 0, 500) : $this->say('Done', $name)) . "\n" . $files
 			. ($this->openIssues !== '' ? "\n" . $this->say('Open', $this->openIssues) : '')];
 	}
 
-	/** One segment; AI-Hub's limit of tool calls per question ends it, which is fine. Retries with backoff. */
-	private function ask(object $hub, array $messages, array $images): array {
-		$context = $this->traceContext();
-		$this->chars += mb_strlen(json_encode($messages, JSON_UNESCAPED_UNICODE) ?: '') + mb_strlen($context) + 12000;
-		for ($attempt = 0; $attempt < 4; $attempt++) {
-			// Alive between turns too (retries can take a while), and a "stop" is seen before the next one.
-			if (!$this->jobs->beat((int)$this->job['id'], $this->tools, $this->rounds, $this->tokens())) {
-				$this->cancelled = true;
-				return [];
-			}
-			$result = $hub->askNow((string)$this->job['userId'], Application::APP_ID, self::SCENARIO, $messages, [
-				'context' => $context, 'images' => $images, 'search' => false,
-			]);
-			if (($result['state'] ?? '') === 'done') {
-				return $result;
-			}
-			$error = (string)($result['error'] ?? '');
-			if (str_contains($error, 'too many tools')) {
-				return ['text' => '(used this turn\'s tool calls)'];
-			}
-			if ($this->cancelled) {
-				return [];
-			}
-			$transient = in_array($error, ['busy', 'rate-limited'], true) || preg_match('/time(d)? ?out|in time|stalled|overloaded|unavailable|5\d\d|connection/i', $error) === 1;
-			if ($transient && $attempt < 3) {
-				$this->pause(10 * 2 ** $attempt);
-				continue;
-			}
-			throw new \RuntimeException(Reply::explain($error));
+	/** What goes with the tool results besides them: the images a render or read_file made. */
+	private function attachments(): array {
+		if (!$this->images || $this->pending === []) {
+			$this->pending = [];
+			return [];
 		}
-		return [];
-	}
-
-	/**
-	 * A tool call in the text, run: [tool, result], or null. As JSON ({"tool": …, "args": …}),
-	 * or in the model's own call format (<invoke name="…"><parameter name="…">…</parameter>),
-	 * which it slips into after many rounds (2026-10-15: a job stopped on three of them).
-	 */
-	private function strayCall(string $text): ?array {
-		if (preg_match('/<invoke name="(\w+)">(.*?)<\/invoke>/s', $text, $m) === 1 && isset($this->toolSet[$m[1]])) {
-			$args = [];
-			preg_match_all('/<parameter name="(\w+)">(.*?)<\/parameter>/s', $m[2], $params, PREG_SET_ORDER);
-			foreach ($params as [, $key, $value]) {
-				// Numbers, lists and objects come as JSON; text as it is.
-				$decoded = json_decode($value, true);
-				$args[$key] = is_array($decoded) || is_int($decoded) || is_float($decoded) || is_bool($decoded) ? $decoded : $value;
-			}
-		} elseif (preg_match('/\{\s*"tool"\s*:\s*"(\w+)"\s*,\s*"args"\s*:\s*(\{.*\})\s*\}/s', $text, $m) === 1 && isset($this->toolSet[$m[1]])) {
-			$args = json_decode($m[2], true);
-		} else {
-			return null;
+		$parts = [['kind' => 'text', 'text' => $this->isImage()
+			? 'Attached are the images you asked for (after a render: the image, then a small copy as a chat shows it; a '
+				. 'checkerboard marks transparency). Check what the task asks for is there and right, text is legible and spelt '
+				. 'right, nothing is cut off or overlaps, shapes and proportions are right, colours have contrast; then correct or deliver.'
+			: 'Attached are the images you asked for (after a render: the contact sheet of all pages first, then single pages). '
+			. 'Check each page for overflow, cut or overlapping text, empty pages, wrong fonts, poor contrast and layout faults; '
+			. 'then correct or deliver.']];
+		foreach (array_slice($this->pending, 0, $this->maxImages) as $image) {
+			$parts[] = ['kind' => 'image', 'type' => $image['type'], 'data' => $image['data']];
 		}
-		if (!is_array($args)) {
-			return null;
-		}
-		$result = ($this->toolSet[$m[1]]['run'])((string)$this->job['userId'], $args);
-		return [$m[1], is_string($result) ? $result : (string)json_encode($result, JSON_UNESCAPED_UNICODE)];
+		$this->pending = [];
+		return $parts;
 	}
 
 	private function firstMessage(array $inputs, string $style): string {
@@ -379,15 +337,6 @@ class DocumentJob {
 
 	private function nextMessage(bool $idle): string {
 		$lines = [];
-		if ($this->images && $this->pending !== []) {
-			$lines[] = $this->isImage()
-				? 'Attached are the images you asked for (after a render: the image, then a small copy as a chat shows it; a '
-					. 'checkerboard marks transparency). Check what the task asks for is there and right, text is legible and spelt '
-					. 'right, nothing is cut off or overlaps, shapes and proportions are right, colours have contrast; then correct or deliver.'
-				: 'Attached are the images you asked for (after a render: the contact sheet of all pages first, then single pages). '
-				. 'Check each page for overflow, cut or overlapping text, empty pages, wrong fonts, poor contrast and layout faults; '
-				. 'then correct or deliver.';
-		}
 		$lines[] = sprintf('Continue the job. Tool calls used: %d of %d; time used: %d s', $this->tools, $this->maxTools, (int)$this->elapsed())
 			. ($this->maxSeconds > 0 ? sprintf(' of %d s.', $this->maxSeconds) : '.');
 		if ($this->delivered !== []) {
@@ -491,13 +440,8 @@ class DocumentJob {
 		if ($this->cancelled) {
 			return 'The job was cancelled by the person. Stop now: end your turn without further tool calls.';
 		}
-		if ($this->mustLook) {
-			// Not counted: the model only has to end its turn to see the pages it rendered.
-			return 'Not run: the page images of your last render are waiting for you. End this turn now with one short sentence (no '
-				. 'tool call); they come with the next message. Look at them before you change, render or deliver anything.';
-		}
 		$this->tools++;
-		if (!$this->jobs->beat((int)$this->job['id'], $this->tools, $this->rounds, $this->tokens())) {
+		if (!$this->jobs->beat((int)$this->job['id'], $this->tools, $this->rounds, $this->tokens)) {
 			$this->cancelled = true;
 			$this->trace[] = ['time' => date('H:i:s'), 'tool' => $name, 'input' => '', 'output' => 'cancelled by the person'];
 			return 'The job was cancelled by the person. Stop now: end your turn without further tool calls.';
@@ -508,18 +452,12 @@ class DocumentJob {
 		if ($this->tools > $this->maxTools && !in_array($name, ['deliver_file', 'finish', 'render_document'], true)) {
 			return 'The tool calls are used up. Deliver the best version now (render_document if not done, deliver_file), then finish with the open issues.';
 		}
-		$key = $name . ' ' . json_encode($args);
-		$this->repeats[$key] = ($this->repeats[$key] ?? 0) + 1;
-		if ($this->repeats[$key] > 3 && !in_array($name, ['render_document', 'list_files'], true)) {
-			return 'Refused: this exact call ran three times already. Do something different (read the error, change the script).';
-		}
 		$this->phaseOf($name, $args);
 		try {
 			$output = $run();
 		} catch (\Throwable $e) {
 			$output = 'Error: ' . $e->getMessage();
 		}
-		$this->chars += mb_strlen($output);
 		$this->trace[] = ['time' => date('H:i:s'), 'tool' => $name,
 			'input' => mb_substr(json_encode($args, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '', 0, 4000),
 			'output' => mb_substr($output, 0, 6000)];
@@ -560,7 +498,7 @@ class DocumentJob {
 			}
 			$data = $this->sandbox->get($this->box, $path);
 			$this->queue($data, self::IMAGE_TYPES[$extension]);
-			return 'The image ' . $path . ' is shown to you with the next message: end this turn with a short note to see it.';
+			return 'The image ' . $path . ' is attached below.';
 		}
 		if ($extension === 'pdf') {
 			$r = $this->sandbox->exec($this->box, 'pdftotext -layout ' . escapeshellarg($path) . ' - | head -c 60000', 60);
@@ -647,14 +585,13 @@ class DocumentJob {
 		}
 		if ($this->images) {
 			$this->pending = [];
-			foreach (array_slice($shown, 0, 4) as $png) {
+			foreach (array_slice($shown, 0, $this->maxImages) as $png) {
 				if (isset($this->renderImages[basename($png)]) && strlen($this->renderImages[basename($png)]) < 4.5 * 1024 * 1024) {
 					$this->queue($this->renderImages[basename($png)], 'image/png');
 				}
 			}
-			$out .= 'The page images (' . ($sheet !== '' ? 'a contact sheet of all pages, then ' : '') . 'the first pages; ask for others with pages) are shown '
-				. "to you with the next message: end this turn now with a short note to see them (other tools wait until you have).\n";
-			$this->mustLook = $this->pending !== [];
+			$out .= 'The page images (' . ($sheet !== '' ? 'a contact sheet of all pages, then ' : '') . 'the first pages; ask for others with pages) are '
+				. "attached below: look at them before you change, render or deliver anything.\n";
 		} elseif (self::skillOf(pathinfo($path, PATHINFO_EXTENSION)) === 'image') {
 			$out .= "This AI connection takes no images: rely on the checks above, and draw so that the result follows from the code "
 				. "(sizes, positions and text computed, not guessed).\n";
@@ -872,26 +809,14 @@ class DocumentJob {
 		return Reply::fileName((str_contains($name, $date) ? $name : $name . ' – ' . $date) . '.' . $extension);
 	}
 
-	/** Whether the AI connection calls tools: tried once per provider and model, remembered for a day. */
-	private function toolsWork(object $hub, array $status): bool {
-		$engine = $status['provider'] . '|' . $status['mode'] . '|' . $status['model'];
+	/** Whether the AI connection calls tools: tried once per engine and model, remembered for a day. */
+	private function toolsWork(\OCA\TalkAi\Ai\Status $status): bool {
+		$engine = Capabilities::engineKey($status);
 		$known = json_decode($this->appConfig->getValueString(Application::APP_ID, 'tool_probe', '{}'), true);
 		if (is_array($known) && ($known['engine'] ?? '') === $engine && time() - (int)($known['time'] ?? 0) < 86400) {
 			return (bool)$known['ok'];
 		}
-		$called = false;
-		$hub->registerScenario(Application::APP_ID, 'probe', [
-			'system' => 'You test whether tools can be called.',
-			'tools' => ['ping' => ['description' => 'Answers pong.', 'input' => ['type' => 'object'], 'run' => function () use (&$called): string {
-				$called = true;
-				return 'pong';
-			}]],
-			'search' => false,
-		]);
-		try {
-			$hub->askNow((string)$this->job['userId'], Application::APP_ID, 'probe', [['role' => 'user', 'text' => 'Call the tool ping once, then answer with the word done.']], ['search' => false]);
-		} catch (\Throwable) {
-		}
+		$called = Capabilities::probeTools($this->hub, (string)$this->job['userId']);
 		$this->appConfig->setValueString(Application::APP_ID, 'tool_probe', json_encode(['engine' => $engine, 'ok' => $called, 'time' => time()]));
 		return $called;
 	}
@@ -973,28 +898,9 @@ class DocumentJob {
 		}
 	}
 
-	private function traceContext(): string {
-		if ($this->trace === []) {
-			return '';
-		}
-		$lines = ['What you have done in this job so far (oldest first; outputs shortened):'];
-		foreach (array_slice($this->trace, -25) as $t) {
-			$lines[] = '- ' . $t['tool'] . ' ' . mb_substr(preg_replace('/\s+/', ' ', $t['input']) ?? '', 0, 300) . ' → ' . mb_substr(preg_replace('/\s+/', ' ', $t['output']) ?? '', 0, 400);
-		}
-		return implode("\n", $lines);
-	}
-
 	private function queue(string $data, string $type): void {
 		$this->pending[] = ['type' => $type, 'data' => base64_encode($data)];
-		$this->pending = array_slice($this->pending, -4);
-	}
-
-	/**
-	 * Tokens, estimated: AI-Hub reports no use, so the characters sent and received
-	 * (each tool call sends the conversation again) by four, plus about 1 500 per image.
-	 */
-	private function tokens(): int {
-		return intdiv($this->chars * 2, 4) + $this->tools * 1500 + array_sum($this->renders) * 4 * 1500;
+		$this->pending = array_slice($this->pending, -$this->maxImages);
 	}
 
 	private function deliveredNote(): string {

@@ -22,7 +22,7 @@ class Check extends Command {
 
 	protected function configure(): void {
 		$this->setName('talk_ai:check')
-			->setDescription('Checks AI-Hub, tool calling, the document sandbox, Collabora, Poppler, Tesseract and more')
+			->setDescription('Checks the AI connection, tool calling, the document sandbox, Collabora, Poppler, Tesseract and more')
 			->addOption('deep', null, InputOption::VALUE_NONE, 'Probe tool calling again and look inside a sandbox container')
 			->addOption('user', null, InputOption::VALUE_REQUIRED, 'The account to probe the AI with', 'admin')
 			->addOption('output', null, InputOption::VALUE_REQUIRED, 'plain or json', 'plain');

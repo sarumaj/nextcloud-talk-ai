@@ -6,6 +6,9 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Tests;
 
+use OCA\TalkAi\Ai\Engine\Missing;
+use OCA\TalkAi\Ai\Engines;
+use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\Document\OdpWriter;
 use OCA\TalkAi\Document\OdsWriter;
 use OCA\TalkAi\Document\OdtWriter;
@@ -49,16 +52,23 @@ class ReplyTest extends TestCase {
 		$conversation->method('room')->willReturn($room);
 		$requests = $this->createMock(Requests::class);
 		$requests->method('take')->willReturn('abc123');
-		// Without AI-Hub (not installed in tests) the answer is a note, and the request is closed.
-		$conversation->expects($this->once())->method('postText')->with($room, $this->stringContains('AI-Hub'));
+		// Without an AI connection the answer is a note, and the request is closed.
+		$conversation->expects($this->once())->method('postText')->with($room, $this->stringContains('not set up'));
 		$requests->expects($this->once())->method('done')->with('abc123', 'answered');
 		$this->reply($conversation, $requests)->answer('room1', 'ewa', 100, '@Claude hi');
+	}
+
+	/** A Hub whose engine is not set up. */
+	private function hub(): Hub {
+		$engines = new Engines($this->createMock(\OCP\IAppConfig::class));
+		$engines->fix(new Missing());
+		return new Hub($engines);
 	}
 
 	private function reply(Conversation $conversation, Requests $requests): Reply {
 		return new Reply($conversation, $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class), $this->createMock(OdsWriter::class),
 			$this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class), $this->createMock(Web::class),
-			$this->createMock(Calendar::class), $requests, $this->createMock(Actions::class), $this->createMock(Capabilities::class),
+			$this->createMock(Calendar::class), $requests, $this->createMock(Actions::class), $this->createMock(Capabilities::class), $this->hub(),
 			$this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class), $this->createMock(Policy::class),
 			$this->createMock(Confirmations::class), new FakeProgress(), $this->createMock(\OCP\IConfig::class), $this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
 	}

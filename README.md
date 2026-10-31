@@ -182,8 +182,8 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   the question to the app's process route as a request signed with the bot's secret, and doesn't
   wait. When that fails, a background job answers instead.
 - **Answering:** `lib/Service/Reply.php` reads the conversation's recent messages through Talk's
-  message parser, as the asking person sees them. It then asks AI-Hub, scenario `chat`, with
-  web search and tools that run in PHP with that person's rights:
+  message parser, as the asking person sees them. It then asks the AI layer (`lib/Ai/Hub.php`),
+  scenario `chat`, with web search and tools that run in PHP with that person's rights:
     - files: `list_files`, `read_file` (`lib/Document/TextExtractor.php`; old formats converted
       by Collabora, OCR by Tesseract), `find_files`;
     - writing: `send_file` (`lib/Document/OdtWriter.php`, `OdsWriter.php`, `OdpWriter.php`,
@@ -209,10 +209,9 @@ The app (`app/talk_ai/`) is PHP, with no build step.
 - **Documents in the sandbox:** `create_document` hands a job to the process route's sibling
   `/document`. `lib/Service/DocumentJob.php` runs it: the model works with `bash`, `read_file`,
   `write_file`, `edit_file`, `list_files`, `render_document`, `deliver_file` and `finish` in its
-  container (`lib/Service/Sandbox.php` talks to `sandbox/runner.py`). AI-Hub runs up to eight
-  tool calls per question, so the job asks in rounds, with its history and a summary of the
-  steps, until `finish` or a limit. Rendered pages (a contact sheet and single pages) go to the
-  model as images with the next round. A status message follows the phases; only the result
+  container (`lib/Service/Sandbox.php` talks to `sandbox/runner.py`), in one run of the AI
+  layer's loop (`lib/Ai/Loop.php`) until `finish` or a limit. Rendered pages (a contact sheet
+  and single pages) go to the model as images with the render's result. A status message follows the phases; only the result
   stays: the steps are kept nowhere (no protocol, no page images), and the previews' messages
   and files are removed when the job ends (protocols of earlier versions are removed by
   `lib/BackgroundJob/CleanTraces.php`). The skills (`skills/<format>/SKILL.md` and scripts)

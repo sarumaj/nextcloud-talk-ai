@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **The app runs its own AI loop** (`lib/Ai/`): `Hub` and `Loop` run the tools, and the
+  model is asked through an `Engine`; for now AI-Hub's engines (`Engine/AiHub.php`). Tool
+  calls are no longer limited to eight per question: an answer may make 20, a document
+  job its whole budget (`document_max_tools`) in one run instead of segments, and several
+  calls in one reply all run. A busy provider is asked the same turn again, so no tool
+  runs twice. Page images come back with the render's result, without an extra turn to
+  look. Token use comes from the provider where it reports it, else estimated as before.
+- The question's context goes with the question, never into the system prompt.
+
 ## 0.11.0 - 2026-10-28
 
 ### Removed

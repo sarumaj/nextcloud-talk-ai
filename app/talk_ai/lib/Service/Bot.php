@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Service;
 
+use OCA\TalkAi\Ai\Hub;
+use OCA\TalkAi\Ai\Status;
 use OCA\TalkAi\AppInfo\Application;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IAppConfig;
@@ -14,8 +16,8 @@ use OCP\Server;
 
 /**
  * The bot in Talk and its name. The app setting "name" fixes the name; without
- * it the bot is named after the AI that answers, as AI-Hub is set up for this
- * app (Claude, Gemini, ChatGPT, …), and renamed when that changes. Talk renames
+ * it the bot is named after the AI that answers (the engine's provider and model:
+ * Claude, Gemini, ChatGPT, …), and renamed when that changes. Talk renames
  * a bot when it is installed again with the same address and secret.
  */
 class Bot {
@@ -23,8 +25,8 @@ class Bot {
 	private const FEATURES = 4 | 8;
 	private const DESCRIPTION = 'Answers with AI: reads the files shared here, writes documents, slides, spreadsheets and flash cards, does maths and searches the web.';
 
-	/** Names by AI-Hub provider, and for OpenAI-compatible servers by the model's family. */
-	private const PROVIDERS = ['claude' => 'Claude', 'gemini' => 'Gemini'];
+	/** Names by provider, and for OpenAI-compatible servers by the model's family. */
+	private const PROVIDERS = ['claude' => 'Claude', 'anthropic' => 'Claude', 'gemini' => 'Gemini', 'google' => 'Gemini'];
 	private const MODELS = ['gpt' => 'ChatGPT', 'o1' => 'ChatGPT', 'o3' => 'ChatGPT', 'o4' => 'ChatGPT', 'claude' => 'Claude', 'gemini' => 'Gemini',
 		'gemma' => 'Gemma', 'llama' => 'Llama', 'mistral' => 'Mistral', 'mixtral' => 'Mistral', 'qwen' => 'Qwen', 'deepseek' => 'DeepSeek', 'phi' => 'Phi'];
 
@@ -32,6 +34,7 @@ class Bot {
 		private IEventDispatcher $dispatcher,
 		private IAppConfig $appConfig,
 		private ISecureRandom $random,
+		private Hub $hub,
 	) {
 	}
 
@@ -42,13 +45,13 @@ class Bot {
 	}
 
 	/** The name the bot should have: the setting, else after the AI that answers. */
-	public function wanted(?array $status = null): string {
+	public function wanted(?Status $status = null): string {
 		$fixed = trim($this->appConfig->getValueString(Application::APP_ID, 'name', ''));
 		if ($fixed !== '') {
 			return $fixed;
 		}
-		$status ??= $this->status();
-		return self::nameFor((string)($status['provider'] ?? ''), (string)($status['model'] ?? ''));
+		$status ??= $this->hub->status();
+		return self::nameFor($status->provider, $status->model);
 	}
 
 	public static function nameFor(string $provider, string $model): string {
@@ -65,7 +68,7 @@ class Bot {
 	}
 
 	/** Installs the bot in Talk, or renames it; false without Talk. */
-	public function install(?array $status = null): bool {
+	public function install(?Status $status = null): bool {
 		$class = 'OCA\Talk\Events\BotInstallEvent';
 		if (!class_exists($class)) {
 			return false;
@@ -100,20 +103,10 @@ class Bot {
 	}
 
 	/** Renames the bot when the wanted name changed (a new setting, another AI). */
-	public function sync(?array $status = null): void {
+	public function sync(?Status $status = null): void {
 		$installed = $this->appConfig->getValueString(Application::APP_ID, 'installed_name', '');
 		if ($installed !== '' && $installed !== $this->wanted($status)) {
 			$this->install($status);
-		}
-	}
-
-	/** AI-Hub's engine for this app: provider and model; empty without AI-Hub. */
-	private function status(): array {
-		$class = 'OCA\AIHub\Service\HubService';
-		try {
-			return class_exists($class) ? Server::get($class)->status(Application::APP_ID) : [];
-		} catch (\Throwable) {
-			return [];
 		}
 	}
 }
