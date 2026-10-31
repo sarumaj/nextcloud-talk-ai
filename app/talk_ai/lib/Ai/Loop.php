@@ -188,9 +188,18 @@ final class Loop {
 	/**
 	 * Only the latest images stay attached (the engine's limit); older ones become a
 	 * note. Earlier images are what the model already looked at, and a provider refuses
-	 * a request with more than it takes.
+	 * a request with more than it takes. Over the limit, half of it stays: the history
+	 * changes once every few renders, not with each, so the prompt cache serves the rest.
 	 */
-	public static function fewerImages(array $messages, int $keep): array {
+	public static function fewerImages(array $messages, int $limit): array {
+		$count = 0;
+		foreach ($messages as $message) {
+			$count += count(array_filter($message['parts'], fn (array $p) => ($p['kind'] ?? '') === 'image'));
+		}
+		if ($count <= $limit) {
+			return $messages;
+		}
+		$keep = $limit > 1 ? intdiv($limit, 2) : $limit;
 		for ($m = count($messages) - 1; $m >= 0; $m--) {
 			foreach ($messages[$m]['parts'] as $p => $part) {
 				if (($part['kind'] ?? '') !== 'image') {

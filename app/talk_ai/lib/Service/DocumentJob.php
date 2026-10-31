@@ -247,10 +247,13 @@ class DocumentJob {
 		$name = (string)$this->job['name'];
 		$messages = [['role' => 'user', 'text' => $this->firstMessage($inputs, $style)]];
 		$idle = 0;
+		// The engine's own state between the questions (a command line's live process).
+		$session = null;
 		while (true) {
 			$before = $this->tools;
 			$result = $this->hub->ask((string)$this->job['userId'], self::SCENARIO, $messages, [
 				'search' => false,
+				'session' => $session,
 				// The wrapper refuses all but delivering and finishing after the budget; this ends a model that keeps on.
 				'maxTools' => max(0, $this->maxTools + 5 - $this->tools),
 				'resultChars' => self::TEXT_LIMIT * 2,
@@ -268,6 +271,7 @@ class DocumentJob {
 			$this->rounds += (int)($result['rounds'] ?? 0);
 			$this->tokens += (int)$result['usage']['in'] + (int)$result['usage']['out'];
 			$messages = $result['messages'] !== [] ? $result['messages'] : $messages;
+			$session = $result['session'] ?? null;
 			$text = trim((string)$result['text']);
 			if ($this->cancelled) {
 				return [Jobs::CANCELLED, '✋ ' . $this->say('Cancelled', $name) . $this->deliveredNote()];

@@ -72,9 +72,10 @@ class Hub {
 	 *        them, or {role, parts} (Request)
 	 * @param array{search?: bool, images?: list<array{type: string, data: string}>, context?: string, maxTools?: int,
 	 *        thinking?: bool, onDelta?: callable, heartbeat?: callable, afterTools?: callable, onRetry?: callable,
-	 *        pause?: callable, retries?: int, repeatable?: list<string>, resultChars?: int} $options
+	 *        pause?: callable, retries?: int, repeatable?: list<string>, resultChars?: int, session?: mixed} $options
 	 *        images go with the question; context goes before it, in the same message (the system prompt stays
-	 *        the same for every question, so the provider's prompt cache serves it). The rest: Loop::run().
+	 *        the same for every question, so the provider's prompt cache serves it). session: the result's
+	 *        'session' of the question before, when this one goes on from it (a CLI process). The rest: Loop::run().
 	 * @return array{state: string, text: string, answer: mixed, tools: list<string>, calls: list<array>,
 	 *        usage: array, error: string, stop: string, messages: list<array>}
 	 */
@@ -116,6 +117,7 @@ class Hub {
 			answerSchema: $spec['answer'],
 			thinking: (bool)($options['thinking'] ?? false),
 			onDelta: $status->streaming ? ($options['onDelta'] ?? null) : null,
+			session: $options['session'] ?? null,
 		);
 		$result = (new Loop($engine))->run($userId, $request, $spec['tools'], ['maxTools' => $spec['maxTools']] + $options);
 		return ['usage' => $result['usage']->toArray()] + $result;
@@ -127,7 +129,7 @@ class Hub {
 		foreach ($messages as $m) {
 			$role = in_array($m['role'] ?? '', ['assistant', 'tool'], true) ? $m['role'] : 'user';
 			if (isset($m['parts'])) {
-				$out[] = ['role' => $role, 'parts' => array_values($m['parts'])];
+				$out[] = ['role' => $role, 'parts' => array_values($m['parts'])] + (isset($m['raw']) ? ['raw' => $m['raw']] : []);
 				continue;
 			}
 			$parts = trim((string)($m['text'] ?? '')) !== '' ? [Request::text((string)$m['text'])] : [];

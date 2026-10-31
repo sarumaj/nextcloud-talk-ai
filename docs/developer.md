@@ -95,7 +95,17 @@ settings it reads.
   prompt cache), and the checks of images.
 - `TextProtocol`: tools and answers in words, for engines without them
   (`{"tool_calls": […]}` and `{"tool_results": […]}`).
-- `Engines`: the engine the administrator chose (app setting `ai_engine`).
+- `Engines`: the engine the administrator chose (app setting `ai_engine`), built with its
+  settings from `Config`: one JSON value per engine (`ai_engine_<name>`), its key apart,
+  encrypted with `ICrypto` and stored sensitive and lazy (`ai_secret_<name>_key`).
+- `Http`: Nextcloud's HTTP client for the engines: timeouts, JSON, server-sent events, and
+  errors as words (`429` rate-limited, `529`/`503` busy, `401`/`403` no-key), never with
+  the key.
+- `Engine/Anthropic.php`: the Messages API: native tools, images (20), PDFs as document
+  blocks, prompt caching (the system prompt and tools for an hour, the conversation's end
+  for a long run), web search on Anthropic's side, structured answers
+  (`output_config.format`), adaptive thinking, streaming, usage from the response, the
+  model list. Thinking blocks go back unchanged in the message's `raw`.
 - `Engine/AiHub.php`: for now, AI-Hub's engines behind `Engine`, with `TextProtocol`.
 
 ## Skills
