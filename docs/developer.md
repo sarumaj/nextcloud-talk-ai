@@ -114,6 +114,21 @@ settings it reads.
   Google Search, structured answers, thinking, streaming. Gemini 3's thought signatures go
   back with their calls; on Gemini 2.x, search and a structured answer are left out next to
   tools (the API takes them together only from Gemini 3).
+- `Engine/ClaudeCli.php`: Claude Code on the server, for a subscription: `claude -p`
+  with stream-json in and out, no saved sessions, no built-in tools (WebSearch and WebFetch
+  for search), `HOME` set to the credentials' directory and nothing else of the server's
+  environment, in a process group of its own that a timeout kills. Every flag is checked
+  against `claude --help` of the installed version first. The question's tools are an MCP
+  server, `Bridge/mcp.php`, which hands each call back over a private Unix socket (`0600`,
+  a token with each call) to the PHP process running the question: `turn()` returns the
+  calls the model made while the CLI waits for them, `Loop` runs them, and the next
+  `turn()` writes the results to the socket. The CLI process lives in `Turn::$session`
+  meanwhile, and goes on with the next question of a document job. Calls are paired by the
+  tool_use id Claude Code sends in `_meta`. With MCP off, each turn is a process of its own
+  and tools go by `TextProtocol`.
+- `Engine/GeminiCli.php`: Gemini CLI, one run per turn with the prompt on stdin, its own
+  tools denied by an admin policy, tools by `TextProtocol`; no images, no search.
+- `Engine/CliProcess.php`: the command line tools' processes: an argv array, never a shell.
 - `Engine/AiHub.php`: for now, AI-Hub's engines behind `Engine`, with `TextProtocol`.
 
 ## Skills

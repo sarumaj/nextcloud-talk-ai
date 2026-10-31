@@ -1,0 +1,122 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+/*
+ * Claude Code as the tests need it: --help and --version, and `-p` with
+ * stream-json in and out. It answers each user message with the steps in
+ * $HOME/script.json (one list per message, counted across its processes):
+ *
+ *   {"call": {"name": …, "args": {…}}}  a tool call: over MCP when --mcp-config is
+ *                                       given (the real bridge), else as text
+ *   {"calls": [{…}, {…}]}               several calls in one message
+ *   {"text": "…", "structured": {…}}    the answer (structured_output optional)
+ *   {"error": "…"}                      a failed result
+ *   {"sleep": seconds}                  nothing for a while
+ *
+ * It logs its argv, the user messages and the tool results to $HOME/log.jsonl.
+ */
+
+$home = (string)getenv('HOME');
+$log = fn (array $entry) => file_put_contents($home . '/log.jsonl', json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND);
+$argv = $_SERVER['argv'];
+if (in_array('--help', $argv, true)) {
+	echo is_file($home . '/help.txt') ? file_get_contents($home . '/help.txt')
+		: "Usage: claude [options]\n  -p, --print\n  --input-format <format>\n  --output-format <format>\n  --verbose\n  --no-session-persistence\n"
+		. "  --tools <tools...>\n  --system-prompt <prompt>\n  --model <model>\n  --mcp-config <configs...>\n  --strict-mcp-config\n"
+		. "  --allowedTools, --allowed-tools <tools...>\n  --include-partial-messages\n  --json-schema <schema>\n  --max-budget-usd <amount>\n";
+	exit(0);
+}
+$log(['argv' => array_slice($argv, 1), 'env' => array_keys(getenv())]);
+$opt = function (string $flag) use ($argv): ?string {
+	$i = array_search($flag, $argv, true);
+	return $i === false ? null : ($argv[$i + 1] ?? '');
+};
+$out = function (array $event): void {
+	fwrite(STDOUT, json_encode($event, JSON_UNESCAPED_SLASHES) . "\n");
+	fflush(STDOUT);
+};
+$partial = in_array('--include-partial-messages', $argv, true);
+$script = json_decode((string)@file_get_contents($home . '/script.json'), true) ?: [];
+
+// The MCP server, as Claude Code starts it.
+$mcp = null;
+$rpc = 0;
+$request = function (string $method, array $params) use (&$mcp, &$rpc): array {
+	$rpc++;
+	fwrite($mcp[1][0], json_encode(['jsonrpc' => '2.0', 'id' => $rpc, 'method' => $method, 'params' => (object)$params], JSON_UNESCAPED_SLASHES) . "\n");
+	return json_decode((string)fgets($mcp[1][1]), true) ?: [];
+};
+if (($config = $opt('--mcp-config')) !== null) {
+	$server = json_decode((string)file_get_contents($config), true)['mcpServers']['talkai'];
+	$proc = proc_open([$server['command'], ...$server['args']], [0 => ['pipe', 'r'], 1 => ['pipe', 'w']], $pipes, null, $server['env'] + getenv());
+	$mcp = [$proc, $pipes];
+	$request('initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => (object)[], 'clientInfo' => ['name' => 'fake', 'version' => '1']]);
+	$tools = $request('tools/list', [])['result']['tools'] ?? [];
+	$log(['tools' => array_column($tools, 'name')]);
+}
+
+$cost = 0.0;
+while (($line = fgets(STDIN)) !== false) {
+	$message = json_decode($line, true);
+	$log(['user' => $message['message']['content'] ?? null]);
+	// Counted across processes: in the text protocol each turn is a process of its own.
+	$n = (int)@file_get_contents($home . '/turns');
+	file_put_contents($home . '/turns', (string)($n + 1));
+	$steps = $script[$n] ?? [['text' => 'nothing scripted']];
+	$n++;
+	$textCalls = [];
+	foreach ($steps as $s => $step) {
+		$id = 'msg_' . $n . '_' . $s;
+		$usage = ['input_tokens' => 10, 'cache_read_input_tokens' => 100, 'cache_creation_input_tokens' => 5, 'output_tokens' => 7];
+		if (isset($step['sleep'])) {
+			sleep((int)$step['sleep']);
+			continue;
+		}
+		if (isset($step['call']) || isset($step['calls'])) {
+			$calls = $step['calls'] ?? [$step['call']];
+			if ($mcp === null) {
+				$textCalls = [...$textCalls, ...$calls];
+				continue;
+			}
+			$partial && $out(['type' => 'stream_event', 'event' => ['type' => 'message_start', 'message' => ['id' => $id]]]);
+			foreach ($calls as $c => $call) {
+				$useId = 'toolu_' . $n . '_' . $s . '_' . $c;
+				$partial && $out(['type' => 'stream_event', 'event' => ['type' => 'content_block_start', 'index' => $c,
+					'content_block' => ['type' => 'tool_use', 'id' => $useId, 'name' => 'mcp__talkai__' . $call['name'], 'input' => (object)[]]]]);
+				$out(['type' => 'assistant', 'message' => ['id' => $id, 'content' => [['type' => 'tool_use', 'id' => $useId, 'name' => 'mcp__talkai__' . $call['name'],
+					'input' => (object)$call['args']]], 'usage' => $usage]]);
+			}
+			$partial && $out(['type' => 'stream_event', 'event' => ['type' => 'message_delta', 'delta' => ['stop_reason' => 'tool_use'], 'usage' => $usage]]);
+			foreach ($calls as $c => $call) {
+				$useId = 'toolu_' . $n . '_' . $s . '_' . $c;
+				$result = $request('tools/call', ['name' => $call['name'], 'arguments' => (object)$call['args'], '_meta' => ['claudecode/toolUseId' => $useId]]);
+				$log(['result' => $result['result'] ?? null]);
+				$out(['type' => 'user', 'message' => ['role' => 'user', 'content' => [['type' => 'tool_result', 'tool_use_id' => $useId, 'content' => $result['result']['content'] ?? []]]]]);
+			}
+			continue;
+		}
+		if (isset($step['error'])) {
+			$out(['type' => 'result', 'subtype' => 'success', 'is_error' => true, 'result' => $step['error'], 'total_cost_usd' => $cost]);
+			continue;
+		}
+		$text = (string)($step['text'] ?? '');
+		if ($textCalls !== []) {
+			$text .= "\n```json\n" . json_encode(['tool_calls' => $textCalls]) . "\n```";
+		}
+		if ($partial) {
+			$out(['type' => 'stream_event', 'event' => ['type' => 'message_start', 'message' => ['id' => $id]]]);
+			foreach (str_split($text, 4) as $piece) {
+				$out(['type' => 'stream_event', 'event' => ['type' => 'content_block_delta', 'index' => 0, 'delta' => ['type' => 'text_delta', 'text' => $piece]]]);
+			}
+			$out(['type' => 'stream_event', 'event' => ['type' => 'message_delta', 'delta' => ['stop_reason' => 'end_turn'], 'usage' => $usage]]);
+		}
+		$out(['type' => 'assistant', 'message' => ['id' => $id, 'content' => [['type' => 'text', 'text' => $text]], 'usage' => $usage]]);
+		$cost += 0.01;
+		$out(['type' => 'result', 'subtype' => 'success', 'is_error' => false, 'result' => $text, 'stop_reason' => 'end_turn', 'total_cost_usd' => $cost]
+			+ (isset($step['structured']) ? ['structured_output' => $step['structured']] : []));
+	}
+}

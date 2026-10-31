@@ -64,6 +64,8 @@ class Engines {
 		}
 		return match ($name) {
 			'aihub' => new AiHub(self::APP),
+			'claude-cli' => new Engine\ClaudeCli(($this->config ??= Server::get(Config::class))->engine($name)),
+			'gemini-cli' => new Engine\GeminiCli(($this->config ??= Server::get(Config::class))->engine($name)),
 			default => new Missing(Errors::NOT_READY, $name),
 		};
 	}

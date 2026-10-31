@@ -19,6 +19,11 @@
 - **OpenAI-compatible servers** (`openai`: OpenAI, OpenRouter, DeepSeek, Mistral, Groq,
   Ollama, vLLM, LM Studio) and **Gemini** (`gemini`) as engines, with tools, images,
   structured answers, streaming and usage; switches for servers that claim more than they do.
+- **Claude Code and Gemini CLI** on the server as engines (`claude-cli`, `gemini-cli`), for a
+  subscription instead of an API key. Claude Code makes real tool calls: the question's tools
+  are an MCP server of the app's that hands each call back over a private socket, so the
+  tools run in the app's loop with the asking person's rights. Images, PDFs, search,
+  structured answers, streaming, usage and cost. Every flag is checked against `--help` first.
 
 ## 0.11.0 - 2026-10-28
 

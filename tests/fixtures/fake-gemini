@@ -1,0 +1,31 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+/*
+ * Gemini CLI as the tests need it: --help, and a run that reads the prompt from
+ * stdin and prints the next answer of $HOME/answers.json as --output-format json
+ * would ({"response", "stats"}; {"error"}; {"sleep": seconds}). It logs its argv,
+ * the policy file and the prompt to $HOME/log.jsonl.
+ */
+
+$home = (string)getenv('HOME');
+$argv = $_SERVER['argv'];
+if (in_array('--help', $argv, true)) {
+	echo is_file($home . '/help.txt') ? file_get_contents($home . '/help.txt')
+		: "Options:\n  -m, --model\n  -p, --prompt\n  -o, --output-format\n      --admin-policy\n      --approval-mode\n";
+	exit(0);
+}
+$policy = $argv[array_search('--admin-policy', $argv, true) + 1] ?? '';
+$prompt = stream_get_contents(STDIN);
+file_put_contents($home . '/log.jsonl', json_encode(['argv' => array_slice($argv, 1), 'policy' => @file_get_contents($policy), 'prompt' => $prompt]) . "\n", FILE_APPEND);
+$n = (int)@file_get_contents($home . '/turns');
+file_put_contents($home . '/turns', (string)($n + 1));
+$answer = (json_decode((string)file_get_contents($home . '/answers.json'), true) ?: [])[$n] ?? ['response' => 'nothing scripted'];
+if (isset($answer['sleep'])) {
+	sleep((int)$answer['sleep']);
+}
+echo "Loaded cached credentials.\n" . json_encode($answer + ['stats' => ['models' => ['gemini-3-pro' => ['tokens' => ['prompt' => 50, 'candidates' => 5, 'cached' => 20, 'thoughts' => 3]]]]]);
