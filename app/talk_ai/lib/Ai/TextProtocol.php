@@ -7,14 +7,13 @@ declare(strict_types=1);
 namespace OCA\TalkAi\Ai;
 
 /**
- * Tools and structured answers for engines without them (command lines, AI-Hub's
- * engines): the model writes {"tool_calls": [{"name", "args"}, …]} and gets
+ * Tools and structured answers for engines without them (command lines, servers
+ * without tool calls): the model writes {"tool_calls": [{"name", "args"}, …]} and gets
  * {"tool_results": [{"id", "name", "content"}, …]} back as the next user message.
- * Several calls in one reply run together, which AI-Hub's one block per reply
- * did not allow (the app worked around it with read_file taking several files).
+ * Several calls in one reply run together.
  *
- * calls() also finds the formats a model slips into after many rounds: AI-Hub's
- * ```ai-hub-tool block, {"tool": …, "args": …}, and the <invoke> markup of
+ * calls() also finds the formats a model slips into after many rounds: a fenced
+ * {"tool": …, "args": …} (the format of an older tool loop), and the <invoke> markup of
  * Anthropic's own format (2026-10-15: a document job stopped on three of them).
  */
 final class TextProtocol {
@@ -80,8 +79,8 @@ final class TextProtocol {
 				return [substr($text, 0, $m[0][1]) . substr($text, $m[0][1] + strlen($m[0][0])), $calls];
 			}
 		}
-		// AI-Hub's block, or {"tool": …, "args": …} on its own.
-		if (preg_match('/(?:```[ \t]*(?:ai-hub-tool|json)?[^\n]*\n\s*)?(\{\s*"tool"\s*:\s*"[\w.-]+"\s*,\s*"args"\s*:\s*\{.*\}\s*\})\s*(?:```)?/s', $text, $m, PREG_OFFSET_CAPTURE) === 1) {
+		// {"tool": …, "args": …}, fenced (with any language tag) or on its own.
+		if (preg_match('/(?:```[ \t]*[\w-]*[^\n]*\n\s*)?(\{\s*"tool"\s*:\s*"[\w.-]+"\s*,\s*"args"\s*:\s*\{.*\}\s*\})\s*(?:```)?/s', $text, $m, PREG_OFFSET_CAPTURE) === 1) {
 			$decoded = json_decode($m[1][0], true);
 			if (is_array($decoded) && $take((string)($decoded['tool'] ?? ''), $decoded['args'] ?? null)) {
 				return [substr($text, 0, $m[0][1]) . substr($text, $m[0][1] + strlen($m[0][0])), $calls];

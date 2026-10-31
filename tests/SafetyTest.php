@@ -62,7 +62,7 @@ class SafetyTest extends TestCase {
 		$this->assertSame('claude', Capabilities::family('anthropic claude-opus-5-5'));
 		$this->assertSame('gemini', Capabilities::family('google gemini-2.5-pro'));
 		$this->assertSame('open', Capabilities::family('ollama llama3.1:8b'));
-		$this->assertStringContainsString('exactly one tool block', Capabilities::profile('open'));
+		$this->assertStringContainsString('exact tool name', Capabilities::profile('open'));
 	}
 
 	public function testTheDocumentLanguageFollowsTheTask(): void {

@@ -282,7 +282,7 @@ class DocumentJobTest extends TestCase {
 			function ($call) {
 				$this->sandbox->files['/work/output/x.docx'] = 'DOCX';
 				$this->assertStringContainsString('attached below', $call('render_document', ['path' => '/work/output/x.docx']));
-				// The pages came with that result: delivering needs no extra turn to look (AI-Hub needed one).
+				// The pages came with that result: delivering needs no extra turn to look.
 				$this->assertStringContainsString('Delivered as', $call('deliver_file', ['path' => '/work/output/x.docx']));
 				$call('finish', ['summary' => 'ok']);
 				return 'Done.';

@@ -20,7 +20,7 @@ use OCA\TalkAi\Ai\Usage;
  * on stdin, which it reads as its prompt, never as an argument (the kernel's
  * limit, and the process list). Its own tools are denied by an admin policy,
  * which outranks the rules that let read_file, glob and grep_search run unasked:
- * they could read the credentials in its home (AI-Hub's review T2). Without
+ * they could read the credentials in its home. Without
  * --admin-policy the engine is not ready.
  *
  * It takes no images (it reads one only through a file tool) and searches

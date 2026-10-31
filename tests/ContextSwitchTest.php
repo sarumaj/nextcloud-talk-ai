@@ -75,7 +75,7 @@ class ContextSwitchTest extends TestCase {
 	}
 
 	/**
-	 * Comparing two files: AI-Hub runs one tool block per reply, so both go into one
+	 * Comparing two files: a command line model ran one tool block per reply, so both go into one
 	 * read_file call (2026-10-25: the second block was dropped and called a failure).
 	 */
 	public function testReadFileTakesSeveralIds(): void {

@@ -24,7 +24,6 @@ class Admin {
 		'claude-cli' => ['Claude Code on the server (subscription)', 'cli', ['binary', 'home', 'model', 'timeout', 'php', 'path', 'maxBudgetUsd'], ['mcp', 'search', 'streaming']],
 		'gemini-cli' => ['Gemini CLI on the server (subscription)', 'cli', ['binary', 'home', 'model', 'timeout', 'path'], []],
 		'taskprocessing' => ['Nextcloud\'s AI (TaskProcessing providers)', 'nextcloud', ['taskType', 'timeout'], []],
-		'aihub' => ['AI-Hub (until it is removed)', 'nextcloud', [], []],
 	];
 	/** The scenarios the app registers, for their overrides: name => label. */
 	public const SCENARIOS = ['chat' => 'Answers in Talk', '__fold' => 'Memory of a conversation', 'document' => 'Document jobs',
@@ -45,7 +44,7 @@ class Admin {
 	public function engines(): array {
 		$out = [];
 		foreach (self::ENGINES as $name => [$label, $kind, $fields, $flags]) {
-			$settings = $name === 'aihub' ? [] : $this->config->engine($name);
+			$settings = $this->config->engine($name);
 			unset($settings['key']);
 			$out[] = ['name' => $name, 'label' => $label, 'kind' => $kind, 'fields' => $fields, 'flags' => $flags, 'settings' => $settings,
 				'keySet' => $this->config->hasSecret($name, 'key'), 'status' => $this->statusOf($name),

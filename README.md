@@ -73,9 +73,10 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
 - **Uses your rights:** the bot sees only what the asking person may see, and the files it sends
   are saved in their folder for the conversation.
 
-It answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), your server's connection to
-an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is named after it:
-*Claude*, *Gemini*, *ChatGPT*, …
+It connects to the AI itself: Claude or Gemini by API key, any OpenAI-compatible server (OpenAI,
+OpenRouter, Mistral, Ollama, vLLM, …), Claude Code or Gemini CLI on the server for a
+subscription, or whatever AI Nextcloud already has; with a fallback chain, limits and the use
+per day. It is named after the AI that answers: *Claude*, *Gemini*, *ChatGPT*, …
 
 ## Screenshots
 
@@ -86,7 +87,10 @@ an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is n
 
 ## Requirements
 
-- Nextcloud 32 to 36, with Talk 25 or later and AI-Hub set up (Admin settings → AI-Hub).
+- Nextcloud 32 to 36, with Talk 25 or later.
+- An AI: an API key (Anthropic, Google, an OpenAI-compatible server), Claude Code or Gemini CLI
+  on the server, or a TaskProcessing provider in Nextcloud. A model that calls tools for
+  everything beyond chat.
 - For Word, Excel, PowerPoint and PDF files it writes, for charts, and to read old Office files:
   Nextcloud Office (Collabora). Without it, it sends OpenDocument files and SVG charts.
 - To read PDFs, `pdftotext`; for scanned PDFs also `pdftoppm` (Poppler,
@@ -102,9 +106,11 @@ an AI (Claude, Gemini, OpenAI-compatible, or their command line tools), and is n
 1. Install **AI in Talk** from the app store (*Apps*, *Social & communication*). Or unpack a
    release's `talk_ai-X.Y.Z.tar.gz` into `custom_apps/` and run `occ app:enable talk_ai`.
    This installs the bot in Talk.
-2. In a conversation, open the conversation settings, then *Bots*, and enable the bot.
+2. Choose the AI under *Administration*, *Assistant*, *AI in Talk* (or
+   `occ talk_ai:engine`, see [the administrator's guide](docs/admin.md)).
+3. In a conversation, open the conversation settings, then *Bots*, and enable the bot.
 
-The bot takes the name of the AI that answers, as AI-Hub is set up for this app, and is renamed
+The bot takes the name of the AI that answers, as the administrator chose it, and is renamed
 when that changes (within ten minutes, or at its next answer). For a fixed name:
 `occ config:app:set talk_ai name --value Assistant`.
 
@@ -211,11 +217,11 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   `write_file`, `edit_file`, `list_files`, `render_document`, `deliver_file` and `finish` in its
   container (`lib/Service/Sandbox.php` talks to `sandbox/runner.py`), in one run of the AI
   layer's loop (`lib/Ai/Loop.php`) until `finish` or a limit. Rendered pages (a contact sheet
-  and single pages) go to the model as images with the render's result. A status message follows the phases; only the result
-  stays: the steps are kept nowhere (no protocol, no page images), and the previews' messages
-  and files are removed when the job ends (protocols of earlier versions are removed by
-  `lib/BackgroundJob/CleanTraces.php`). The skills (`skills/<format>/SKILL.md` and scripts)
-  tell the model how to build each format.
+  and single pages) go to the model as images with the render's result. A status message follows
+  the phases; only the result stays: the steps are kept nowhere (no protocol, no page images),
+  and the previews' messages and files are removed when the job ends (protocols of earlier
+  versions are removed by `lib/BackgroundJob/CleanTraces.php`). The skills
+  (`skills/<format>/SKILL.md` and scripts) tell the model how to build each format.
 - **Name:** `lib/Service/Bot.php` installs the bot and renames it (Talk updates a bot installed
   again with the same address and secret) when the AI or the setting changes.
 

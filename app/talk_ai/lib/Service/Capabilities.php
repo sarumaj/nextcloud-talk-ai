@@ -96,7 +96,7 @@ class Capabilities {
 			'claude' => '',
 			'gpt' => 'Prefer calling a tool over guessing; keep answers compact.',
 			'gemini' => 'Call tools by their exact names with the arguments as listed; do not invent tools.',
-			default => 'Tool calls: use exactly one tool block per step, with valid JSON arguments and the exact tool name; '
+			default => 'Tool calls: valid JSON arguments and the exact tool name, as listed; '
 				. 'after the result, continue. Keep answers short and simple; do not invent facts.',
 		};
 	}

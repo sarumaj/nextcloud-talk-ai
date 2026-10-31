@@ -11,7 +11,7 @@ namespace OCA\TalkAi\Ai;
  * run with the asking person's rights), their results back, and again, until the
  * model calls no tool, the caller's budget is used, or it repeats itself.
  *
- * The caller sets the budget (AI-Hub's fixed eight calls made the document jobs ask
+ * The caller sets the budget (a fixed eight calls once made the document jobs ask
  * in segments). A failing tool is reported to the model, not thrown. A busy or
  * failing provider is asked again after a pause, the same turn only: asking the
  * whole question again would run its tools (a calendar entry) twice.

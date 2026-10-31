@@ -6,7 +6,6 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Ai;
 
-use OCA\TalkAi\Ai\Engine\AiHub;
 use OCA\TalkAi\Ai\Engine\Missing;
 use OCP\IAppConfig;
 use OCP\Server;
@@ -38,11 +37,12 @@ class Engines {
 	}
 
 	/** Every engine there is, in the order the settings page lists them. */
-	public const NAMES = ['anthropic', 'gemini', 'openai', 'claude-cli', 'gemini-cli', 'taskprocessing', 'aihub'];
+	public const NAMES = ['anthropic', 'gemini', 'openai', 'claude-cli', 'gemini-cli', 'taskprocessing'];
 
 	/** The name of the engine questions go to. */
 	public function chosen(): string {
-		return $this->appConfig->getValueString(self::APP, 'ai_engine', 'aihub');
+		// None until the administrator chooses one: the bot then says it is not set up.
+		return $this->appConfig->getValueString(self::APP, 'ai_engine', '');
 	}
 
 	/** @return list<string> the engines that answer, in order, when the chosen one cannot (ai_fallback) */
@@ -97,7 +97,10 @@ class Engines {
 	}
 
 	private function build(string $name, ?string $model): Engine {
-		$settings = $name === 'aihub' ? [] : ($this->config ??= Server::get(Config::class))->engine($name);
+		if (!in_array($name, self::NAMES, true)) {
+			return new Missing(Errors::NOT_READY, $name);
+		}
+		$settings = ($this->config ??= Server::get(Config::class))->engine($name);
 		if ($model !== null && $model !== '') {
 			$settings['model'] = $model;
 		}
@@ -106,7 +109,6 @@ class Engines {
 			return new $class($this->http ??= Server::get(Http::class), $settings);
 		}
 		return match ($name) {
-			'aihub' => new AiHub(self::APP),
 			'claude-cli' => new Engine\ClaudeCli($settings),
 			'gemini-cli' => new Engine\GeminiCli($settings),
 			'taskprocessing' => new Engine\TaskProcessing($this->taskProcessing ??= Server::get(\OCP\TaskProcessing\IManager::class), $settings),

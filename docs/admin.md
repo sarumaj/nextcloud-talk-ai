@@ -6,8 +6,8 @@
 |---|---|---|
 | Nextcloud | 32 to 36 | – |
 | Talk (spreed) | the version of each Nextcloud above (checked in CI against its API) | – |
-| AI-Hub | set up for the app (Administration → AI-Hub) | the bot cannot answer |
-| A model with tool calls | any AI-Hub provider whose model calls tools | chat, reading files and summaries only |
+| An AI connection | an engine chosen under Administration → Assistant → AI in Talk (below) | the bot cannot answer |
+| A model with tool calls | any engine's model that calls tools | chat, reading files and summaries only |
 | Image input | optional | photos via OCR; document layout checked as text |
 | Nextcloud Office (Collabora) | optional | files as OpenDocument only, charts as SVG |
 | pdftotext, pdftoppm (Poppler) | optional | no PDFs; scanned PDFs without OCR |
@@ -23,7 +23,7 @@ administration page show each part: present, version, and what is lost without i
 
 1. Install the app (app store, or the release archive into `custom_apps/` and
    `occ app:enable talk_ai`). It installs the bot in Talk.
-2. Set up AI-Hub for the app; `occ talk_ai:check` should show tool calling.
+2. Choose and set up the AI connection (below); `occ talk_ai:check` should show tool calling.
 3. Moderators enable the bot per conversation (conversation settings → Bots). It then
    posts a notice of who processes the messages (set the text or the provider's
    location under Administration → Assistant → AI in Talk).
@@ -82,6 +82,26 @@ instruction can be set.
 Nextcloud's own AI features (Assistant, Mail, Talk's summaries) can use the app's engine:
 switch on "Nextcloud's Assistant, Mail and Talk use this engine". Their tasks count against
 the limits as the account `nextcloud` where they have no person.
+
+### Migrating from AI-Hub
+
+Until 0.11 the app answered through the app AI-Hub; from 0.12 it connects itself and AI-Hub is
+no longer used (it can be removed if no other app needs it). After the update the bot says it
+is not set up until an engine is chosen. Copy from AI-Hub's settings:
+
+| AI-Hub | AI in Talk |
+|---|---|
+| Provider Claude, API | engine `anthropic` |
+| Provider Gemini, API | engine `gemini` |
+| Provider OpenAI-compatible (its URL) | engine `openai`, the same base URL |
+| Claude or Gemini, command line (its path and home) | engine `claude-cli` or `gemini-cli`, the same binary and home |
+| The model, per provider or for the app | the engine's model |
+| The additional prompt for the app | scenario *Answers in Talk*, extra prompt |
+| The allowed users | access by groups (a group of those people) |
+
+API keys have to be entered again (AI-Hub keeps them encrypted for itself): on the page, or
+`printf '%s' "$KEY" | occ talk_ai:engine anthropic --key-stdin --use`. Conversations remembered
+in AI-Hub are not taken over; the bot's memory of each conversation in Talk stays.
 
 ## The document sandbox
 
@@ -168,15 +188,15 @@ golden set per AI connection.
 ## Evaluating a model
 
 `occ talk_ai:golden <test account> [T-01 …]` runs the acceptance cases as real document
-jobs with the AI connection AI-Hub uses now, judges the files with the sandbox's checks,
+jobs with the AI connection the app uses now, judges the files with the sandbox's checks,
 and keeps the result per provider and model (shown on the page). Run it after changing
 the model and before letting everyone use it.
 
 ## Privacy
 
 - Messages that address the bot, the files it reads for an answer and the documents
-  it builds go to the AI provider set up in AI-Hub, nowhere else. With a local provider
-  (Ollama, LocalAI) nothing leaves the server.
+  it builds go to the AI provider of the chosen engine (and its fallbacks), nowhere else.
+  With a local server (Ollama, vLLM) nothing leaves the server.
 - All tools act with the rights of the person asking. Private things (their calendar,
   their own files) are shown in a group conversation only after their yes.
 - Changes outside the chat (calendar entries, shares, deleting) need the person's yes,
@@ -184,7 +204,9 @@ the model and before letting everyone use it.
 - Nothing of questions or answers is logged unless debugging is switched on.
 - People can delete their data themselves ("delete my data": all records, preferences
   and memories; or the delivered documents).
-- API keys stay in AI-Hub; the sandbox never sees them.
+- API keys are encrypted in the database and shown nowhere; the sandbox never sees them. A
+  command line engine gets only its own login directory as `HOME`, none of the server's
+  environment, and no tools of its own.
 - The `law` tool reads federal norms from gesetze-im-internet.de, as `read_url` reads other
   pages (only the norm's address goes there). The exam and grade tools compute in PHP; the
   rules of a state or university come from the documents people share or name.

@@ -4,7 +4,9 @@
     <id>talk_ai</id>
     <name>AI in Talk</name>
     <summary>An AI assistant in Talk for work and school: reads files, writes documents and flash cards, does maths, cites sources</summary>
-    <description><![CDATA[A bot for Nextcloud Talk that answers through [AI-Hub](https://apps.nextcloud.com/apps/ai_hub), the AI connection of your server. It is named after the AI that answers (Claude, Gemini, …).
+    <description><![CDATA[A bot for Nextcloud Talk that answers with the AI you choose: Claude or Gemini by API key, any OpenAI-compatible server (OpenAI, OpenRouter, Mistral, Ollama, …), Claude Code or Gemini CLI on the server for a subscription, or Nextcloud's own AI providers. It is named after the AI that answers (Claude, Gemini, …).
+
+- **Its own AI connection**: native tool calls, images and PDFs, web search, prompt caching, a fallback chain, limits per person and server, the use per day; keys encrypted. It can also serve Nextcloud's Assistant, and other clients through an OCS API
 
 - **Reads what you share**: Word, Excel, PowerPoint (with speaker notes), OpenDocument, old .doc/.xls/.ppt, PDF, text, and images, with OCR for photos and scans
 - **Writes files into the chat**: PDF, Word, Excel (with formulas), PowerPoint, OpenDocument, Markdown, CSV, in designed themes with cover pages, contents, callouts, footnotes, formulas, highlighted code, and embedded charts and images
@@ -21,7 +23,7 @@
 - Everything runs **with the asking person's rights**: the bot sees only what they may see
 
 Enable the bot in a conversation (conversation settings, Bots). In a conversation with one person it answers every message; with more people, when it is named (@Claude) or replied to. Office formats need Nextcloud Office (Collabora); reading PDFs needs pdftotext, OCR needs Tesseract on the server.]]></description>
-    <version>0.11.0</version>
+    <version>0.12.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAi</namespace>

@@ -137,7 +137,11 @@ settings it reads.
   a person asks as `nextcloud`.
 - `Tickets`, `TicketJob`, `Conversations`, `CleanJob`: questions that do not wait, and
   remembered conversations (see the OCS API below).
-- `Engine/AiHub.php`: for now, AI-Hub's engines behind `Engine`, with `TextProtocol`.
+- `Engine/Fallback.php`: the chosen engine and the fallback chain (`ai_fallback`); a turn goes
+  to the next when one is not ready, busy, rate-limited or failing.
+- `Limits`, `Counters`: questions per person and minute and at once (`talk_ai_ai_slots`), and
+  the use per day and engine (`talk_ai_ai_daily`).
+- `Admin`: what the settings page and `occ talk_ai:engine` do with the engines.
 
 ## OCS API
 

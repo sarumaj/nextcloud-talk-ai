@@ -400,7 +400,7 @@ final class ClaudeCli implements Engine {
 			// A tool runs as long as Loop takes; the engine watches the model's time itself.
 			'MCP_TOOL_TIMEOUT' => '86400000',
 			'DISABLE_AUTOUPDATER' => '1',
-			// Even without saved sessions it made a memory folder in its home for every run (AI-Hub, 2026-10-06).
+			// Even without saved sessions it made a memory folder in its home for every run (2026-10-06).
 			'CLAUDE_CODE_DISABLE_AUTO_MEMORY' => '1',
 		];
 	}

@@ -11,7 +11,7 @@ use OCP\IGroupManager;
 /**
  * What the app asks instead of a model. A scenario says what the assistant is and
  * which tools it may run; ask() runs a question through Loop on the chosen engine
- * and gives the result in the shape the app has used since AI-Hub:
+ * and gives the result in the shape the app uses:
  *
  *     $hub->registerScenario('helper', [
  *         'system' => 'You are …',

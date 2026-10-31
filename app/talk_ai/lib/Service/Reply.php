@@ -487,8 +487,8 @@ class Reply {
 					. 'and why ("I check the dates in the timetable before I add them"); the person sees it while you work, so name '
 					. 'nothing private of others.'
 				: '') . "\n\n"
-			. 'One tool block per reply: only the first is run, a second one is lost. A tool you did not get a result from did '
-			. 'not run, so it did not fail either: call it in your next reply.' . "\n\n"
+			. 'Several tool calls in one reply all run, in order. A tool you did not get a result from did not run, so it did '
+			. 'not fail either: call it again.' . "\n\n"
 			. 'Files: read_file reads a file by id (Word, Excel, PowerPoint, OpenDocument, PDF, text; old .doc/.xls/.ppt too), '
 			. 'several files (to compare them, or all the files shared with a question) in one call with ids; '
 			. 'list_files lists the files shared here; find_files finds the person\'s own files by name. When asked about "the file", '
@@ -701,8 +701,8 @@ class Reply {
 	public const WHY = 'why';
 
 	/**
-	 * A tool's input with the optional argument WHY. AI-Hub hands the app the arguments
-	 * only, not the model's words around a call; this is how they reach the chat.
+	 * A tool's input with the optional argument WHY. A tool gets the arguments only, not
+	 * the model's words around a call; this is how they reach the chat.
 	 */
 	public static function withWhy(array $schema): array {
 		$schema['type'] ??= 'object';
@@ -1282,7 +1282,7 @@ class Reply {
 			'Calendar' => 'Calendar',
 			'Working' => 'Working',
 			'Failed' => 'That did not work this time; please try again in a moment',
-			'Not ready' => 'The AI connection is not set up; an administrator can do that under Administration → AI-Hub.',
+			'Not ready' => 'The AI connection is not set up; an administrator can do that under Administration → Assistant → AI in Talk.',
 			'Quota' => 'Your quota for today is used up – more tomorrow',
 			'Retrying' => 'The AI is busy right now; trying again in a moment …',
 			'No transcription' => 'I cannot listen to voice messages here (no speech recognition installed). Please write to me.',
@@ -1307,7 +1307,7 @@ class Reply {
 
 	/**
 	 * A schema that also takes numbers and flags written as text ("283", "true"): models
-	 * send them so, AI-Hub checks types strictly, and the tools convert them anyway.
+	 * send them so, the tool loop checks types strictly, and the tools convert them anyway.
 	 */
 	public static function lenient(array $schema): array {
 		$type = $schema['type'] ?? null;
@@ -1931,8 +1931,9 @@ class Reply {
 	}
 
 	/**
-	 * Several files in one call: AI-Hub runs only the first tool block of a reply, so the
-	 * model, asked to compare two files, read one and said the other had failed (2026-10-25).
+	 * Several files in one call: with a command line model only the first tool block of a reply
+	 * ran once, so the model, asked to compare two files, read one and said the other had failed
+	 * (2026-10-25). One call is still the cheaper way.
 	 * They share the length one file may have.
 	 */
 	private function readFiles(string $uid, array $ids, string $query, string $pages): string {
@@ -2217,7 +2218,7 @@ class Reply {
 	/** The AI layer's error words (Ai\Errors) in words. */
 	public static function explain(string $error): string {
 		return match ($error) {
-			'not-ready' => 'the AI connection is not set up (AI-Hub, admin settings).',
+			'not-ready' => 'the AI connection is not set up (Administration → Assistant → AI in Talk).',
 			'no-key' => 'the AI provider refused the key; an administrator can enter it again.',
 			'no-cli', 'no-model' => 'the AI connection is not set up completely (admin settings).',
 			'not-allowed', 'refused', 'user-not-allowed', 'app-not-allowed' => 'you may not use the AI here.',

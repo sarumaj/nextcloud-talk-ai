@@ -22,7 +22,7 @@ class Golden extends Command {
 
 	protected function configure(): void {
 		$this->setName('talk_ai:golden')
-			->setDescription('Runs the document golden set (T-01 … T-08) with the AI connection AI-Hub uses now, as a test account')
+			->setDescription('Runs the document golden set (T-01 … T-08) with the AI connection the app uses now, as a test account')
 			->addArgument('account', InputArgument::REQUIRED, 'A test account (its files get a temporary folder)')
 			->addArgument('cases', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'Only these cases, e.g. T-01 T-03');
 	}

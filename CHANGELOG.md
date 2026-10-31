@@ -1,17 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 - 2026-10-31
+
+### Removed
+- **AI-Hub.** The app connects to the AI itself (below); AI-Hub is no longer needed. Choose an
+  engine after the update and enter its key again: docs/admin.md, "Migrating from AI-Hub".
 
 ### Changed
-- **The app runs its own AI loop** (`lib/Ai/`): `Hub` and `Loop` run the tools, and the
-  model is asked through an `Engine`; for now AI-Hub's engines (`Engine/AiHub.php`). Tool
-  calls are no longer limited to eight per question: an answer may make 20, a document
-  job its whole budget (`document_max_tools`) in one run instead of segments, and several
-  calls in one reply all run. A busy provider is asked the same turn again, so no tool
-  runs twice. Page images come back with the render's result, without an extra turn to
-  look. Token use comes from the provider where it reports it, else estimated as before.
+- **The app runs its own AI loop** (`lib/Ai/`): `Hub` and `Loop` run the tools, and the model is
+  asked through an `Engine`. Tool calls are no longer limited to eight per question: an answer
+  may make 20, a document job its whole budget (`document_max_tools`) in one run instead of
+  segments, and several calls in one reply all run. A busy provider is asked the same turn
+  again, so no tool runs twice. Page images come back with the render's result, without an extra
+  turn to look. Token use comes from the provider where it reports it, else estimated as before.
 - The question's context goes with the question, never into the system prompt.
 - The chat's rolling memory is written by the AI layer (`Hub::fold`).
+- The prompts say what is true now: several tool calls in one reply all run, and page images
+  come with the render's result (the document job's prompt still spoke of seven calls a turn).
 
 ### Added
 - **Anthropic's API as an engine** (`ai_engine` = `anthropic`): native tool calls, up to 20

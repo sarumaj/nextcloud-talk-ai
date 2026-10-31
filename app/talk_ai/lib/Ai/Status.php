@@ -23,7 +23,7 @@ final class Status {
 		public readonly bool $structured = false,
 		public readonly bool $streaming = false,
 		public readonly bool $caching = false,
-		/** The engine's kind, for logs and settings: anthropic, gemini, aihub, … */
+		/** The engine's kind, for logs and settings: anthropic, gemini, claude-cli, … */
 		public readonly string $engine = '',
 	) {
 	}
