@@ -50,12 +50,14 @@ doc.save("/work/output/Protokoll_2026-10-15.docx")
 - Images: `doc.add_picture("/work/chart.png", width=Cm(15))`; charts: draw them with
   matplotlib (`plt.savefig(..., dpi=200, bbox_inches="tight")`).
 - Page numbers and a table of contents are fields: use the helpers
+
   ```python
   import sys; sys.path.insert(0, "/skills/docx/scripts")
   from fields import add_page_number, add_toc
   add_page_number(doc.sections[0].footer.paragraphs[0], total=True)   # "3 / 7"
   add_toc(doc.add_paragraph())                                         # where the contents go
   ```
+
   python-docx cannot compute the contents; after saving, let LibreOffice fill them in:
   `python3 /skills/common/scripts/lo_update.py /work/output/Doc.docx` (updates the table of
   contents and fields in place; with a second path it also converts, e.g. to `.odt` or `.pdf`).

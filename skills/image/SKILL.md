@@ -18,12 +18,12 @@ You draw the image with code, look at it, correct it, and deliver it. Read
 
 ## Choose the tool
 
-| Kind of image | Tool |
-|---|---|
+| Kind of image                                                                       | Tool                                 |
+| ----------------------------------------------------------------------------------- | ------------------------------------ |
 | Graph of nodes and arrows: flowchart, tree, process, states, dependencies, mind map | Graphviz `dot` (layout done for you) |
-| Diagram, poster, invitation, icon, illustration, infographic, labelled drawing | SVG written by a Python script |
-| Chart, function graph, geometry with exact coordinates, statistics | matplotlib |
-| Change to an input photo or image, collage, pixel art, noise and textures | Pillow (or ImageMagick 6 `convert`) |
+| Diagram, poster, invitation, icon, illustration, infographic, labelled drawing      | SVG written by a Python script       |
+| Chart, function graph, geometry with exact coordinates, statistics                  | matplotlib                           |
+| Change to an input photo or image, collage, pixel art, noise and textures           | Pillow (or ImageMagick 6 `convert`)  |
 
 Mixing is fine: a Graphviz or matplotlib SVG, a formula from `formula.py` or a photo
 (as a `data:` URI) can be placed inside your own SVG.

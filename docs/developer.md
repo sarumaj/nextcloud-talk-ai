@@ -51,16 +51,16 @@ All paths stay inside `/work` (the runner refuses others). The job is one run of
 with its whole budget; a model that stops without `finish` is reminded, three times at most.
 Page images come back with the result of `render_document` or `read_file`.
 
-| Tool | Arguments | Result |
-|---|---|---|
-| `bash` | `command`, `timeout_s` (in all; 1800, at most 3600) | exit code, stdout, stderr (30 kB); stopped as stalled after 120 s without output and CPU use |
-| `read_file` | `path`, `offset`, `limit` | text with line numbers; images as image input; PDF text |
-| `write_file` | `path`, `content` | written |
-| `edit_file` | `path`, `old_string`, `new_string`, `replace_all` | changed / not unique |
-| `list_files` | `path`, `glob` | paths and sizes |
-| `render_document` | `path`, `pages` | pages as PNG (150 dpi) and the checks |
-| `deliver_file` | `path`, `target_folder`, `display_name` | the file in Files and the chat (after a preview) |
-| `finish` | `summary`, `open_issues` | ends the job (only after a delivery) |
+| Tool              | Arguments                                           | Result                                                                                       |
+| ----------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `bash`            | `command`, `timeout_s` (in all; 1800, at most 3600) | exit code, stdout, stderr (30 kB); stopped as stalled after 120 s without output and CPU use |
+| `read_file`       | `path`, `offset`, `limit`                           | text with line numbers; images as image input; PDF text                                      |
+| `write_file`      | `path`, `content`                                   | written                                                                                      |
+| `edit_file`       | `path`, `old_string`, `new_string`, `replace_all`   | changed / not unique                                                                         |
+| `list_files`      | `path`, `glob`                                      | paths and sizes                                                                              |
+| `render_document` | `path`, `pages`                                     | pages as PNG (150 dpi) and the checks                                                        |
+| `deliver_file`    | `path`, `target_folder`, `display_name`             | the file in Files and the chat (after a preview)                                             |
+| `finish`          | `summary`, `open_issues`                            | ends the job (only after a delivery)                                                         |
 
 Limits: tool calls (60), correction rounds (3), the same call at most three times; no
 time limit by default, each step is watched for progress. The steps are not saved: the
@@ -150,12 +150,12 @@ login (a session or an app password) and the header `OCS-APIRequest: true`. Only
 registered with `'ocs' => true` can be asked; the app registers `assistant` (no tools, web
 search where the engine has it). Questions run with the asking person's rights and limits.
 
-| Method and path | Parameters | Answer |
-|---|---|---|
-| `GET status` | | `ready`, `reason`, `provider`, `model`, `images`, `maxImages`, `search`, `documents`, `scenarios` (name → description) |
-| `POST ask` | `scenario`, `messages` (`[{role, text}]`, the question last), `conversation`, `images` (`[{type, data}]`), `search` | `202` with `id`; `400` with `error` (see below); `429` when too many questions |
-| `GET result/{id}` | | `state` (`queued`, `running`, `done`, `error`), `text`, `answer`, `usage`, `tools`, `error`; `404` for an unknown or another person's ticket |
-| `POST forget` | `conversation`, `save`, `summary` | drops a remembered conversation; with `save` first as Markdown in *AI conversations* in the person's files (`saved`: its path), with `summary` with the model's summary at the top |
+| Method and path   | Parameters                                                                                                          | Answer                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET status`      |                                                                                                                     | `ready`, `reason`, `provider`, `model`, `images`, `maxImages`, `search`, `documents`, `scenarios` (name → description)                                                             |
+| `POST ask`        | `scenario`, `messages` (`[{role, text}]`, the question last), `conversation`, `images` (`[{type, data}]`), `search` | `202` with `id`; `400` with `error` (see below); `429` when too many questions                                                                                                     |
+| `GET result/{id}` |                                                                                                                     | `state` (`queued`, `running`, `done`, `error`), `text`, `answer`, `usage`, `tools`, `error`; `404` for an unknown or another person's ticket                                       |
+| `POST forget`     | `conversation`, `save`, `summary`                                                                                   | drops a remembered conversation; with `save` first as Markdown in *AI conversations* in the person's files (`saved`: its path), with `summary` with the model's summary at the top |
 
 A question gets a ticket at once and is worked out apart (a signed request to the app's own
 `/api/v1/run`, else a background job); results are kept 30 minutes. With `conversation` (a

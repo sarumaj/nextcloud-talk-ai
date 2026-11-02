@@ -80,10 +80,10 @@ per day. It is named after the AI that answers: *Claude*, *Gemini*, *ChatGPT*, â
 
 ## Screenshots
 
-| | |
-|---|---|
-| ![Help](screenshots/1-help.png) | ![A letter from the document workshop, with its preview](screenshots/2-document-workshop.png) |
-| ![Exact maths and a calendar entry to confirm](screenshots/3-maths-and-calendar.png) | ![Administration](screenshots/4-administration.png) |
+|                                                                                      |                                                                                               |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| ![Help](screenshots/1-help.png)                                                      | ![A letter from the document workshop, with its preview](screenshots/2-document-workshop.png) |
+| ![Exact maths and a calendar entry to confirm](screenshots/3-maths-and-calendar.png) | ![Administration](screenshots/4-administration.png)                                           |
 
 ## Requirements
 
@@ -190,24 +190,24 @@ The app (`app/talk_ai/`) is PHP, with no build step.
 - **Answering:** `lib/Service/Reply.php` reads the conversation's recent messages through Talk's
   message parser, as the asking person sees them. It then asks the AI layer (`lib/Ai/Hub.php`),
   scenario `chat`, with web search and tools that run in PHP with that person's rights:
-    - files: `list_files`, `read_file` (`lib/Document/TextExtractor.php`; old formats converted
-      by Collabora, OCR by Tesseract), `find_files`;
-    - writing: `send_file` (`lib/Document/OdtWriter.php`, `OdsWriter.php`, `OdpWriter.php`,
-      converted to Word, Excel, PowerPoint or PDF by Nextcloud's file conversion) and
-      `send_flashcards`;
-    - maths: `calculate` (`Calculator.php`, a parser, no code is run), `statistics`, `plot`
-      (`Chart.php`, SVG rendered to PNG by Collabora); LaTeX formulas become MathML formula
-      objects in documents and Unicode in the chat (`Math.php`);
-    - subjects: `convert_units` (`Units.php`), `chemistry` (`Chemistry.php`, balancing by the
-      exact null space), `biology`, `sport`, `informatics` (SQL in an in-memory SQLite without
-      files or recursion), `colors` (palettes by Imagick);
-    - more subjects: `analyze_function` (`Analysis.php`), `linear_algebra` (`LinearAlgebra.php`,
-      fractions throughout), `music`, `finance`, `geo` (OpenStreetMap's Nominatim), and
-      `image_study` (Imagick);
-    - planning: `calendar` (`lib/Service/Calendar.php`, through Nextcloud's calendar API, and
-      `.ics` files with the time zone's definition, `lib/Document/Ics.php`);
-    - context and the web: `read_chat`, `read_url`, `lookup` and `cite` (`lib/Service/Web.php`;
-      Wikipedia, OpenAlex; DOIs are formatted by doi.org, books come from Open Library).
+  - files: `list_files`, `read_file` (`lib/Document/TextExtractor.php`; old formats converted
+    by Collabora, OCR by Tesseract), `find_files`;
+  - writing: `send_file` (`lib/Document/OdtWriter.php`, `OdsWriter.php`, `OdpWriter.php`,
+    converted to Word, Excel, PowerPoint or PDF by Nextcloud's file conversion) and
+    `send_flashcards`;
+  - maths: `calculate` (`Calculator.php`, a parser, no code is run), `statistics`, `plot`
+    (`Chart.php`, SVG rendered to PNG by Collabora); LaTeX formulas become MathML formula
+    objects in documents and Unicode in the chat (`Math.php`);
+  - subjects: `convert_units` (`Units.php`), `chemistry` (`Chemistry.php`, balancing by the
+    exact null space), `biology`, `sport`, `informatics` (SQL in an in-memory SQLite without
+    files or recursion), `colors` (palettes by Imagick);
+  - more subjects: `analyze_function` (`Analysis.php`), `linear_algebra` (`LinearAlgebra.php`,
+    fractions throughout), `music`, `finance`, `geo` (OpenStreetMap's Nominatim), and
+    `image_study` (Imagick);
+  - planning: `calendar` (`lib/Service/Calendar.php`, through Nextcloud's calendar API, and
+    `.ics` files with the time zone's definition, `lib/Document/Ics.php`);
+  - context and the web: `read_chat`, `read_url`, `lookup` and `cite` (`lib/Service/Web.php`;
+    Wikipedia, OpenAlex; DOIs are formatted by doi.org, books come from Open Library).
 - **Posting:** the bot's messages and files are posted as the bot, as Talk's bot API does. A
   file is saved in the person's folder for the conversation and sent as Talk's file message,
   as Talk 25's attachments are. If that folder doesn't exist yet, it's created and shared like
@@ -227,7 +227,8 @@ The app (`app/talk_ai/`) is PHP, with no build step.
 
 ## Documentation
 
-- [Administrator's guide](docs/admin.md): requirements, the sandbox, settings, privacy, evaluating a model.
+- [Administrator's guide](docs/admin.md): requirements, the sandbox, settings, privacy,
+  evaluating a model.
 - [Short guides for users](docs/user.md) (English, Deutsch, Polski).
 - [Developer's guide](docs/developer.md): layout, the document job's tools, skills, tests.
 - [Changelog](CHANGELOG.md).

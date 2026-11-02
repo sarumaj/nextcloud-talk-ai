@@ -1,6 +1,6 @@
 # AI in Talk: short guides
 
-*Deutsch weiter unten · Polski poniżej*
+Deutsch weiter unten · Polski poniżej
 
 ## English
 

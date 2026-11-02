@@ -2,19 +2,19 @@
 
 ## Requirements and compatibility
 
-| Part | Supported | Without it |
-|---|---|---|
-| Nextcloud | 32 to 36 | – |
-| Talk (spreed) | the version of each Nextcloud above (checked in CI against its API) | – |
-| An AI connection | an engine chosen under Administration → Assistant → AI in Talk (below) | the bot cannot answer |
-| A model with tool calls | any engine's model that calls tools | chat, reading files and summaries only |
-| Image input | optional | photos via OCR; document layout checked as text |
-| Nextcloud Office (Collabora) | optional | files as OpenDocument only, charts as SVG |
-| pdftotext, pdftoppm (Poppler) | optional | no PDFs; scanned PDFs without OCR |
-| Tesseract (+ languages) | optional | no text from photos and scans |
-| A speech-to-text provider | optional | voice messages are not understood |
-| The document sandbox | optional | no documents built with code |
-| PHP zip | required | – |
+| Part                          | Supported                                                              | Without it                                      |
+| ----------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| Nextcloud                     | 32 to 36                                                               | –                                               |
+| Talk (spreed)                 | the version of each Nextcloud above (checked in CI against its API)    | –                                               |
+| An AI connection              | an engine chosen under Administration → Assistant → AI in Talk (below) | the bot cannot answer                           |
+| A model with tool calls       | any engine's model that calls tools                                    | chat, reading files and summaries only          |
+| Image input                   | optional                                                               | photos via OCR; document layout checked as text |
+| Nextcloud Office (Collabora)  | optional                                                               | files as OpenDocument only, charts as SVG       |
+| pdftotext, pdftoppm (Poppler) | optional                                                               | no PDFs; scanned PDFs without OCR               |
+| Tesseract (+ languages)       | optional                                                               | no text from photos and scans                   |
+| A speech-to-text provider     | optional                                                               | voice messages are not understood               |
+| The document sandbox          | optional                                                               | no documents built with code                    |
+| PHP zip                       | required                                                               | –                                               |
 
 `occ talk_ai:check` (with `--deep`, also inside a sandbox container) and the
 administration page show each part: present, version, and what is lost without it.
@@ -36,20 +36,21 @@ administration page show each part: present, version, and what is lost without i
 The app talks to the AI itself. Choose an engine under Administration → Assistant → AI in
 Talk (AI connection), or with `occ talk_ai:engine`:
 
-| Engine | For | Needs |
-|---|---|---|
-| `anthropic` | Claude by API key | a key from console.anthropic.com |
-| `gemini` | Gemini by API key | a key from aistudio.google.com |
-| `openai` | OpenAI, OpenRouter, DeepSeek, Mistral, Groq, Ollama, vLLM, LM Studio | a base URL; a key where the server needs one |
-| `claude-cli` | Claude with a subscription (Claude Code on the server) | the `claude` binary, a directory with its login for the web server's user, PHP's command line |
-| `gemini-cli` | Gemini with a Google account (Gemini CLI on the server) | the `gemini` binary and a directory with its login; no images, no search |
-| `taskprocessing` | whatever AI Nextcloud has (another app's provider) | a TaskProcessing provider for chat |
+| Engine           | For                                                                  | Needs                                                                                         |
+| ---------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `anthropic`      | Claude by API key                                                    | a key from console.anthropic.com                                                              |
+| `gemini`         | Gemini by API key                                                    | a key from aistudio.google.com                                                                |
+| `openai`         | OpenAI, OpenRouter, DeepSeek, Mistral, Groq, Ollama, vLLM, LM Studio | a base URL; a key where the server needs one                                                  |
+| `claude-cli`     | Claude with a subscription (Claude Code on the server)               | the `claude` binary, a directory with its login for the web server's user, PHP's command line |
+| `gemini-cli`     | Gemini with a Google account (Gemini CLI on the server)              | the `gemini` binary and a directory with its login; no images, no search                      |
+| `taskprocessing` | whatever AI Nextcloud has (another app's provider)                   | a TaskProcessing provider for chat                                                            |
 
 Keys are encrypted in the database and never shown again; the page and `--show` say only
 whether one is set. Features a server claims but fails at (tools, images, structured
 answers, streaming) can be switched off per engine. A base URL may be plain `http://` and on the
-server's own network (Ollama, vLLM): only administrators set it, and it is the point of those. A fallback chain names the engines that
-answer, in order, when the chosen one is not ready, busy, rate-limited or failing (5xx).
+server's own network (Ollama, vLLM): only administrators set it, and it is the point of those. A
+fallback chain names the engines that answer, in order, when the chosen one is not ready, busy,
+rate-limited or failing (5xx).
 
 ```bash
 # An API key, from stdin (never as an argument: the process list and the history show those).
@@ -95,15 +96,15 @@ Until 0.11 the app answered through the app AI-Hub; from 0.12 it connects itself
 no longer used (it can be removed if no other app needs it). After the update the bot says it
 is not set up until an engine is chosen. Copy from AI-Hub's settings:
 
-| AI-Hub | AI in Talk |
-|---|---|
-| Provider Claude, API | engine `anthropic` |
-| Provider Gemini, API | engine `gemini` |
-| Provider OpenAI-compatible (its URL) | engine `openai`, the same base URL |
+| AI-Hub                                             | AI in Talk                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| Provider Claude, API                               | engine `anthropic`                                            |
+| Provider Gemini, API                               | engine `gemini`                                               |
+| Provider OpenAI-compatible (its URL)               | engine `openai`, the same base URL                            |
 | Claude or Gemini, command line (its path and home) | engine `claude-cli` or `gemini-cli`, the same binary and home |
-| The model, per provider or for the app | the engine's model |
-| The additional prompt for the app | scenario *Answers in Talk*, extra prompt |
-| The allowed users | access by groups (a group of those people) |
+| The model, per provider or for the app             | the engine's model                                            |
+| The additional prompt for the app                  | scenario *Answers in Talk*, extra prompt                      |
+| The allowed users                                  | access by groups (a group of those people)                    |
 
 API keys have to be entered again (AI-Hub keeps them encrypted for itself): on the page, or
 `printf '%s' "$KEY" | occ talk_ai:engine anthropic --key-stdin --use`. Conversations remembered
@@ -167,8 +168,8 @@ Every setting has an explanation on the page; the same keys work with
 `occ config:app:set talk_ai <key> --value …`.
 
 - **General**: the bot on or off (emergency stop), guests and federated participants,
-  the steps shown while answering (`show_steps`), messages per answer (history window), the model's context size, the notice when the
-  bot is enabled.
+  the steps shown while answering (`show_steps`), messages per answer (history window), the
+  model's context size, the notice when the bot is enabled.
 - **Features per group**: writing files, the document sandbox, the web, the calendar,
   and youth mode (no web search; content for minors), each for named groups or
   everyone.
