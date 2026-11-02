@@ -5,6 +5,9 @@
 # and the document golden set must pass with the sandbox image and the skills.
 # A failure blocks the merge (branch protection: all checks required).
 name: CI
+# A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
+# branch fails, Renovate opens a pull request, which mails the repository's watchers.
+enable-email-notifications: true
 "on":
   push:
     branches: [main, renovate/all-patch]

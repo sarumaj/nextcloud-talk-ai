@@ -9,6 +9,9 @@
 # (apps.nextcloud.com, account, API token). Without them the release still gets
 # the archive, unsigned and not published.
 name: Release
+# A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
+# branch fails, Renovate opens a pull request, which mails the repository's watchers.
+enable-email-notifications: true
 "on":
   push:
     tags: ["v*"]
