@@ -3,6 +3,7 @@
 ## 0.12.1 - 2026-10-31
 
 ### Fixed
+
 - With a watcher around Claude Code that passes on only whole messages (the homelab's
   sandbox), the tokens of an answer were counted as 0: they now come from the messages.
 - Nextcloud's chat tasks with a history of plain texts (as AI-Hub took them) lost their
@@ -11,10 +12,12 @@
 ## 0.12.0 - 2026-10-31
 
 ### Removed
+
 - **AI-Hub.** The app connects to the AI itself (below); AI-Hub is no longer needed. Choose an
   engine after the update and enter its key again: docs/admin.md, "Migrating from AI-Hub".
 
 ### Changed
+
 - **The app runs its own AI loop** (`lib/Ai/`): `Hub` and `Loop` run the tools, and the model is
   asked through an `Engine`. Tool calls are no longer limited to eight per question: an answer
   may make 20, a document job its whole budget (`document_max_tools`) in one run instead of
@@ -27,6 +30,7 @@
   come with the render's result (the document job's prompt still spoke of seven calls a turn).
 
 ### Added
+
 - **Anthropic's API as an engine** (`ai_engine` = `anthropic`): native tool calls, up to 20
   images, PDFs sent as they are, prompt caching with the cached tokens reported, web search,
   structured answers, thinking, streaming, and the model list from the API.
@@ -58,6 +62,7 @@
 ## 0.11.0 - 2026-10-28
 
 ### Removed
+
 - **The bot in Matrix.** The Matrix homeserver and its adapter are gone, so the bot answers
   in Talk only. The OCS API `/ocs/v2.php/apps/talk_ai/api/v1/matrix/…` (`MatrixController`),
   the Matrix rooms in `Conversation` (`lib/Matrix/`, tokens `mx-…`), `share_file`'s posting
@@ -72,6 +77,7 @@
 ## 0.10.2 - 2026-10-25
 
 ### Fixed
+
 - Asked to compare two files, the bot read one and said reading the other had failed. With
   a command line tool (AI-Hub's CLI mode) the model calls a tool by a block in its reply, and
   AI-Hub runs only the first block of a reply: the second read was dropped without a word,
@@ -82,6 +88,7 @@
 ## 0.10.1 - 2026-10-25
 
 ### Fixed
+
 - Several files sent with one caption were answered as one: Talk posts each file as a message
   of its own, the caption on the last chosen, and its mobile apps post them side by side, so
   the captioned file could come first and the answer took only that one. The person's files
@@ -92,6 +99,7 @@
 ## 0.10.0 - 2026-10-20
 
 ### Added
+
 - **A new chat without deleting the conversation.** "new chat", "neuer Chat", "nowy czat",
   "start over" or `/new` (`/neu`, `/nowy`), or asked in other words (the tool `new_chat`):
   from then on the bot reads only the messages after it, and the conversation's summary and
@@ -100,6 +108,7 @@
   alike. The start is the setting `context_<token>`.
 
 ### Fixed
+
 - `share_file` with a Matrix room as the conversation shared with a Talk room that does not
   exist, so nothing arrived in Matrix: the file is now posted in the room, read with its
   owner's rights.
@@ -107,6 +116,7 @@
 ## 0.9.0 - 2026-10-20
 
 ### Added
+
 - **The bot in Matrix.** An OCS API (`/ocs/v2.php/apps/talk_ai/api/v1/matrix/…`: messages,
   observe, redactions, reactions, joined, outbox, outbox/ack, posted, info) lets a Matrix
   adapter bring the bot into Matrix rooms with all its features: every tool, documents in the
@@ -120,12 +130,14 @@
   `talk_ai_mx_outbox` (the Matrix rooms' history, kept under the retention).
 
 ### Changed
+
 - Talk's polls and moderator check moved from `Reply` into `Conversation`, which now routes
   everything Talk-specific to Talk or Matrix.
 
 ## 0.8.0 - 2026-10-18
 
 ### Added
+
 - **Images drawn with code** in the document sandbox. `create_document` takes the formats
   png, svg, webp and jpg: diagrams and flowcharts, schematic drawings, function graphs,
   posters, invitations, icons and flat illustrations, or changes to a shared image (crop,
@@ -146,6 +158,7 @@
 ## 0.7.2 - 2026-10-18
 
 ### Fixed
+
 - A file the bot posts (a document, an .ics file, a study set) can be forwarded to another
   conversation: the conversation's share of it now lets its members share it on (read and
   share; still nobody can change it there). Forwarding shares the file again into the other
@@ -154,6 +167,7 @@
 ## 0.7.1 - 2026-10-17
 
 ### Fixed
+
 - A new document with a new question gets the question answered for that document. The bot
   went on with the earlier task instead: a person shared a document with "make me a study
   sheet for this" while an earlier study sheet was the newest document job, and the bot
@@ -170,6 +184,7 @@
 ## 0.7.0 - 2026-10-17
 
 ### Added
+
 - **Exams by the official rules** (tool `exam`). None of a state's, school's or year's rules
   are built in. The syllabus, operators, dates, aids and grading tables come from the
   official documents the person shares or names, read like any other file or page, and the
@@ -233,6 +248,7 @@
 ## 0.6.0 - 2026-10-16
 
 ### Added
+
 - The steps of a slow answer show in its status message while the bot works: with each
   tool it uses, the model says in one sentence what it does and why ("I read the timetable
   to find the exam dates"), and the line appears at the ticker's next look (three
@@ -245,6 +261,7 @@
 ## 0.5.9 - 2026-10-15
 
 ### Fixed
+
 - Voice messages are answered for real: without a caption, Talk names the shared file's
   Activity "file_shared" (0.5.8 waited for "{file}", so it still ignored them).
 - The transcript the bot shows of a voice message is just what was said: the marking that
@@ -253,6 +270,7 @@
 ## 0.5.8 - 2026-10-15
 
 ### Fixed
+
 - Voice messages are answered: Talk tells bots of them as a shared file without a caption
   (an Activity named "{file}"), which the bot took for no question. A voice message is
   transcribed (Nextcloud's speech-to-text, e.g. the External App stt_whisper2) and
@@ -262,6 +280,7 @@
 ## 0.5.7 - 2026-10-15
 
 ### Fixed
+
 - A photo or file shared with a caption ("explain this picture") is answered: Talk tells
   bots of it as a system message, which the bot took for no question, so it waited for
   the next message. The caption is the question (in a group, it names the bot), and the
@@ -273,6 +292,7 @@
 ## 0.5.6 - 2026-10-15
 
 ### Changed
+
 - Only the result of a document job stays: its steps are no longer saved as a protocol in
   the person's files (`Talk-AI/<date>/Traces/`), no page images are kept, and the chat no
   longer names a protocol. The previews before a delivery are the only files saved on the
@@ -284,6 +304,7 @@
 ## 0.5.5 - 2026-10-15
 
 ### Changed
+
 - Watched, not timed: a command in the document sandbox runs as long as it makes progress
   (output or CPU time) and is stopped only when it has had neither for two minutes, or
   after an hour in all. The runner answers every ten seconds while it runs: the job keeps
@@ -300,6 +321,7 @@
   like one that timed out.
 
 ### Fixed
+
 - A document job no longer stops when the model writes a tool call in its own format
   (`<invoke name="bash">…`) after many rounds: the call is run, as a call written as plain
   JSON already was.
@@ -311,11 +333,13 @@
 ## 0.5.4 - 2026-10-15
 
 ### Added
+
 - A status message for every slow answer and document job: from ten seconds on it shows
   the current step and the time it runs, changed every twenty seconds, also while the AI
   works on a long turn without tools; the answer takes its place.
 
 ### Changed
+
 - Half the prompt for most questions: a core of tools goes with every question, the
   others when the question points to them, all reachable through `more_tools`.
 - The system prompt and the tools' list are the same for every conversation and person,
@@ -324,23 +348,27 @@
 ## 0.5.3 - 2026-10-15
 
 ### Fixed
+
 - The release publishes the sandbox images with the repository secret `PACKAGES_TOKEN`.
 
 ## 0.5.2 - 2026-10-15
 
 ### Added
+
 - The document sandbox as an External App (`talk_ai_sandbox`, sandbox/exapp/): for
   servers where Nextcloud cannot run a runner with Docker; AppAPI deploys it, AI in Talk
   finds it. Jobs run as an unprivileged user under a seccomp filter without network.
 - The release publishes the sandbox's and the External App's images.
 
 ### Fixed
+
 - A model that does not answer in time (AI-Hub's command line connection) is asked
   again instead of ending the document job.
 
 ## 0.5.1 - 2026-10-15
 
 ### Added
+
 - The document sandbox without a container runtime: the runner's Bubblewrap backend
   (`RUNNER_BACKEND=bwrap`, with an unpacked image as root or the host's packages).
 - An optional package mirror for the sandbox (`RUNNER_NETWORK`, `RUNNER_PIP_INDEX_URL`,
@@ -348,11 +376,13 @@
 - An edited question is answered again, a deleted one takes its answer along.
 
 ### Fixed
+
 - Tests and CI with Nextcloud 35 and later (`IUserFolder`, PHP 8.3).
 
 ## 0.5.0 - 2026-10-15
 
 ### Added
+
 - Documents built with code in a sandbox (`create_document`): the model writes code
   (python-docx, openpyxl, python-pptx; docx, exceljs, pptxgenjs), renders the pages,
   looks at them, corrects, and delivers DOCX, ODT, XLSX, ODS, PPTX, ODP or PDF. A
@@ -373,12 +403,14 @@
 - German and Polish translations.
 
 ### Changed
+
 - Content from files, web pages, OCR and transcripts is marked with its origin as data.
 - Each message is answered once, also when Talk delivers it twice.
 
 ## 0.3.0 - 2026-10-15
 
 ### Added
+
 - **More subjects, computed rather than guessed:** curve sketching (zeros, extrema,
   inflection points, integrals), linear algebra and analytic geometry exact with fractions,
   t- and χ² tests, geography (places, distances, climate diagrams), music (scales, chords,
@@ -392,12 +424,14 @@
 - Calendar: repeating events, several events at once, and `.ics` files with the time zone.
 
 ### Fixed
+
 - Tools are called reliably: tilde fences inside tool arguments work, the prompt says that
   the tools exist, and numbers given as text are accepted.
 
 ## 0.2.0 - 2026-10-15
 
 ### Added
+
 - **Office files:** Word, Excel and PowerPoint (through OpenDocument and Collabora), flash
   cards, LaTeX formulas as formula objects, corrections, charts, timelines and mind maps.
 - Reading speaker notes, sheet names, old Office files, and images and scans (OCR).
@@ -408,11 +442,13 @@
 - The bot is named after the AI that answers, and renamed when that changes.
 
 ### Fixed
+
 - The hand-off to the app's process route went to the start page.
 
 ## 0.1.0 - 2026-10-14
 
 ### Added
+
 - **A bot for Nextcloud Talk that answers through AI-Hub**, with the asking person's rights:
   in a conversation with one person it answers every message, with more people when it is
   named (`@AI`) or replied to.
