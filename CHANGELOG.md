@@ -350,7 +350,7 @@
 ### Fixed
 - Tests and CI with Nextcloud 35 and later (`IUserFolder`, PHP 8.3).
 
-## 0.5.0 - 2026-10
+## 0.5.0 - 2026-10-15
 
 ### Added
 - Documents built with code in a sandbox (`create_document`): the model writes code
@@ -376,6 +376,48 @@
 - Content from files, web pages, OCR and transcripts is marked with its origin as data.
 - Each message is answered once, also when Talk delivers it twice.
 
-## 0.4.0 and earlier
+## 0.3.0 - 2026-10-15
 
-See the Git history.
+### Added
+- **More subjects, computed rather than guessed:** curve sketching (zeros, extrema,
+  inflection points, integrals), linear algebra and analytic geometry exact with fractions,
+  t- and χ² tests, geography (places, distances, climate diagrams), music (scales, chords,
+  intervals, transposition), finance (interest, loans with repayment schedules, break-even),
+  and image studies for painters (value studies, composition grids, mirrored and blurred
+  views).
+- **Designed documents:** themes, cover pages, a table of contents, footnotes, callout boxes,
+  columns, aligned and striped tables, highlighted code, and charts and images embedded in
+  documents. Slides get an agenda, section slides, slide numbers and pictures; chat answers
+  can carry charts and images.
+- Calendar: repeating events, several events at once, and `.ics` files with the time zone.
+
+### Fixed
+- Tools are called reliably: tilde fences inside tool arguments work, the prompt says that
+  the tools exist, and numbers given as text are accepted.
+
+## 0.2.0 - 2026-10-15
+
+### Added
+- **Office files:** Word, Excel and PowerPoint (through OpenDocument and Collabora), flash
+  cards, LaTeX formulas as formula objects, corrections, charts, timelines and mind maps.
+- Reading speaker notes, sheet names, old Office files, and images and scans (OCR).
+- **Exact tools:** a calculator with constants and distributions, statistics, units,
+  chemistry, genetics, sport, and informatics (truth tables, encodings, SQL).
+- Colour palettes and harmonies, calendar events and tasks, Wikipedia, OpenAlex, and
+  citations by DOI, ISBN or URL.
+- The bot is named after the AI that answers, and renamed when that changes.
+
+### Fixed
+- The hand-off to the app's process route went to the start page.
+
+## 0.1.0 - 2026-10-14
+
+### Added
+- **A bot for Nextcloud Talk that answers through AI-Hub**, with the asking person's rights:
+  in a conversation with one person it answers every message, with more people when it is
+  named (`@AI`) or replied to.
+- It reads the images, text, Markdown, CSV, Word, ODT, Excel, PowerPoint and PDF files shared
+  in the conversation, finds the person's files by name, and searches the web when the AI
+  connection can.
+- It sends files into the chat: Markdown, text, CSV, HTML, JSON, ODT, or PDF (with
+  Collabora), saved in the person's folder for the conversation.
