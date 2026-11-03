@@ -115,6 +115,7 @@ class Reply {
 		private Bot $bot,
 		private Web $web,
 		private Calendar $calendar,
+		private Harvester $harvester,
 		private Requests $requests,
 		private Actions $actions,
 		private Capabilities $capabilities,
@@ -193,6 +194,8 @@ class Reply {
 		foreach (Policy::FEATURES as $feature) {
 			$this->features[$feature] = !$this->guest && $this->policy->allows($userId, $feature) && !in_array($feature, $this->roomSetting('off', []), true);
 		}
+		// Harvester's tools: where the administrator switched them on and Harvester is installed.
+		$this->features['harvester'] = ($this->features['harvester'] ?? false) && $this->harvester->available();
 		// Young people's groups: no web, and an audience note in the prompt.
 		$this->youth = !$this->guest && $this->policy->allows($userId, 'youth') && $this->policy->restricted('youth');
 		if ($this->youth) {
@@ -333,10 +336,12 @@ class Reply {
 				'calendar' => $this->addToCalendar($uid, $args),
 				'share_file' => $this->shareFile($uid, $args),
 				'delete_my_data' => $this->deleteMyData($uid, (string)($args['what'] ?? 'all')),
+				'harvester_apply' => $this->harvesterApply($uid, $args),
+				'harvester_delete' => $this->harvester->deleteTemplate($uid, (int)($args['id'] ?? 0)) ? '' : throw new \RuntimeException('no such template'),
 				default => throw new \RuntimeException('unknown action'),
 			};
 			$this->conversation->postText($this->room, '✅ ' . $this->texts->t($uid, 'Done.') . (is_string($result) && $result !== '' ? "\n" . $result : '')
-				. ($action['tool'] !== 'delete_my_data' ? "\n" . $this->text($uid, 'Undo hint') : ''), $this->messageId);
+				. (!in_array($action['tool'], ['delete_my_data', 'harvester_delete'], true) ? "\n" . $this->text($uid, 'Undo hint') : ''), $this->messageId);
 		} catch (\Throwable $e) {
 			$this->conversation->postText($this->room, '⚠️ ' . $action['summary'] . ': ' . mb_substr($e->getMessage(), 0, 300), $this->messageId);
 		}
@@ -648,9 +653,10 @@ class Reply {
 			'documents' => ['send_file', 'send_flashcards', 'create_document', 'redo_document'],
 			'web' => ['read_url', 'cite', 'lookup', 'find_images', 'geo'],
 			'calendar' => ['calendar'],
+			'harvester' => ['harvester_recipe', 'harvester_job'],
 		];
 		if ($this->guest) {
-			foreach (['list_files', 'read_file', 'find_files', 'send_file', 'send_flashcards', 'calendar', 'create_document', 'redo_document',
+			foreach (['list_files', 'read_file', 'find_files', 'send_file', 'send_flashcards', 'calendar', 'harvester_recipe', 'harvester_job', 'create_document', 'redo_document',
 				'document_status', 'room_settings', 'my_profile', 'undo', 'share_file', 'delete_my_data', 'create_poll', 'image_study', 'colors', 'new_chat'] as $name) {
 				unset($tools[$name]);
 			}
@@ -737,7 +743,8 @@ class Reply {
 		}
 		$private = match ($tool) {
 			'calendar' => in_array((string)($args['action'] ?? ''), ['events', 'calendars'], true),
-			'find_files' => true,
+			'find_files', 'harvester_job' => true,
+			'harvester_recipe' => in_array((string)($args['action'] ?? ''), ['templates', 'show'], true),
 			'read_file' => array_diff(self::fileIds($args), array_map(fn ($f) => (int)$f['id'], $this->sharedFiles)) !== [],
 			default => false,
 		};
@@ -746,7 +753,11 @@ class Reply {
 		}
 		$this->reveal = true;
 		return $this->confirmations->ask($this->room->getToken(), $uid, 'reveal', ['question' => $this->lastQuestion, 'message_id' => $this->messageId],
-			'show information from your ' . ($tool === 'calendar' ? 'calendar' : 'own files') . ' to everyone in this conversation')
+			'show information from your ' . match ($tool) {
+				'calendar' => 'calendar',
+				'harvester_job', 'harvester_recipe' => 'Harvester',
+				default => 'own files',
+			} . ' to everyone in this conversation')
 			. ' Until they answer, answer only what needs nothing private.';
 	}
 
@@ -757,6 +768,7 @@ class Reply {
 			'read_url', 'lookup', 'cite', 'find_images', 'geo', 'law' => 'Researching',
 			'send_file', 'send_flashcards', 'create_document', 'redo_document' => 'Writing',
 			'calendar' => 'Calendar',
+			'harvester_recipe', 'harvester_job' => 'Harvester',
 			default => 'Working',
 		};
 		return $this->text($uid, $key);
@@ -775,6 +787,7 @@ class Reply {
 			[true, $t('Maths, sciences, statistics (computed exactly)'), $t('“Solve x² − 5x + 6 = 0”')],
 			[$this->features['web'] ?? false, $t('Research and citations (web, Wikipedia, papers)'), $t('“Cite 10.1038/nature14539 in APA”')],
 			[$this->features['calendar'] ?? false, $t('Calendar and tasks (confirmed, undoable)'), $t('“Add my maths exam on 12 Nov at 9:00”')],
+			[$this->features['harvester'] ?? false, $t('Harvester recipes: written, checked and saved as your templates; why a job fails'), $t('“A Harvester recipe for the PDFs on this page”')],
 			[true, $t('Exams and studies (grading tables, mock exams, study plans, grades, lab uncertainty, deadlines)'), $t('“I got 57 of 80 marks: how many points?”')],
 			[!$this->guest, $t('Polls in the chat'), $t('“Make a poll: pizza or pasta?”')],
 			[!$this->guest, $t('A fresh start: I forget what was said before, the chat keeps it'), $t('“new chat” or /new')],
@@ -1281,6 +1294,7 @@ class Reply {
 			'Researching' => 'Researching',
 			'Writing' => 'Writing',
 			'Calendar' => 'Calendar',
+			'Harvester' => 'Harvester',
 			'Working' => 'Working',
 			'Failed' => 'That did not work this time; please try again in a moment',
 			'Not ready' => 'The AI connection is not set up; an administrator can do that under Administration → Assistant → AI in Talk.',
@@ -1429,7 +1443,7 @@ class Reply {
 			'room_settings' => [
 				'description' => 'Settings of this conversation (only its moderators may change them): persona (a role or tone for you '
 					. 'here), language (the language you answer in here), folder (where documents go by default), off (features switched '
-					. 'off here: documents, sandbox, web, calendar), previews (whether document jobs show a preview first). Give only what changes.',
+					. 'off here: documents, sandbox, web, calendar, harvester), previews (whether document jobs show a preview first). Give only what changes.',
 				'input' => ['type' => 'object', 'properties' => ['persona' => ['type' => 'string'], 'language' => ['type' => 'string'], 'folder' => ['type' => 'string'],
 					'off' => ['type' => 'array', 'items' => ['type' => 'string']], 'previews' => ['type' => 'boolean']]],
 				'run' => fn (string $uid, array $args) => $this->roomSettings($uid, $args),
@@ -1446,7 +1460,7 @@ class Reply {
 				'run' => fn (string $uid, array $args) => $this->myProfile($uid, $args),
 			],
 			'undo' => [
-				'description' => 'Undoes what you changed for the person in the last 24 hours (calendar entries, shares, delivered documents): '
+				'description' => 'Undoes what you changed for the person in the last 24 hours (calendar entries, shares, delivered documents, Harvester templates and job fixes): '
 					. 'without id the latest here; action list shows what can be undone.',
 				'input' => ['type' => 'object', 'properties' => ['action' => ['type' => 'string', 'enum' => ['list', 'undo']], 'id' => ['type' => 'integer']], 'required' => ['action']],
 				'run' => fn (string $uid, array $args) => (string)($args['action'] ?? 'list') === 'list'
@@ -1593,6 +1607,44 @@ class Reply {
 						$this->calendar->file($uid, (array)($args['events'] ?? []), (array)($args['tasks'] ?? []), (string)($args['name'] ?? ''))), 'ics'),
 					default => $this->calendar->list($uid),
 				},
+			],
+			'harvester_recipe' => [
+				'description' => 'Harvester (the app that fetches files from websites, mailboxes, feeds and more into the person\'s Nextcloud) '
+					. 'recipe files and the person\'s Harvester templates. action "save": checks a recipe file (recipe: its JSON; or file: the id '
+					. 'of a shared .harvester.json) and, when Harvester accepts it, saves it as the person\'s template (name) and posts the '
+					. '.harvester.json into the chat; a refused one comes back with Harvester\'s problems: fix them and call again. "check": '
+					. 'checks only. "templates": the person\'s templates (id, name, a summary). "show" (id): a template\'s file, to explain '
+					. 'or revise (a revision is saved as a new template). "delete" (id): only when the person asks; it asks for their yes. '
+					. 'Never makes or runs a job, never touches accounts: the person makes the job from the template on Harvester\'s page '
+					. 'and chooses the folder and the account there. Before writing a website recipe, look at the page (read_url) for its '
+					. 'links and selectors.' . "\n" . Harvester::FORMAT,
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['save', 'check', 'templates', 'show', 'delete']],
+					'recipe' => ['type' => 'string', 'description' => 'The recipe file as JSON text'],
+					'file' => ['type' => 'integer', 'description' => 'Or the id of a shared .harvester.json file'],
+					'name' => ['type' => 'string', 'description' => 'The template\'s name (save)'],
+					'id' => ['type' => 'integer', 'description' => 'A template\'s id (show, delete)'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => $this->harvesterRecipe($uid, $args),
+			],
+			'harvester_job' => [
+				'description' => 'The person\'s Harvester jobs, to find out why one fails and fix its recipe. action "list": their jobs and '
+					. 'how they stand (last run and its message, waiting, needs the person). "log" (job, lines up to 200): the job\'s latest '
+					. 'progress log. "shot" (job): the picture of its browser at the last failed step or challenge, with the page\'s '
+					. 'address and title and what went wrong. "recipe" (job): its recipe file (a value that looks like a password reads '
+					. '"' . Harvester::HIDDEN . '": keep it as it is). "test" (job, wait: seconds up to 90): Harvester tests a website '
+					. 'job\'s recipe (walks it, downloads nothing); the log lines of the wait come back, later ones with "log". "apply" '
+					. '(job, recipe): puts a fixed recipe file into that job (its recipe and options; its name, folder, schedule, tags '
+					. 'and account stay); it asks for the person\'s yes. Without their wish to change the job, save the fix as a template '
+					. '(harvester_recipe). Accounts, passwords and sessions are never shown or changed.',
+				'input' => ['type' => 'object', 'properties' => [
+					'action' => ['type' => 'string', 'enum' => ['list', 'log', 'shot', 'recipe', 'test', 'apply']],
+					'job' => ['type' => 'integer', 'description' => 'The job\'s id (from list)'],
+					'lines' => ['type' => 'integer'],
+					'wait' => ['type' => 'integer'],
+					'recipe' => ['type' => 'string', 'description' => 'The fixed recipe file as JSON text (apply)'],
+				], 'required' => ['action']],
+				'run' => fn (string $uid, array $args) => $this->harvesterJob($uid, $args),
 			],
 			'convert_units' => [
 				'description' => 'Converts a value between units, with a check that they measure the same thing: SI with prefixes '
@@ -2025,6 +2077,136 @@ class Reply {
 	/**
 	 * @param list<array{front?: string, back?: string}> $cards
 	 */
+	/** harvester_recipe: check, save, list, show or (after a yes) delete the person's recipes and templates. */
+	private function harvesterRecipe(string $uid, array $args): array|string {
+		$action = (string)($args['action'] ?? '');
+		if ($action === 'templates') {
+			$templates = $this->harvester->templates($uid);
+			return $templates === [] ? 'The person has no Harvester templates.' : self::marked('Harvester templates', $templates);
+		}
+		if ($action === 'show') {
+			$file = $this->harvester->template($uid, (int)($args['id'] ?? 0));
+			return $file === null ? 'No template of the person\'s has this id (list them with action templates).'
+				: self::marked('Harvester template ' . (int)$args['id'], $file);
+		}
+		if ($action === 'delete') {
+			$id = (int)($args['id'] ?? 0);
+			$name = '';
+			foreach ($this->harvester->templates($uid) as $template) {
+				$name = $template['id'] === $id ? $template['name'] : $name;
+			}
+			if ($name === '') {
+				return 'No template of the person\'s has this id (list them with action templates).';
+			}
+			return $this->confirmations->ask($this->room->getToken(), $uid, 'harvester_delete', ['id' => $id], 'delete the Harvester template "' . $name . '"');
+		}
+		$text = $this->recipeText($uid, $args);
+		if ($text === null) {
+			return 'Give the recipe file as JSON (recipe), or the id of a shared .harvester.json file (file).';
+		}
+		$checked = $this->harvester->check($uid, $text);
+		if (!$checked['ok']) {
+			return 'Harvester refused the recipe: ' . ($checked['problems'] ?? '') . "\nFix these and call again (at most a few times; "
+				. 'then tell the person what is still wrong).';
+		}
+		if ($action !== 'save') {
+			return 'Harvester accepts the recipe; it describes this job: ' . json_encode(Harvester::hidden($checked['job']), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		}
+		$saved = $this->harvester->saveTemplate($uid, $checked['job'], (string)($args['name'] ?? ''));
+		if (!$saved['ok']) {
+			return 'Harvester refused the template: ' . ($saved['problems'] ?? '');
+		}
+		$template = $saved['template'];
+		$this->actions->record($uid, $this->room->getToken(), 'harvester_template', 'Harvester template "' . $template['name'] . '"', ['id' => $template['id']]);
+		$file = $this->conversation->saveFile($this->room, $uid, self::fileName($template['name']) . '.harvester.json',
+			(string)json_encode($template['file'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n");
+		$this->conversation->postFile($this->room, $file, $this->messageId);
+		return 'Saved as the person\'s Harvester template "' . $template['name'] . '" (id ' . $template['id'] . ') and sent "' . $file->getName()
+			. '" to the chat (also in their files). Tell them briefly: to make a job of it, open Harvester (' . $this->harvester->pageUrl()
+			. '), New job, Your templates, Use this template; there they choose the folder and, where the site needs one, the account. '
+			. 'Harvester keeps 50 templates; the oldest go first.';
+	}
+
+	/** A recipe file's text: the recipe given (text or object), or a shared file of the person's. */
+	private function recipeText(string $uid, array $args): ?string {
+		$recipe = $args['recipe'] ?? null;
+		if (is_array($recipe)) {
+			return (string)json_encode($recipe, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		}
+		if (is_string($recipe) && trim($recipe) !== '') {
+			return $recipe;
+		}
+		$id = (int)($args['file'] ?? 0);
+		$file = $id > 0 ? $this->conversation->userFile($uid, $id) : null;
+		if ($file === null || $file->getSize() > Harvester::MAX_BYTES) {
+			return null;
+		}
+		return $file->getContent();
+	}
+
+	/** harvester_job: the person's jobs, a job's log, its browser's picture and recipe, a test, a fix (after a yes). */
+	private function harvesterJob(string $uid, array $args): array|string {
+		$job = (int)($args['job'] ?? 0);
+		$action = (string)($args['action'] ?? 'list');
+		if ($action !== 'list' && $job <= 0) {
+			return 'Give the job\'s id (job); action list lists them.';
+		}
+		switch ($action) {
+			case 'log':
+				$lines = $this->harvester->log($uid, $job, (int)($args['lines'] ?? Harvester::LOG_LINES));
+				return $lines === [] ? 'The job has no log lines.' : self::marked('Harvester log of job ' . $job, $lines);
+			case 'shot':
+				$shot = $this->harvester->shot($uid, $job);
+				if ($shot === null) {
+					return 'The job\'s browser has kept no picture (it keeps one at a failed step or a challenge).';
+				}
+				$text = self::marked('Harvester\'s browser at job ' . $job . '\'s last failed step', array_diff_key($shot, ['image' => true]));
+				if (!($this->caps['images'] ?? false) || $shot['image'] === '') {
+					return $text . "\nThe picture cannot be shown: this AI connection takes no images.";
+				}
+				return ['text' => $text . "\nThe picture follows.", 'images' => [['type' => 'image/jpeg', 'data' => $shot['image']]]];
+			case 'recipe':
+				return self::marked('recipe file of Harvester job ' . $job, $this->harvester->recipe($uid, $job));
+			case 'test':
+				$test = $this->harvester->test($uid, $job, (int)($args['wait'] ?? 30));
+				if (!$test['requested']) {
+					return 'Harvester did not test it: ' . ($test['why'] ?? '');
+				}
+				return 'Harvester tests the recipe (after a run going on, if one is); it downloads nothing. '
+					. (($test['lines'] ?? []) === [] ? 'No log lines yet: look again with action log in a while.'
+						: self::marked('Harvester log of job ' . $job . ' while waiting', $test['lines']) . "\nLater lines: action log.");
+			case 'apply':
+				$text = $this->recipeText($uid, ['recipe' => $args['recipe'] ?? null]);
+				if ($text === null) {
+					return 'Give the fixed recipe file as JSON (recipe).';
+				}
+				$name = '';
+				foreach ($this->harvester->jobs($uid) as $listed) {
+					$name = $listed['id'] === $job ? $listed['name'] : $name;
+				}
+				if ($name === '') {
+					return 'No Harvester job of the person\'s has this id (action list lists them).';
+				}
+				return $this->confirmations->ask($this->room->getToken(), $uid, 'harvester_apply', ['job' => $job, 'name' => $name, 'recipe' => $text],
+					'put the fixed recipe into the Harvester job "' . $name . '" (its folder, schedule and account stay)');
+			default:
+				$jobs = $this->harvester->jobs($uid);
+				return $jobs === [] ? 'The person has no Harvester jobs.' : self::marked('Harvester jobs', $jobs);
+		}
+	}
+
+	/** A confirmed fix of a Harvester job: applied, recorded to undo within a day. */
+	private function harvesterApply(string $uid, array $args): string {
+		$job = (int)($args['job'] ?? 0);
+		$result = $this->harvester->apply($uid, $job, (string)($args['recipe'] ?? ''));
+		if (!$result['ok']) {
+			throw new \RuntimeException('Harvester refused it: ' . ($result['problems'] ?? ''));
+		}
+		$this->actions->record($uid, $this->room->getToken(), 'harvester_job', 'the recipe of the Harvester job "' . ($args['name'] ?? $job) . '"',
+			['job' => $job, 'before' => $result['before']]);
+		return 'Harvester: "' . ($args['name'] ?? $job) . '" ' . $this->harvester->pageUrl();
+	}
+
 	private function sendCards(string $uid, string $title, array $cards, string $format): string {
 		$cards = array_values(array_filter(array_map(fn ($c) => ['front' => trim((string)($c['front'] ?? '')), 'back' => trim((string)($c['back'] ?? ''))], $cards), fn (array $c) => $c['front'] !== ''));
 		if ($cards === []) {

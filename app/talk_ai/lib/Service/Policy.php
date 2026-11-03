@@ -17,14 +17,15 @@ use OCP\IUserManager;
  *
  * App settings: features, a JSON object of feature => list of groups (empty or
  * missing: everyone); the features are documents (files written in the chat),
- * sandbox (documents built with code), web (search, pages, citations) and calendar.
+ * sandbox (documents built with code), web (search, pages, citations), calendar and
+ * harvester (Harvester's recipes and jobs, where Harvester::available()).
  * The older document_groups still limits the sandbox when features has no entry.
  * styles, a JSON list of house styles: {name, groups, description, palette (colours),
  * fonts {heading, body}, templates {format: file name}, logo (file name); the files are
  * in the app data (styles/<name>/), uploaded in the administration}.
  */
 class Policy {
-	public const FEATURES = ['documents', 'sandbox', 'web', 'calendar'];
+	public const FEATURES = ['documents', 'sandbox', 'web', 'calendar', 'harvester'];
 
 	public function __construct(
 		private IAppConfig $appConfig,

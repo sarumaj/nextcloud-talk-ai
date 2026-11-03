@@ -21,6 +21,7 @@ class Settings {
 		'show_steps' => ['general', 'bool', 'yes', null, null, 'Show the steps while answering', 'The status message of a slow answer lists what the bot does and why, a line per tool it uses; the answer then takes its place.'],
 		'history_window' => ['general', 'int', '30', 5, 200, 'Messages per answer', 'How many recent messages of the conversation go with each question; older ones are summarized.'],
 		'context_tokens' => ['general', 'int', '0', 0, 2000000, 'Context size of the model (tokens)', '0: known from the model\'s name. The context is cut to fit.'],
+		'harvester' => ['general', 'bool', 'no', null, null, 'Harvester recipes and jobs', 'The bot writes and checks Harvester recipes, saves them as the person\'s templates and finds out why their Harvester jobs fail; a job is changed only after their yes. Only with the External App Harvester installed and enabled.'],
 		'transparency_text' => ['general', 'text', '', null, null, 'Notice when the bot is enabled in a conversation', 'Empty: names the AI provider and model of the chosen engine, and the location below.'],
 		'provider_location' => ['general', 'string', '', null, null, 'Where the AI provider processes the data', 'For the notice, e.g. "the USA (Anthropic)" or "this server (Ollama)".'],
 		'max_jobs_per_user' => ['quotas', 'int', '2', 1, 20, 'Document jobs per person at the same time', 'Waiting or running; more are refused until one is done.'],
@@ -50,7 +51,7 @@ class Settings {
 		'debug_hours' => ['debug', 'int', '0', 0, 24, 'Debug log for the next hours', 'Questions and answers go to the Nextcloud log, with e-mail addresses, IBANs and numbers masked. Ends by itself.'],
 	];
 
-	public const GROUP_FEATURES = ['documents', 'sandbox', 'web', 'calendar', 'youth'];
+	public const GROUP_FEATURES = ['documents', 'sandbox', 'web', 'calendar', 'harvester', 'youth'];
 
 	public function __construct(
 		private IAppConfig $appConfig,

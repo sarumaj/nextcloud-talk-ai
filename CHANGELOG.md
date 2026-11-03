@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Harvester** (the External App, through AppAPI as the asking person; setting `harvester`, off
+  by default, and the feature `harvester` per group): the bot writes a recipe from a description
+  (the recipe format described to the model), has Harvester check it and hands a refused one
+  back with Harvester's problems to fix, saves an accepted one as the person's template and posts
+  its `.harvester.json` into the chat with a link to Harvester's page; checks and saves a shared
+  `.harvester.json`; lists, shows and (after a yes) deletes templates. It diagnoses the person's
+  Harvester jobs: their state, a job's log, the picture of its browser at the failed step (as an
+  image), its recipe file, and a test of its recipe (nothing downloaded); a fixed recipe goes into
+  the job only after the person's yes, keeping its folder, schedule, tags and account. No account,
+  password or session reaches the model; it never makes or runs a job. A saved template and an
+  applied fix can be undone for 24 hours. The health check shows Harvester.
+
 ## 0.13.1 - 2026-11-03
 
 ### Changed

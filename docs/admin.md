@@ -14,6 +14,7 @@
 | Tesseract (+ languages)       | optional                                                               | no text from photos and scans                   |
 | A speech-to-text provider     | optional                                                               | voice messages are not understood               |
 | The document sandbox          | optional                                                               | no documents built with code                    |
+| Harvester (an External App)   | optional, with AppAPI; switched on by `harvester`                      | no Harvester recipes or job diagnosis           |
 | PHP zip                       | required                                                               | –                                               |
 
 `occ talk_ai:check` (with `--deep`, also inside a sandbox container) and the
@@ -169,9 +170,10 @@ Every setting has an explanation on the page; the same keys work with
 
 - **General**: the bot on or off (emergency stop), guests and federated participants,
   the steps shown while answering (`show_steps`), messages per answer (history window), the
-  model's context size, the notice when the bot is enabled.
+  model's context size, the notice when the bot is enabled, Harvester's recipes and jobs
+  (`harvester`, off by default; see below).
 - **Features per group**: writing files, the document sandbox, the web, the calendar,
-  and youth mode (no web search; content for minors), each for named groups or
+  Harvester, and youth mode (no web search; content for minors), each for named groups or
   everyone.
 - **Quotas**: document jobs, seconds and (estimated) tokens per person and day; costs
   per million tokens for the statistics.
@@ -192,6 +194,40 @@ answers with their request id (in the log too) and the tools they ran, statistic
 (jobs, success, run time, tokens and cost per person, conversation and day), and the
 golden set per AI connection.
 
+## Harvester
+
+With the External App [Harvester](https://git.ciepiela.org/dawid/nextcloud-harvester)
+(appid `harvester`) installed and enabled through AppAPI, and `harvester` switched on (General;
+`occ config:app:set talk_ai harvester --value yes`), the bot gets two tools, for the people of
+the feature's groups (Features per group; empty: everyone) and never for guests:
+
+- `harvester_recipe`: checks a recipe file with Harvester (`POST /api/recipes/import`; a refused
+  one goes back to the model with Harvester's problems, to fix and try again), saves an accepted
+  one as the person's template (`POST /api/templates`; Harvester keeps 50 a person, the oldest
+  go first) and posts its `.harvester.json` into the chat and the person's folder, with a link to
+  Harvester's page; lists and shows the person's templates (`GET /api/templates`), and deletes
+  one after their yes. The model is given a compact description of the recipe format (from
+  Harvester's guide) and may read the target page with `read_url` for its selectors.
+- `harvester_job`: the person's jobs and how they stand (`GET /api/jobs`), a job's latest log
+  lines (`GET /api/log`, 40 by default, 200 at most, 400 characters a line), the picture of
+  its browser at the last failed step (`GET /api/jobs/<id>/shot`, as an image where the engine
+  takes images), its recipe file (`POST /api/recipes/export`), a test of a website job's recipe
+  (`POST /api/jobs/<id>/test`: Harvester walks it and downloads nothing; the tool waits up to
+  90 s for log lines, later ones are read with the log), and a fixed recipe put into the job
+  (`PUT /api/jobs/<id>`) after the person's yes.
+
+Every request goes through AppAPI's `exAppRequest` as the asking person, so Harvester answers
+with that person's templates and jobs only. The tools never make or run a job, never call
+Harvester's credentials route, and hand the model no account or session: a job's options and
+the address of a page that asked for a person stay out of the job list, and a value a recipe
+fills into a field that looks like a password's is shown as `(hidden: kept from the job)` and
+taken from the job again when a fix is applied. A fix changes the recipe and the options in the
+file; the job's name, folder, schedule, time zone, tags and account stay. A saved template and
+an applied fix can be undone for 24 hours ("undo"; a fix that changes the sign-in's steps has
+made Harvester forget the job's kept session, which undo does not bring back). Reading and
+testing need no yes; in a conversation with others, showing the person's Harvester asks first,
+as their calendar does. The health check shows whether Harvester is installed and switched on.
+
 ## Evaluating a model
 
 `occ talk_ai:golden <test account> [T-01 …]` runs the acceptance cases as real document
@@ -206,8 +242,8 @@ the model and before letting everyone use it.
   With a local server (Ollama, vLLM) nothing leaves the server.
 - All tools act with the rights of the person asking. Private things (their calendar,
   their own files) are shown in a group conversation only after their yes.
-- Changes outside the chat (calendar entries, shares, deleting) need the person's yes,
-  for exactly one action, and can be undone for 24 hours.
+- Changes outside the chat (calendar entries, shares, deleting, a Harvester job's recipe)
+  need the person's yes, for exactly one action, and can be undone for 24 hours.
 - Nothing of questions or answers is logged unless debugging is switched on.
 - People can delete their data themselves ("delete my data": all records, preferences
   and memories; or the delivered documents).

@@ -15,6 +15,9 @@
     records (idempotency, tokens, tools), the undo records.
   - `lib/Service/Capabilities.php`, `Policy.php`, `Switches.php`, `Confirmations.php`,
     `Texts.php`, `Health.php`, `Settings.php`, `Golden.php`.
+  - `lib/Service/Harvester.php`: the External App Harvester through AppAPI's `exAppRequest` as
+    the asking person (recipe files, templates, jobs, log, shots, tests), resolved only when
+    used; `tests/HarvesterTest.php` plays AppAPI.
   - `lib/Document/`: the built-in writers and readers, maths and subject tools.
 - `sandbox/`: the image (`Dockerfile`) and the runner (`runner.py`: backends docker,
   bwrap and process; the socket protocol, or HTTP for AppAPI); `sandbox/exapp/` the

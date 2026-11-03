@@ -17,6 +17,7 @@ use OCA\TalkAi\Service\Capabilities;
 use OCA\TalkAi\Service\Confirmations;
 use OCA\TalkAi\Service\Conversation;
 use OCA\TalkAi\Service\Dispatcher;
+use OCA\TalkAi\Service\Harvester;
 use OCA\TalkAi\Service\Jobs;
 use OCA\TalkAi\Service\Office;
 use OCA\TalkAi\Service\Policy;
@@ -32,7 +33,7 @@ class ToolChoiceTest extends TestCase {
 	private function tools(array $features = []): array {
 		$reply = new Reply($this->createMock(Conversation::class), $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class),
 			$this->createMock(OdsWriter::class), $this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class),
-			$this->createMock(Web::class), $this->createMock(Calendar::class), $this->createMock(Requests::class), $this->createMock(Actions::class),
+			$this->createMock(Web::class), $this->createMock(Calendar::class), $this->createMock(Harvester::class), $this->createMock(Requests::class), $this->createMock(Actions::class),
 			$this->createMock(Capabilities::class), $this->createMock(\OCA\TalkAi\Ai\Hub::class), $this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class),
 			$this->createMock(Policy::class), $this->createMock(Confirmations::class), new FakeProgress(), $this->createMock(\OCP\IConfig::class),
 			$this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());

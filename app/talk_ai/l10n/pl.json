@@ -296,7 +296,12 @@
         "Hours a remembered conversation is kept": "Godziny przechowywania zapamiętanej rozmowy",
         "Counted from its last use.": "Liczone od ostatniego użycia.",
         "Nextcloud's Assistant, Mail and Talk use this engine": "Asystent, Mail i Talk Nextclouda używają tego silnika",
-        "As a TaskProcessing provider; takes effect from the next request. Never while the engine is Nextcloud's own AI.": "Jako dostawca TaskProcessing; działa od następnego zapytania. Nigdy, gdy silnikiem jest własna AI Nextclouda."
+        "As a TaskProcessing provider; takes effect from the next request. Never while the engine is Nextcloud's own AI.": "Jako dostawca TaskProcessing; działa od następnego zapytania. Nigdy, gdy silnikiem jest własna AI Nextclouda.",
+        "Harvester recipes and jobs": "Przepisy i zadania Harvestera",
+        "Harvester recipes: written, checked and saved as your templates; why a job fails": "Przepisy Harvestera: napisane, sprawdzone i zapisane jako twoje szablony; dlaczego zadanie się nie udaje",
+        "“A Harvester recipe for the PDFs on this page”": "„Przepis Harvestera na pliki PDF z tej strony”",
+        "Harvester": "Sprawdzam Harvester",
+        "The bot writes and checks Harvester recipes, saves them as the person's templates and finds out why their Harvester jobs fail; a job is changed only after their yes. Only with the External App Harvester installed and enabled.": "Bot pisze i sprawdza przepisy Harvestera, zapisuje je jako szablony osoby i ustala, dlaczego jej zadania Harvestera się nie udają; zadanie zmienia dopiero po jej zgodzie. Tylko gdy aplikacja zewnętrzna Harvester jest zainstalowana i włączona."
     },
     "pluralForm": "nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);"
 }

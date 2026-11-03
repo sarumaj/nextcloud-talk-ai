@@ -32,6 +32,13 @@ lists what it can do here.
 - **Research and citations**: the web, Wikipedia, papers; "cite this in APA".
 - **Calendar**: "add my exam on 12 November at 9:00"; it asks first, "undo" reverts it
   within a day.
+- **Harvester** (where the administrator switched it on): "a Harvester recipe for the PDFs on
+  this page", or share a `.harvester.json` and ask to check and save it: it becomes your
+  template, and the file comes into the chat; in Harvester, *New job*, *Your templates*, *Use
+  this template* makes the job, with your folder and account. "Why does my Harvester job fail?"
+  reads its log and the picture of the failed step, and can have Harvester test the recipe
+  (nothing is downloaded). A fix goes into the job only after your yes ("undo" reverts it within
+  a day); it never sees your passwords.
 - **Polls**: "make a poll: pizza or pasta?"
 - **Voice messages**: it listens (when speech recognition is installed) and quotes what
   it understood.
@@ -71,6 +78,13 @@ ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
 - **Recherche und Zitate**: Web, Wikipedia, Fachartikel; „zitiere das in APA“.
 - **Kalender**: „trag meine Klausur am 12.11. um 9 Uhr ein“; er fragt vorher, „rückgängig“
   macht es innerhalb eines Tages rückgängig.
+- **Harvester** (wo die Administration es eingeschaltet hat): „ein Harvester-Rezept für die PDFs
+  auf dieser Seite“, oder teile eine `.harvester.json` und lass sie prüfen und speichern: Sie wird
+  deine Vorlage, und die Datei kommt in den Chat; in Harvester macht *Neuer Job*, *Deine
+  Vorlagen*, *Diese Vorlage verwenden* den Job, mit deinem Ordner und Konto. „Warum scheitert
+  mein Harvester-Job?“ liest sein Protokoll und das Bild des gescheiterten Schritts und kann
+  Harvester das Rezept testen lassen (nichts wird heruntergeladen). Eine Korrektur kommt erst
+  nach deinem Ja in den Job („rückgängig“ innerhalb eines Tages); deine Passwörter sieht er nie.
 - **Umfragen**: „mach eine Umfrage: Pizza oder Pasta?“
 - **Sprachnachrichten**: er hört zu (wenn Spracherkennung installiert ist) und zitiert,
   was er verstanden hat.
@@ -108,6 +122,13 @@ co tu potrafi.
   statystyka z wierszem APA, terminy w prawie.
 - **Wyszukiwanie i cytaty**: sieć, Wikipedia, artykuły; „zacytuj to w APA”.
 - **Kalendarz**: „wpisz sprawdzian 12.11 o 9:00”; najpierw pyta, „cofnij” cofa to w ciągu doby.
+- **Harvester** (gdzie administracja go włączyła): „przepis Harvestera na pliki PDF z tej
+  strony” albo udostępnij `.harvester.json` i poproś o sprawdzenie i zapisanie: staje się twoim
+  szablonem, a plik trafia na czat; w Harvesterze *Nowe zadanie*, *Twoje szablony*, *Użyj tego
+  szablonu* tworzy zadanie, z twoim folderem i kontem. „Dlaczego moje zadanie Harvestera się nie
+  udaje?” czyta jego dziennik i obraz nieudanego kroku i może zlecić Harvesterowi test przepisu
+  (nic nie jest pobierane). Poprawka trafia do zadania dopiero po twojej zgodzie („cofnij” w
+  ciągu doby); nigdy nie widzi twoich haseł.
 - **Ankiety**: „zrób ankietę: pizza czy makaron?”
 - **Wiadomości głosowe**: słucha (jeśli jest rozpoznawanie mowy) i cytuje, co zrozumiał.
 - **Skróty**: `/podsumuj`, `/zadania`, `/spotkanie …`, `/protokol`.

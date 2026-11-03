@@ -297,6 +297,11 @@ OC.L10N.register(
         "Hours a remembered conversation is kept": "Stunden, die eine gemerkte Unterhaltung bleibt",
         "Counted from its last use.": "Ab ihrer letzten Nutzung gezählt.",
         "Nextcloud's Assistant, Mail and Talk use this engine": "Nextclouds Assistent, Mail und Talk nutzen diese Engine",
-        "As a TaskProcessing provider; takes effect from the next request. Never while the engine is Nextcloud's own AI.": "Als TaskProcessing-Anbieter; gilt ab der nächsten Anfrage. Nie, solange die Engine Nextclouds eigene KI ist."
+        "As a TaskProcessing provider; takes effect from the next request. Never while the engine is Nextcloud's own AI.": "Als TaskProcessing-Anbieter; gilt ab der nächsten Anfrage. Nie, solange die Engine Nextclouds eigene KI ist.",
+        "Harvester recipes and jobs": "Harvester-Rezepte und -Jobs",
+        "Harvester recipes: written, checked and saved as your templates; why a job fails": "Harvester-Rezepte: geschrieben, geprüft und als deine Vorlagen gespeichert; warum ein Job scheitert",
+        "“A Harvester recipe for the PDFs on this page”": "„Ein Harvester-Rezept für die PDFs auf dieser Seite“",
+        "Harvester": "Schaue in Harvester",
+        "The bot writes and checks Harvester recipes, saves them as the person's templates and finds out why their Harvester jobs fail; a job is changed only after their yes. Only with the External App Harvester installed and enabled.": "Der Bot schreibt und prüft Harvester-Rezepte, speichert sie als Vorlagen der Person und findet heraus, warum ihre Harvester-Jobs scheitern; ein Job wird nur nach ihrem Ja geändert. Nur, wenn die External App Harvester installiert und aktiviert ist."
     },
 "nplurals=2; plural=(n != 1);");

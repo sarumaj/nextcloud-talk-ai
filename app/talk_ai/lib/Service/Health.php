@@ -21,7 +21,7 @@ use OCP\Server;
  * What the bot needs and what it loses without it (occ talk_ai:check and the
  * administration): the AI connection and its abilities, the document sandbox
  * with LibreOffice, Poppler and the libraries, Collabora, pdftotext, pdftoppm,
- * Tesseract, speech-to-text, PHP's zip, and how often background jobs run.
+ * Tesseract, Harvester, speech-to-text, PHP's zip, and how often background jobs run.
  */
 class Health {
 	public function __construct(
@@ -33,6 +33,7 @@ class Health {
 		private Hub $hub,
 		private Admin $admin,
 		private Engines $engines,
+		private Harvester $harvester,
 	) {
 	}
 
@@ -75,6 +76,11 @@ class Health {
 			}
 			$out[] = self::item($name, is_executable($path) ? true : null, $detail, $without);
 		}
+		$installed = $this->harvester->installed();
+		$out[] = self::item('Harvester', $installed && $this->harvester->switchedOn() ? true : null,
+			($installed ? 'installed' : 'not installed (the External App harvester, through AppAPI)') . ', '
+			. ($this->harvester->switchedOn() ? 'switched on' : 'switched off (General: Harvester recipes and jobs)'),
+			'no Harvester recipes, templates or job diagnosis in the chat');
 		$stt = false;
 		try {
 			$stt = isset(Server::get(\OCP\TaskProcessing\IManager::class)->getAvailableTaskTypes()[\OCP\TaskProcessing\TaskTypes\AudioToText::ID]);

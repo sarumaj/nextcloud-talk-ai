@@ -107,6 +107,7 @@ $docs = 'https://git.ciepiela.org/dawid/nextcloud-talk-ai/src/branch/main/docs/a
 				'sandbox' => $l->t('Document sandbox (documents built with code)'),
 				'web' => $l->t('Web search, web pages and citations'),
 				'calendar' => $l->t('Calendar and tasks'),
+				'harvester' => $l->t('Harvester recipes and jobs'),
 				'youth' => $l->t('Youth mode (no web search, content suitable for minors)'),
 			] as $feature => $label) { ?>
 				<div class="talk-ai-field">

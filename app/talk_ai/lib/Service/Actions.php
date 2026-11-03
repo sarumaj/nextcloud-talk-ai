@@ -13,9 +13,10 @@ use OCP\IDBConnection;
 use OCP\Share\IManager as ShareManager;
 
 /**
- * What the bot changed outside the chat (calendar entries, tasks, shares, files),
- * to undo within a day: "undo" removes the entry, revokes the share, or moves the
- * file to the trash.
+ * What the bot changed outside the chat (calendar entries, tasks, shares, files,
+ * Harvester templates and jobs), to undo within a day: "undo" removes the entry,
+ * revokes the share, moves the file to the trash, removes the template, or puts the
+ * job's settings back.
  */
 class Actions {
 	public const UNDO_WINDOW = 86400;
@@ -24,6 +25,7 @@ class Actions {
 		private IDBConnection $db,
 		private ITimeFactory $time,
 		private Calendar $calendar,
+		private Harvester $harvester,
 		private ShareManager $shares,
 		private IRootFolder $rootFolder,
 	) {
@@ -81,6 +83,8 @@ class Actions {
 			'event', 'task' => $this->calendar->remove($userId, (int)$data['calendar'], (string)$data['object']),
 			'share' => $this->revoke($userId, (string)$data['share']),
 			'file' => $this->trash($userId, (int)$data['file']),
+			'harvester_template' => $this->harvester->deleteTemplate($userId, (int)$data['id']),
+			'harvester_job' => $this->harvester->restoreJob($userId, (int)$data['job'], (array)$data['before']),
 			default => false,
 		};
 		$qb = $this->db->getQueryBuilder();

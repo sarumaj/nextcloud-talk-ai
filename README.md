@@ -70,6 +70,13 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   (exams, deadlines, exhibitions, a timetable, a study plan), and turns dates from a PDF, a
   letter or a photo of a timetable into an `.ics` file to import anywhere.
 - **Writing:** feedback as a document with marked corrections (deleted, inserted, highlighted).
+- **Harvester** (optional, where the administrator switches it on): writes a recipe for
+  [Harvester](https://git.ciepiela.org/dawid/nextcloud-harvester) from a description, has
+  Harvester check it, and saves it as your template with its `.harvester.json` in the chat; checks
+  and saves a recipe file you share; lists and explains your templates; and finds out why a
+  Harvester job fails (its log, its browser's picture at the failed step, a test of its recipe),
+  putting a fixed recipe into the job only after your yes. It never makes or runs a job and never
+  sees an account or a password.
 - **Uses your rights:** the bot sees only what the asking person may see, and the files it sends
   are saved in their folder for the conversation.
 
@@ -163,6 +170,8 @@ For example:
 - Share a painting and ask "@Claude what is its palette, and what would complement it?"
 - "Put my maths exam on 12 November at 9:00 in my calendar, with a reminder the day before."
 - "A mind map of the causes of the First World War."
+- "A Harvester recipe for the PDFs on `https://example.org/minutes`, every Monday." or "Why does
+  my Harvester job *Bank* fail?"
 - Share the official syllabus and ask "a mock exam for maths with a marking scheme", "I got 57
   of 80 marks: how many points?", "my course points so far: what average, and what do I need
   for 1.5?"
@@ -206,6 +215,9 @@ The app (`app/talk_ai/`) is PHP, with no build step.
     `image_study` (Imagick);
   - planning: `calendar` (`lib/Service/Calendar.php`, through Nextcloud's calendar API, and
     `.ics` files with the time zone's definition, `lib/Document/Ics.php`);
+  - Harvester: `harvester_recipe` and `harvester_job` (`lib/Service/Harvester.php`, through
+    AppAPI's `exAppRequest` as the asking person; only where Harvester is installed and the
+    setting `harvester` is on);
   - context and the web: `read_chat`, `read_url`, `lookup` and `cite` (`lib/Service/Web.php`;
     Wikipedia, OpenAlex; DOIs are formatted by doi.org, books come from Open Library).
 - **Posting:** the bot's messages and files are posted as the bot, as Talk's bot API does. A
