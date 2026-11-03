@@ -3,3 +3,4 @@ vendor/
 .phpunit.result.cache
 .golden.*/
 __pycache__/
+.php-cs-fixer.cache
