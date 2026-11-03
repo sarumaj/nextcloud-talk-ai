@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- German and Polish for the administration's AI connection, fallback chain, scenarios, limits
+  and use per day (82 texts that were shown in English).
+- A test that every translated text is in every translation, and that each language's `.js`
+  and `.json` agree.
+- Development: Nextcloud's coding standard (php-cs-fixer, `composer cs:check`, `cs:fix`) and
+  Psalm (`composer psalm`, with a baseline), both in CI, as is markdownlint; `.editorconfig`,
+  `renovate.json`, `AGENTS.md` and `SECURITY.md`.
+
+### Changed
+
+- `appinfo/info.xml` requires PHP 8.2, as `composer.json` does (it said 8.1).
+- The PHP formatted by Nextcloud's coding standard.
+- CI runs on every `renovate/` branch.
+
 ## 0.12.1 - 2026-10-31
 
 ### Fixed
