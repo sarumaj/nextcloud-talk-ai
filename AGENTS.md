@@ -1,0 +1,71 @@
+# AI in Talk
+
+The Nextcloud app `talk_ai`: a bot for Nextcloud Talk that answers with the AI the
+administrator chooses (an API key, an OpenAI-compatible server, Claude Code or Gemini CLI on the
+server, or Nextcloud's own AI). It reads shared files, writes documents into the chat (built in
+PHP, or with code in an optional sandbox), does maths and cites sources, always with the asking
+person's rights.
+
+## Layout
+
+- `app/talk_ai/`: the app as servers install it (PHP and plain JavaScript, no build).
+  - `appinfo/info.xml`, `lib/` (PHP; `lib/Ai/` the AI layer), `js/admin.js`, `css/`,
+    `templates/`, `l10n/` (German and Polish).
+- `sandbox/`: the document sandbox's image and runner; `sandbox/exapp/` the same as an External
+  App.
+- `skills/`: the guides and scripts the model reads in the sandbox.
+- `tests/`: PHPUnit tests (no Nextcloud, no network; `L10nTest.php` checks the translations),
+  `tests/golden/` (the document golden set with the sandbox image), `tests/compat/` (Talk's API).
+- `docs/user.md`, `docs/admin.md`, `docs/developer.md`: the details the README links to.
+- `screenshots/`: the README's and the app store's pictures.
+- `composer.json`: development tools only (PHPUnit, php-cs-fixer, Psalm); the app needs none.
+
+## Checks
+
+Run what CI runs for what you changed, and look at each exit code:
+
+```bash
+composer install                                          # composer:2 in Docker if missing
+find app -name '*.php' -print0 | xargs -0 -n1 php -l
+vendor/bin/phpunit
+composer cs:check && composer psalm
+npx --yes markdownlint-cli2 "*.md" "docs/**/*.md"
+python3 tests/compat/talk_api.py                          # Talk's API on its branches
+docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-sandbox:test
+```
+
+`appinfo/info.xml` is checked against `https://apps.nextcloud.com/schema/apps/info.xsd` with
+`xmllint --noout --schema`. CI also runs the tests against every Nextcloud from `min-version` to
+`max-version` (`nextcloud/ocp` of each branch).
+
+## Conventions
+
+- Commit messages: one line, no trailers. A change comes with its README or `docs/` text and an
+  entry under `## Unreleased` in `CHANGELOG.md` (Keep a Changelog: `### Added`, `### Changed`,
+  `### Fixed`).
+- Markdown: lines of at most 100 characters (tables excepted), tables aligned.
+- PHP, JavaScript and CSS indented with tabs (`.editorconfig`); PHP formatted by `composer cs:fix`.
+  A reformatting is a commit of its own. New Psalm findings are fixed, not added to
+  `psalm-baseline.xml`.
+- Every source file starts with `SPDX-License-Identifier: AGPL-3.0-or-later`.
+- A new translatable string goes into every file of `l10n/` (`.js` and `.json` alike);
+  `tests/L10nTest.php` fails otherwise.
+- `nextcloud/ocp` stays at the lowest supported Nextcloud (`min-version` in `appinfo/info.xml`);
+  CI's matrix lists every supported one.
+
+## Releasing
+
+1. Move the `## Unreleased` entries under `## X.Y.Z - YYYY-MM-DD` and set `<version>` in
+   `appinfo/info.xml` to `X.Y.Z`.
+2. Commit as `release X.Y.Z`.
+3. Tag it, annotated and signed as the earlier tags:
+   `git tag -s vX.Y.Z -m "AI in Talk X.Y.Z"`, and push the tag.
+   `.forgejo/workflows/release.yml` builds, signs and publishes the release.
+
+## Screenshots
+
+`screenshots/1-…png` to `4-…png` were recorded against a throwaway Nextcloud in Docker, with Talk
+and this app from the working tree, demo people (Anna and Ben Example) and demo content only,
+with Playwright (Chromium, 1280×800 at device scale 2), then scaled down to 1600 pixels wide
+(`vips thumbnail in.png out.png[compression=9,strip] 1600`). `appinfo/info.xml` links them by
+their raw URLs on `main`. Never show real accounts, addresses or host names.

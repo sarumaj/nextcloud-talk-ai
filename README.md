@@ -96,8 +96,8 @@ per day. It is named after the AI that answers: *Claude*, *Gemini*, *ChatGPT*, â
 - To read PDFs, `pdftotext`; for scanned PDFs also `pdftoppm` (Poppler,
   `apt install poppler-utils`).
 - For OCR, Tesseract with the languages you need (`apt install tesseract-ocr tesseract-ocr-deu`).
-- PHP with the `zip` extension. The web (links, citations) is reached through Nextcloud's HTTP
-  client.
+- PHP 8.2 or later with the `zip` extension. The web (links, citations) is reached through
+  Nextcloud's HTTP client.
 - Optional, for documents built with code (below): Docker or Podman on the server, ideally
   rootless, and Python 3 for the runner.
 
@@ -237,19 +237,25 @@ The app (`app/talk_ai/`) is PHP, with no build step.
 
 ```bash
 composer install && vendor/bin/phpunit
+composer cs:check && composer psalm
+npx --yes markdownlint-cli2 "*.md" "docs/**/*.md"
 docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-sandbox:test
 python3 tests/compat/talk_api.py
 ```
 
-The tests need neither Nextcloud nor network. CI lints the PHP, checks `appinfo/info.xml`
-against the app store's schema and runs the tests. A tag `vX.Y.Z` with the same version in
+The tests need neither Nextcloud nor network. CI lints the PHP, checks Nextcloud's coding
+standard (php-cs-fixer) and Psalm, checks `appinfo/info.xml` against the app store's schema,
+the translations and the Markdown, and runs the tests. [AGENTS.md](AGENTS.md) has the
+conventions and how to release. A tag `vX.Y.Z` with the same version in
 `appinfo/info.xml` is released by `.forgejo/workflows/release.yml`, signed and published on the
 app store, given the secrets `APP_SIGNING_KEY` and `APPSTORE_TOKEN`.
 
 ## Reporting problems
 
-Open an issue on GitHub:
-[sarumaj/nextcloud-talk-ai](https://github.com/sarumaj/nextcloud-talk-ai/issues).
+Open an issue on GitHub,
+[sarumaj/nextcloud-talk-ai](https://github.com/sarumaj/nextcloud-talk-ai/issues), or on
+[Forgejo](https://git.ciepiela.org/dawid/nextcloud-talk-ai/issues); either is read. Security
+problems are reported privately: [SECURITY.md](SECURITY.md).
 
 ## Licence
 
