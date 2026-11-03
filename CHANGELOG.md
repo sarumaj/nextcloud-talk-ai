@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A failed tool-calling probe is repeated after a quarter of an hour, not a day: one that failed
+  with the AI connection (a command line tool signed out) kept documents, the calendar and
+  calculations off for a day after the connection was back.
+
 ## 0.13.0 - 2026-11-03
 
 ### Added

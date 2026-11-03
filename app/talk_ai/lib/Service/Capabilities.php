@@ -12,13 +12,18 @@ use OCA\TalkAi\AppInfo\Application;
 use OCP\IAppConfig;
 
 /**
- * What the AI connection can do, checked when it changes and once a day: tool
+ * What the AI connection can do, checked when it changes and once a day (a failed
+ * tool probe after FAILED_TTL, as it may have failed with the connection): tool
  * calls (a probe with one tool, through Loop), image input, PDFs and structured
  * answers (the engine's status), its context size and model family (by the
  * model's name; context_tokens overrides). The family picks the prompt profile:
  * a common core with small additions per family.
  */
 class Capabilities {
+	/** Seconds a check holds; one whose tool probe failed holds a quarter of an hour. */
+	public const TTL = 86400;
+	public const FAILED_TTL = 900;
+
 	/** Context sizes in tokens by model name, first match wins. */
 	private const CONTEXT = [
 		'/claude/i' => 200000, '/gemini/i' => 1000000, '/gpt-?5|o[34]-|gpt-4\.1/i' => 400000, '/gpt-?4o|gpt-4-turbo/i' => 128000,
@@ -37,7 +42,7 @@ class Capabilities {
 	public function of(Hub $hub, Status $status, string $userId): array {
 		$engine = self::engineKey($status);
 		$known = json_decode($this->appConfig->getValueString(Application::APP_ID, 'capabilities', '{}'), true);
-		if (is_array($known) && ($known['engine'] ?? '') === $engine && time() - (int)($known['checked'] ?? 0) < 86400) {
+		if (is_array($known) && self::fresh($known, $engine, time())) {
 			return $known['caps'];
 		}
 		$caps = [
@@ -55,6 +60,19 @@ class Capabilities {
 		// The document jobs' own probe agrees with this one.
 		$this->appConfig->setValueString(Application::APP_ID, 'tool_probe', json_encode(['engine' => $engine, 'ok' => $caps['tools'], 'time' => time()]));
 		return $caps;
+	}
+
+	/**
+	 * Whether a stored check still holds: the same engine, and younger than TTL, or FAILED_TTL
+	 * when the model did not call the probe tool. A probe that failed because the connection did
+	 * (a CLI signed out, a provider down) would otherwise keep tools off for a day after it is back.
+	 */
+	public static function fresh(array $known, string $engine, int $now): bool {
+		if (($known['engine'] ?? '') !== $engine || !is_array($known['caps'] ?? null)) {
+			return false;
+		}
+		$ttl = ($known['caps']['tools'] ?? false) ? self::TTL : self::FAILED_TTL;
+		return $now - (int)($known['checked'] ?? 0) < $ttl;
 	}
 
 	/** Which engine a check was made with: another engine, provider or model is checked anew. */
