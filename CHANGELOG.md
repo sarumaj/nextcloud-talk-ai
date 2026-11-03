@@ -14,6 +14,8 @@
 
 ### Changed
 
+- Releases through the shared action `nextcloud-app-release` of `dawid/ci-actions`: the release's
+  text is the version's section of this changelog, and a tag without one fails.
 - `appinfo/info.xml` requires PHP 8.2, as `composer.json` does (it said 8.1).
 - The PHP formatted by Nextcloud's coding standard.
 - CI runs on every `renovate/` branch.

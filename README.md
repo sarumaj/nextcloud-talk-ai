@@ -247,8 +247,10 @@ The tests need neither Nextcloud nor network. CI lints the PHP, checks Nextcloud
 standard (php-cs-fixer) and Psalm, checks `appinfo/info.xml` against the app store's schema,
 the translations and the Markdown, and runs the tests. [AGENTS.md](AGENTS.md) has the
 conventions and how to release. A tag `vX.Y.Z` with the same version in
-`appinfo/info.xml` is released by `.forgejo/workflows/release.yml`, signed and published on the
-app store, given the secrets `APP_SIGNING_KEY` and `APPSTORE_TOKEN`.
+`appinfo/info.xml` is released by `.forgejo/workflows/release.yml` (the shared action
+`nextcloud-app-release` of `dawid/ci-actions`), with the version's section of `CHANGELOG.md` as
+the release's text, signed and published on the app store, given the secrets `APP_SIGNING_KEY`
+and `APPSTORE_TOKEN`.
 
 ## Reporting problems
 
