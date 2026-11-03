@@ -1,0 +1,1351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="6.20.7@d60ecdbc9e577e67b29f632e3e3847dffd14b7ce">
+  <file src="app/talk_ai/lib/Ai/Admin.php">
+    <InvalidOperand>
+      <code><![CDATA[(microtime(true) - $started) * 1000]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Conversations.php">
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/Anthropic.php">
+    <InvalidOperand>
+      <code><![CDATA[$blocks]]></code>
+      <code><![CDATA[$out[$last]['content']]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/ClaudeCli.php">
+    <InvalidOperand>
+      <code><![CDATA[$parts]]></code>
+      <code><![CDATA[microtime(true) + $timeout]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/CliProcess.php">
+    <InvalidOperand>
+      <code><![CDATA[filemtime($binary)]]></code>
+      <code><![CDATA[filesize($binary)]]></code>
+      <code><![CDATA[microtime(true) + 20]]></code>
+      <code><![CDATA[microtime(true) + 60]]></code>
+    </InvalidOperand>
+    <RedundantCast>
+      <code><![CDATA[(int)(proc_get_status($this->proc)['pid'] ?? 0)]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/Gemini.php">
+    <InvalidArgument>
+      <code><![CDATA[$calls]]></code>
+    </InvalidArgument>
+    <InvalidReturnStatement>
+      <code><![CDATA[$ids]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[array]]></code>
+    </InvalidReturnType>
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/GeminiCli.php">
+    <InvalidOperand>
+      <code><![CDATA[microtime(true) + max(1, (int)($this->settings['timeout'] ?? 600))]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/OpenAiCompatible.php">
+    <InvalidOperand>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i + 1]]></code>
+    </InvalidOperand>
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$failed !== '']]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/TaskProcessing.php">
+    <InvalidOperand>
+      <code><![CDATA[microtime(true) + max(1, (int)($this->settings['timeout'] ?? 600))]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engine/TaskProcessingFormat.php">
+    <InvalidOperand>
+      <code><![CDATA[$i]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Engines.php">
+    <TypeDoesNotContainType>
+      <code><![CDATA['claude-cli' => new Engine\ClaudeCli($settings)]]></code>
+      <code><![CDATA['claude-cli' => new Engine\ClaudeCli($settings)]]></code>
+      <code><![CDATA['gemini-cli' => new Engine\GeminiCli($settings)]]></code>
+      <code><![CDATA['gemini-cli' => new Engine\GeminiCli($settings)]]></code>
+      <code><![CDATA['taskprocessing' => new Engine\TaskProcessing($this->taskProcessing ??= Server::get(\OCP\TaskProcessing\IManager::class), $settings)]]></code>
+      <code><![CDATA['taskprocessing' => new Engine\TaskProcessing($this->taskProcessing ??= Server::get(\OCP\TaskProcessing\IManager::class), $settings)]]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Http.php">
+    <RedundantCondition>
+      <code><![CDATA[is_string($message)]]></code>
+    </RedundantCondition>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$data !== []]]></code>
+      <code><![CDATA['']]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Hub.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[$options['conversation']]]></code>
+      <code><![CDATA[$options['limits']]]></code>
+      <code><![CDATA[$options['wait']]]></code>
+    </InvalidArrayOffset>
+    <InvalidOperand>
+      <code><![CDATA[$messages[$last]['parts']]]></code>
+    </InvalidOperand>
+    <InvalidReturnStatement>
+      <code><![CDATA[['usage' => $result['usage']->toArray()] + $result]]></code>
+    </InvalidReturnStatement>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Loop.php">
+    <InvalidOperand>
+      <code><![CDATA[5 * 2 ** $attempt]]></code>
+      <code><![CDATA[5 * 2 ** $attempt]]></code>
+    </InvalidOperand>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$seen[$key] > self::REPEATS + 1]]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Ai/Request.php">
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="app/talk_ai/lib/BackgroundJob/CleanTraces.php">
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+  </file>
+  <file src="app/talk_ai/lib/Command/Ask.php">
+    <InvalidArgument>
+      <code><![CDATA[[
+			'onDelta' => $input->getOption('stream') ? function (string $delta) use ($output, &$streamed): void {
+				$streamed = true;
+				$output->write($delta);
+			} : null,
+			'pause' => fn (int $seconds) => sleep(min($seconds, 5)),
+		]]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="app/talk_ai/lib/Controller/ApiController.php">
+    <InvalidArgument>
+      <code><![CDATA[array_filter(['conversation' => $conversation, 'images' => $images, 'search' => $search],
+			fn ($v) => $v !== '' && $v !== [])]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="app/talk_ai/lib/Controller/DocumentController.php">
+    <RedundantCast>
+      <code><![CDATA[(string)$this->request->getHeader('X-Talk-AI-Signature')]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Controller/ProcessController.php">
+    <RedundantCast>
+      <code><![CDATA[(string)$this->request->getHeader('X-Talk-AI-Signature')]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Controller/SettingsController.php">
+    <RedundantCast>
+      <code><![CDATA[(array)$this->request->getParams()]]></code>
+      <code><![CDATA[(array)$this->request->getParams()]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Controller/TickerController.php">
+    <RedundantCast>
+      <code><![CDATA[(string)$this->request->getHeader('X-Talk-AI-Signature')]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Controller/TicketController.php">
+    <RedundantCast>
+      <code><![CDATA[(string)$this->request->getHeader('X-Talk-AI-Signature')]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Document/Analysis.php">
+    <InvalidArgument>
+      <code><![CDATA[[self::class, 'show']]]></code>
+    </InvalidArgument>
+    <InvalidOperand>
+      <code><![CDATA[$area += abs($piece)]]></code>
+      <code><![CDATA[$i * $step]]></code>
+      <code><![CDATA[$r * $i]]></code>
+      <code><![CDATA[($a + $b) / 2]]></code>
+      <code><![CDATA[($a + $b) / 2]]></code>
+      <code><![CDATA[($b - $a) / self::SAMPLES]]></code>
+      <code><![CDATA[1e-13 * max(1, abs($a))]]></code>
+      <code><![CDATA[1e-5 * max(1, $to - $from)]]></code>
+      <code><![CDATA[1e-6 * $scale]]></code>
+      <code><![CDATA[1e-7 * $scale]]></code>
+      <code><![CDATA[1e-9 * max(1, abs($p))]]></code>
+      <code><![CDATA[2 * $c]]></code>
+      <code><![CDATA[2 * $h]]></code>
+      <code><![CDATA[2 * $step]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Biology.php">
+    <InvalidOperand>
+      <code><![CDATA[$gc / strlen($s) * 100]]></code>
+      <code><![CDATA[$n / $total * 100]]></code>
+      <code><![CDATA[round($gc / strlen($s) * 100, 1)]]></code>
+    </InvalidOperand>
+    <NoValue>
+      <code><![CDATA[$sex]]></code>
+    </NoValue>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$sex !== []]]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Document/Calculator.php">
+    <InvalidOperand>
+      <code><![CDATA[$k * log($p)]]></code>
+      <code><![CDATA[$k * log($x)]]></code>
+      <code><![CDATA[$n - $k + $i]]></code>
+      <code><![CDATA[$p ** $k]]></code>
+      <code><![CDATA[$result * ($n - $k + $i) / $i]]></code>
+      <code><![CDATA[$result *= $i]]></code>
+      <code><![CDATA[$term / (2 * $n + 1)]]></code>
+      <code><![CDATA[$x - $h1 / $k1]]></code>
+      <code><![CDATA[$x - ($a[1] ?? 0)]]></code>
+      <code><![CDATA[$x - ($a[1] ?? 0)]]></code>
+      <code><![CDATA[$y - $a]]></code>
+      <code><![CDATA[($a[1] ?? 0) + ($a[2] ?? 1) * self::normalQuantile($x)]]></code>
+      <code><![CDATA[($a[2] ?? 1) * self::normalQuantile($x)]]></code>
+      <code><![CDATA[($n - $k) * log(1 - $p)]]></code>
+      <code><![CDATA[($n / 2) / $f]]></code>
+      <code><![CDATA[($x - ($a[1] ?? 0)) / ($a[2] ?? 1)]]></code>
+      <code><![CDATA[($x - ($a[1] ?? 0)) / ($a[2] ?? 1)]]></code>
+      <code><![CDATA[((($d[0] * $q + $d[1]) * $q + $d[2]) * $q + $d[3]) * $q + 1]]></code>
+      <code><![CDATA[((($d[0] * $q + $d[1]) * $q + $d[2]) * $q + $d[3]) * $q + 1]]></code>
+      <code><![CDATA[(((($b[0] * $r + $b[1]) * $r + $b[2]) * $r + $b[3]) * $r + $b[4]) * $r + 1]]></code>
+      <code><![CDATA[(1 + sqrt(5)) / 2]]></code>
+      <code><![CDATA[(1 - $p) ** ($n - $k)]]></code>
+      <code><![CDATA[-$ax * $ax / $n]]></code>
+      <code><![CDATA[-$z * $z / 2]]></code>
+      <code><![CDATA[-2 * log($p)]]></code>
+      <code><![CDATA[-2 * log(1 - $p)]]></code>
+      <code><![CDATA[1 + $erf]]></code>
+      <code><![CDATA[1 + sqrt(5)]]></code>
+      <code><![CDATA[1 - $erf]]></code>
+      <code><![CDATA[1 - $p]]></code>
+      <code><![CDATA[1 - $p]]></code>
+      <code><![CDATA[1 - $p]]></code>
+      <code><![CDATA[1 - 0.02425]]></code>
+      <code><![CDATA[1 / $a[1]]]></code>
+      <code><![CDATA[1 / $a[1]]]></code>
+      <code><![CDATA[1 / $fractional]]></code>
+      <code><![CDATA[1e-12 * max(1, $x)]]></code>
+      <code><![CDATA[2 * M_PI]]></code>
+      <code><![CDATA[2 * M_PI]]></code>
+      <code><![CDATA[2 - $value]]></code>
+      <code><![CDATA[2 / sqrt(M_PI)]]></code>
+      <code><![CDATA[abs($x * $a[1]) / self::gcd((int)abs($x), (int)abs($a[1]))]]></code>
+      <code><![CDATA[array_sum($a) / count($a)]]></code>
+      <code><![CDATA[self::normalPdf(($x - ($a[1] ?? 0)) / ($a[2] ?? 1)) / ($a[2] ?? 1)]]></code>
+    </InvalidOperand>
+    <InvalidReturnStatement>
+      <code><![CDATA[$results]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[list<array{expression: string, result?: string, fraction?: string, error?: string}>]]></code>
+    </InvalidReturnType>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$name === 'var']]></code>
+      <code><![CDATA[$name === 'var']]></code>
+      <code><![CDATA['stdev_sample']]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Document/Chart.php">
+    <InvalidOperand>
+      <code><![CDATA[$b - ($c - $tMin) / ($tMax - $tMin) * ($b - $top)]]></code>
+      <code><![CDATA[$b - ($y - $yMin) / ($yMax - $yMin) * ($b - $t)]]></code>
+      <code><![CDATA[$b - ($y - $yMin) / (($yMax - $yMin) ?: 1) * ($b - $t)]]></code>
+      <code><![CDATA[$bx + ($right ? 120 : -120)]]></code>
+      <code><![CDATA[$by + $spread * min(170, 34 * count($children))]]></code>
+      <code><![CDATA[$by + 6]]></code>
+      <code><![CDATA[$by - $cy]]></code>
+      <code><![CDATA[$by - 17]]></code>
+      <code><![CDATA[$c * 2]]></code>
+      <code><![CDATA[$c += 10]]></code>
+      <code><![CDATA[$c - $tMin]]></code>
+      <code><![CDATA[$cx + $bx]]></code>
+      <code><![CDATA[$cx + $radius * 0.65 * cos($mid)]]></code>
+      <code><![CDATA[$cx + $radius * cos($angle + $sweep)]]></code>
+      <code><![CDATA[$cx + $radius * cos($angle)]]></code>
+      <code><![CDATA[$cx + 250 * cos($angle)]]></code>
+      <code><![CDATA[$cy + $radius * 0.65 * sin($mid)]]></code>
+      <code><![CDATA[$cy + $radius * sin($angle + $sweep)]]></code>
+      <code><![CDATA[$cy + $radius * sin($angle)]]></code>
+      <code><![CDATA[$cy + ($by - $cy) * 0.15]]></code>
+      <code><![CDATA[$cy + 165 * sin($angle)]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i * $step]]></code>
+      <code><![CDATA[$i * $step]]></code>
+      <code><![CDATA[$k]]></code>
+      <code><![CDATA[$k / (count($children) - 1) - 0.5]]></code>
+      <code><![CDATA[$l + $slot * $i]]></code>
+      <code><![CDATA[$l + $slot * ($i + 0.5)]]></code>
+      <code><![CDATA[$l + ($x - $xMin) / ($xMax - $xMin) * ($r - $l)]]></code>
+      <code><![CDATA[$l + ($y - $min) / ($max - $min) * ($r - $l)]]></code>
+      <code><![CDATA[$magnitude * (($raw / $magnitude) < 1.5 ? 1 : (($raw / $magnitude) < 3.5 ? 2 : (($raw / $magnitude) < 7.5 ? 5 : 10)))]]></code>
+      <code><![CDATA[$max + $pad]]></code>
+      <code><![CDATA[$min - $pad]]></code>
+      <code><![CDATA[$min - $pad]]></code>
+      <code><![CDATA[$n]]></code>
+      <code><![CDATA[$n]]></code>
+      <code><![CDATA[$p[$i] / 2]]></code>
+      <code><![CDATA[$p[$i] / 2]]></code>
+      <code><![CDATA[$py($c) + 5]]></code>
+      <code><![CDATA[$py($c) + 5]]></code>
+      <code><![CDATA[$py($y) + 5]]></code>
+      <code><![CDATA[$radius * 0.65]]></code>
+      <code><![CDATA[$radius * 0.65]]></code>
+      <code><![CDATA[$radius * cos($angle + $sweep)]]></code>
+      <code><![CDATA[$radius * cos($angle)]]></code>
+      <code><![CDATA[$radius * sin($angle + $sweep)]]></code>
+      <code><![CDATA[$radius * sin($angle)]]></code>
+      <code><![CDATA[$slot * $i]]></code>
+      <code><![CDATA[$slot * $step]]></code>
+      <code><![CDATA[$slot * ($i + 0.5)]]></code>
+      <code><![CDATA[$slot * 0.1]]></code>
+      <code><![CDATA[$slot * 0.15]]></code>
+      <code><![CDATA[$slot * 0.7]]></code>
+      <code><![CDATA[$slot * 0.8]]></code>
+      <code><![CDATA[$spread * min(170, 34 * count($children))]]></code>
+      <code><![CDATA[$sweep / 2]]></code>
+      <code><![CDATA[$tMax - $tMin]]></code>
+      <code><![CDATA[$t[$i] * 2]]></code>
+      <code><![CDATA[$width - 2]]></code>
+      <code><![CDATA[$width / 2]]></code>
+      <code><![CDATA[$width / 2]]></code>
+      <code><![CDATA[$x]]></code>
+      <code><![CDATA[$x]]></code>
+      <code><![CDATA[$x]]></code>
+      <code><![CDATA[$x + $slot * 0.15]]></code>
+      <code><![CDATA[$x + $slot / 2]]></code>
+      <code><![CDATA[$x + $slot / 2]]></code>
+      <code><![CDATA[$x + $width / 2 - 1]]></code>
+      <code><![CDATA[$x + ($right ? 6 : -6)]]></code>
+      <code><![CDATA[$x1 + 6]]></code>
+      <code><![CDATA[$xMax + 1]]></code>
+      <code><![CDATA[$xMin - 1]]></code>
+      <code><![CDATA[$y + 5]]></code>
+      <code><![CDATA[$y - 14]]></code>
+      <code><![CDATA[$y - 14]]></code>
+      <code><![CDATA[$yMax + 1]]></code>
+      <code><![CDATA[$yMin - 1]]></code>
+      <code><![CDATA[($bx + $x) / 2]]></code>
+      <code><![CDATA[($bx + $x) / 2]]></code>
+      <code><![CDATA[($c - $tMin) / ($tMax - $tMin)]]></code>
+      <code><![CDATA[($cx + $bx) / 2]]></code>
+      <code><![CDATA[($max - $min) / 8]]></code>
+      <code><![CDATA[($x - $xMin) / ($xMax - $xMin) * ($r - $l)]]></code>
+      <code><![CDATA[($xMax - $xMin) * $i]]></code>
+      <code><![CDATA[($y - $min) / ($max - $min) * ($r - $l)]]></code>
+      <code><![CDATA[($y - $yMin) / ($yMax - $yMin) * ($b - $t)]]></code>
+      <code><![CDATA[($y - $yMin) / (($yMax - $yMin) ?: 1)]]></code>
+      <code><![CDATA[($yMax - $yMin) * 3]]></code>
+      <code><![CDATA[(float)$m[1] + ((int)$m[2] - 1) / 12]]></code>
+      <code><![CDATA[(float)$m[3] + ((int)$m[2] - 1) / 12]]></code>
+      <code><![CDATA[-M_PI / 2]]></code>
+      <code><![CDATA[-M_PI / 2]]></code>
+      <code><![CDATA[-M_PI / 2 + 2 * M_PI * $i / $n]]></code>
+      <code><![CDATA[10 * ceil(max(max($t), max($p) / 2) / 10)]]></code>
+      <code><![CDATA[10 * floor(min($t) / 10)]]></code>
+      <code><![CDATA[10 ** floor(log10($raw))]]></code>
+      <code><![CDATA[150 + $i * 34]]></code>
+      <code><![CDATA[165 * sin($angle)]]></code>
+      <code><![CDATA[2 * M_PI]]></code>
+      <code><![CDATA[2 * M_PI]]></code>
+      <code><![CDATA[2 * M_PI * $i / $n]]></code>
+      <code><![CDATA[24 + 9.5 * mb_strlen(mb_strimwidth($label, 0, 22, '…'))]]></code>
+      <code><![CDATA[250 * cos($angle)]]></code>
+      <code><![CDATA[9.5 * mb_strlen(mb_strimwidth($label, 0, 22, '…'))]]></code>
+      <code><![CDATA[abs($v) / $total]]></code>
+      <code><![CDATA[abs($v) / $total]]></code>
+      <code><![CDATA[abs($x) < 1e-12 ? 1.5 : 1]]></code>
+      <code><![CDATA[abs($y) < 1e-12 ? 1.5 : 1]]></code>
+      <code><![CDATA[array_sum($t) / 12]]></code>
+      <code><![CDATA[count($ys) * 0.03]]></code>
+      <code><![CDATA[max($all) + $pad]]></code>
+      <code><![CDATA[max($p) / 2]]></code>
+      <code><![CDATA[max(0, ...$values) * 1.08]]></code>
+      <code><![CDATA[max(max($t), max($p) / 2) / 10]]></code>
+      <code><![CDATA[min($all) - $pad]]></code>
+      <code><![CDATA[min($t) / 10]]></code>
+      <code><![CDATA[min($y0, $y1) - 6]]></code>
+      <code><![CDATA[round($bx - $width / 2, 1)]]></code>
+      <code><![CDATA[round($bx, 1)]]></code>
+      <code><![CDATA[round($bx, 1)]]></code>
+      <code><![CDATA[round($by - 17, 1)]]></code>
+      <code><![CDATA[round($by, 1)]]></code>
+      <code><![CDATA[round($by, 1)]]></code>
+      <code><![CDATA[round($by, 1)]]></code>
+      <code><![CDATA[round($cy + ($by - $cy) * 0.15, 1)]]></code>
+      <code><![CDATA[round($px($p[0]), 1)]]></code>
+      <code><![CDATA[round($px($p[0]), 1)]]></code>
+      <code><![CDATA[round($px($p[0]), 1)]]></code>
+      <code><![CDATA[round($px($t), 1)]]></code>
+      <code><![CDATA[round($px($t), 1)]]></code>
+      <code><![CDATA[round($px($x), 1)]]></code>
+      <code><![CDATA[round($px($x), 1)]]></code>
+      <code><![CDATA[round($py($c), 1)]]></code>
+      <code><![CDATA[round($py($c), 1)]]></code>
+      <code><![CDATA[round($py($p[1]), 1)]]></code>
+      <code><![CDATA[round($py($p[1]), 1)]]></code>
+      <code><![CDATA[round($py($t[$i]), 1)]]></code>
+      <code><![CDATA[round($py($y), 1)]]></code>
+      <code><![CDATA[round($py($y), 1)]]></code>
+      <code><![CDATA[round($py($y), 1)]]></code>
+      <code><![CDATA[round($py($y), 1)]]></code>
+      <code><![CDATA[round($py(0) - $py(min($p[$i] / 2, $tMax)), 1)]]></code>
+      <code><![CDATA[round($py(max(min($p[1], $yMax + $jump), $yMin - $jump)), 1)]]></code>
+      <code><![CDATA[round($py(min($p[$i] / 2, $tMax)), 1)]]></code>
+      <code><![CDATA[round($slot * 0.7, 1)]]></code>
+      <code><![CDATA[round($width - 2, 1)]]></code>
+      <code><![CDATA[round($width / 2, 1)]]></code>
+      <code><![CDATA[round($width, 1)]]></code>
+      <code><![CDATA[round($x + $slot * 0.15, 1)]]></code>
+      <code><![CDATA[round($x + $slot / 2, 1)]]></code>
+      <code><![CDATA[round($x, 1)]]></code>
+      <code><![CDATA[round($x, 1)]]></code>
+      <code><![CDATA[round($x, 1)]]></code>
+      <code><![CDATA[round($x1, 1)]]></code>
+      <code><![CDATA[round($x1, 1)]]></code>
+      <code><![CDATA[round($x2, 1)]]></code>
+      <code><![CDATA[round($y, 1)]]></code>
+      <code><![CDATA[round($y, 1)]]></code>
+      <code><![CDATA[round($y, 1)]]></code>
+      <code><![CDATA[round($y1, 1)]]></code>
+      <code><![CDATA[round($y2, 1)]]></code>
+      <code><![CDATA[round(($bx + $x) / 2, 1)]]></code>
+      <code><![CDATA[round(($bx + $x) / 2, 1)]]></code>
+      <code><![CDATA[round(($cx + $bx) / 2, 1)]]></code>
+      <code><![CDATA[round(abs($v) / $total * 100)]]></code>
+      <code><![CDATA[round(abs($y1 - $y0), 1)]]></code>
+      <code><![CDATA[round(array_sum($p))]]></code>
+      <code><![CDATA[round(array_sum($t) / 12, 1)]]></code>
+      <code><![CDATA[round(max(4, $x2 - $x1), 1)]]></code>
+      <code><![CDATA[round(min($y0, $y1), 1)]]></code>
+    </InvalidOperand>
+    <NamedArgumentNotAllowed>
+      <code><![CDATA[array_map(fn ($s) => array_map('floatval', (array)($s['values'] ?? [])), $series)]]></code>
+    </NamedArgumentNotAllowed>
+    <NoValue>
+      <code><![CDATA[$i]]></code>
+    </NoValue>
+  </file>
+  <file src="app/talk_ai/lib/Document/Chemistry.php">
+    <InvalidOperand>
+      <code><![CDATA[$mass += self::ELEMENTS[$e][2] * $n]]></code>
+      <code><![CDATA[round($mass, 3)]]></code>
+      <code><![CDATA[self::ELEMENTS[$e][2] * $n]]></code>
+      <code><![CDATA[self::ELEMENTS[$e][2] * $n]]></code>
+    </InvalidOperand>
+    <InvalidScalarArgument>
+      <code><![CDATA[abs($x)]]></code>
+    </InvalidScalarArgument>
+  </file>
+  <file src="app/talk_ai/lib/Document/Colors.php">
+    <InvalidOperand>
+      <code><![CDATA[$b + $m]]></code>
+      <code><![CDATA[$b - $r]]></code>
+      <code><![CDATA[$c / 2]]></code>
+      <code><![CDATA[$d / ($max + $min)]]></code>
+      <code><![CDATA[$d / (2 - $max - $min)]]></code>
+      <code><![CDATA[$g + $m]]></code>
+      <code><![CDATA[$g - $b]]></code>
+      <code><![CDATA[$h * 60]]></code>
+      <code><![CDATA[$h + $degrees + 360]]></code>
+      <code><![CDATA[$h / 60]]></code>
+      <code><![CDATA[$h / 60]]></code>
+      <code><![CDATA[$l * 100]]></code>
+      <code><![CDATA[$max + $min]]></code>
+      <code><![CDATA[$max + $min]]></code>
+      <code><![CDATA[$max - $min]]></code>
+      <code><![CDATA[$r + $m]]></code>
+      <code><![CDATA[$r - $g]]></code>
+      <code><![CDATA[$s * 100]]></code>
+      <code><![CDATA[$v * 100]]></code>
+      <code><![CDATA[$v + 0.055]]></code>
+      <code><![CDATA[$v / 12.92]]></code>
+      <code><![CDATA[($b + $m) * 255]]></code>
+      <code><![CDATA[($b - $r) / $d]]></code>
+      <code><![CDATA[($g + $m) * 255]]></code>
+      <code><![CDATA[($g - $b) / $d]]></code>
+      <code><![CDATA[($max + $min) / 2]]></code>
+      <code><![CDATA[($r + $m) * 255]]></code>
+      <code><![CDATA[($r - $g) / $d]]></code>
+      <code><![CDATA[(1 - $b / 255 - $k) / (1 - $k)]]></code>
+      <code><![CDATA[(1 - $g / 255 - $k) / (1 - $k)]]></code>
+      <code><![CDATA[(1 - $r / 255 - $k) / (1 - $k)]]></code>
+      <code><![CDATA[1 - $b / 255]]></code>
+      <code><![CDATA[1 - $f]]></code>
+      <code><![CDATA[1 - $g / 255]]></code>
+      <code><![CDATA[1 - $k]]></code>
+      <code><![CDATA[1 - $k]]></code>
+      <code><![CDATA[1 - $k]]></code>
+      <code><![CDATA[1 - $l]]></code>
+      <code><![CDATA[1 - $r / 255]]></code>
+      <code><![CDATA[1 - abs(2 * $l - 1)]]></code>
+      <code><![CDATA[1 - abs(fmod($h / 60, 2) - 1)]]></code>
+      <code><![CDATA[1 - max($r, $g, $b) / 255]]></code>
+      <code><![CDATA[116 * $f($y)]]></code>
+      <code><![CDATA[2 * $l]]></code>
+      <code><![CDATA[2 - $max]]></code>
+      <code><![CDATA[200 * ($f($y) - $f($z))]]></code>
+      <code><![CDATA[500 * ($f($x) - $f($y))]]></code>
+      <code><![CDATA[fmod($h / 60, 2) - 1]]></code>
+      <code><![CDATA[round($c['n'] / $pixels * 100, 1)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Equilibria.php">
+    <InvalidOperand>
+      <code><![CDATA[$c]]></code>
+      <code><![CDATA[$c[$name] / -$nu]]></code>
+      <code><![CDATA[$equivalence / 2]]></code>
+      <code><![CDATA[$equivalence / 2]]></code>
+      <code><![CDATA[$k * $k]]></code>
+      <code><![CDATA[$species[$name] * $x]]></code>
+      <code><![CDATA[$until * $i]]></code>
+      <code><![CDATA[$x / $c * 100]]></code>
+      <code><![CDATA[($c + sqrt($c * $c + 4 * self::KW)) / 2]]></code>
+      <code><![CDATA[($lo + $hi) / 2]]></code>
+      <code><![CDATA[($lo + $hi) / 2]]></code>
+      <code><![CDATA[($lo + $hi) / 2]]></code>
+      <code><![CDATA[(-$k + sqrt($k * $k + 4 * $k * $c)) / 2]]></code>
+      <code><![CDATA[-$c[$name] / $nu]]></code>
+      <code><![CDATA[-$k + sqrt($k * $k + 4 * $k * $c)]]></code>
+      <code><![CDATA[-($lo + $hi) / 2]]></code>
+      <code><![CDATA[10 ** $mid]]></code>
+      <code><![CDATA[10 ** -$pk]]></code>
+      <code><![CDATA[10 ** -$pk]]></code>
+      <code><![CDATA[10 ** -$pk]]></code>
+      <code><![CDATA[14 - $approx]]></code>
+      <code><![CDATA[14 - $p]]></code>
+      <code><![CDATA[14 - $p]]></code>
+      <code><![CDATA[2 * $equivalence]]></code>
+      <code><![CDATA[4 * $k]]></code>
+      <code><![CDATA[4 * self::KW]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Exams.php">
+    <InvalidOperand>
+      <code><![CDATA[$achieved / $max * 100]]></code>
+      <code><![CDATA[$errors * 100]]></code>
+      <code><![CDATA[$exact * $f]]></code>
+      <code><![CDATA[$from - 1e-9]]></code>
+      <code><![CDATA[$next[1] * $max]]></code>
+      <code><![CDATA[$points - $off]]></code>
+      <code><![CDATA[$s]]></code>
+      <code><![CDATA[$share]]></code>
+      <code><![CDATA[$sum / $count * 40]]></code>
+      <code><![CDATA[$v / $sum * 100]]></code>
+      <code><![CDATA[(17 / 3 - $grade - 0.1 + 1e-9) * 180]]></code>
+      <code><![CDATA[(17 / 3 - $total / 180) * 10]]></code>
+      <code><![CDATA[17 / 3 - $total / 180]]></code>
+      <code><![CDATA[array_sum(array_map('floatval', $exams)) * $factor]]></code>
+      <code><![CDATA[ceil($next[1] * $max / 100 * 2) / 2]]></code>
+      <code><![CDATA[floor($exact * $f + 0.5 + 1e-9) / $f]]></code>
+      <code><![CDATA[floor((17 / 3 - $total / 180) * 10 + 1e-9) / 10]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Figures.php">
+    <RedundantCast>
+      <code><![CDATA[(int)$info[0]]]></code>
+      <code><![CDATA[(int)$info[1]]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Document/Finance.php">
+    <InvalidOperand>
+      <code><![CDATA[$amount / $n]]></code>
+      <code><![CDATA[$deposit * $n]]></code>
+      <code><![CDATA[$deposit * $n]]></code>
+      <code><![CDATA[$factor - 1]]></code>
+      <code><![CDATA[$payment * $n]]></code>
+      <code><![CDATA[$payment * $n]]></code>
+      <code><![CDATA[$ratePercent / 100]]></code>
+      <code><![CDATA[$ratePercent / 100]]></code>
+      <code><![CDATA[$ratePercent / 100]]></code>
+      <code><![CDATA[$years * $perYear]]></code>
+      <code><![CDATA[$years * max(1, $perYear)]]></code>
+      <code><![CDATA[($factor - 1) * 100]]></code>
+      <code><![CDATA[((1 + $r) ** max(1, $perYear) - 1) * 100]]></code>
+      <code><![CDATA[(1 + $r) ** $n]]></code>
+      <code><![CDATA[(1 + $r) ** $n]]></code>
+      <code><![CDATA[(1 + $r) ** -$n]]></code>
+      <code><![CDATA[(1 + $r) ** max(1, $perYear)]]></code>
+      <code><![CDATA[1 + $r]]></code>
+      <code><![CDATA[1 + $r]]></code>
+      <code><![CDATA[1 + $r]]></code>
+      <code><![CDATA[1 + $r]]></code>
+      <code><![CDATA[1 + $ratePercent / 100]]></code>
+      <code><![CDATA[1 - (1 + $r) ** -$n]]></code>
+      <code><![CDATA[round(($factor - 1) * 100, 2)]]></code>
+      <code><![CDATA[round(((1 + $r) ** max(1, $perYear) - 1) * 100, 4)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/ImageStudy.php">
+    <UndefinedClass>
+      <code><![CDATA[\Imagick]]></code>
+    </UndefinedClass>
+  </file>
+  <file src="app/talk_ai/lib/Document/Informatics.php">
+    <InvalidCast>
+      <code><![CDATA[$v]]></code>
+    </InvalidCast>
+    <InvalidOperand>
+      <code><![CDATA[(str_starts_with($input, '-') ? -1 : 1) * bindec(substr(ltrim($input, '-'), 2))]]></code>
+      <code><![CDATA[(str_starts_with($input, '-') ? -1 : 1) * octdec(substr(ltrim($input, '-'), 2))]]></code>
+      <code><![CDATA[2 ** $bits + $n]]></code>
+      <code><![CDATA[mb_ord($c)]]></code>
+    </InvalidOperand>
+    <RedundantCondition>
+      <code><![CDATA[str_replace('|', '\|', (string)$v)]]></code>
+    </RedundantCondition>
+    <TypeDoesNotContainNull>
+      <code><![CDATA[$v === null]]></code>
+    </TypeDoesNotContainNull>
+  </file>
+  <file src="app/talk_ai/lib/Document/LinearAlgebra.php">
+    <InvalidArgument>
+      <code><![CDATA[[self::class, 'approx']]]></code>
+      <code><![CDATA[[self::class, 'float']]]></code>
+    </InvalidArgument>
+    <InvalidOperand>
+      <code><![CDATA[$c - $dot($n, $p)]]></code>
+      <code><![CDATA[$c2 / $norm($n2) * ($dot($n1, $n2) < 0 ? -1 : 1)]]></code>
+      <code><![CDATA[$dot($cross($w, $d2), $n) / $dot($n, $n)]]></code>
+      <code><![CDATA[$dot($n, $p) - $c]]></code>
+      <code><![CDATA[$dot($n, $pp) - self::float($o['d'])]]></code>
+      <code><![CDATA[$dot($n, $pp) - self::float($o['d'])]]></code>
+      <code><![CDATA[$s * $d]]></code>
+      <code><![CDATA[($c - $dot($n, $p)) / $nd]]></code>
+      <code><![CDATA[(int)($m[1] . ($m[2] === '' ? '0' : $m[2])) * $d]]></code>
+      <code><![CDATA[abs($dot($d1, $d2)) / ($norm($d1) * $norm($d2))]]></code>
+      <code><![CDATA[abs($dot($n1, $n2)) / ($norm($n1) * $norm($n2))]]></code>
+      <code><![CDATA[abs($dot($w, $n)) / $norm($n)]]></code>
+      <code><![CDATA[abs($nd) / ($norm($n) * $norm($d))]]></code>
+      <code><![CDATA[self::float($c) ** 2]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Math.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[['3' => '∛', '4' => '∜'][$index]]]></code>
+    </InvalidArrayOffset>
+  </file>
+  <file src="app/talk_ai/lib/Document/Measurement.php">
+    <InvalidOperand>
+      <code><![CDATA[$confidence * 100]]></code>
+      <code><![CDATA[$confidence * 100]]></code>
+      <code><![CDATA[$share ** 2]]></code>
+      <code><![CDATA[$u * $f]]></code>
+      <code><![CDATA[$u / abs($f) * 100]]></code>
+      <code><![CDATA[$value * $f]]></code>
+      <code><![CDATA[($method === 'max' ? (float)$b['contribution'] / $u : ((float)$b['contribution'] / $u) ** 2) * 100]]></code>
+      <code><![CDATA[((float)$b['contribution'] / $u) ** 2]]></code>
+      <code><![CDATA[1 / max(1e-300, (float)$uy[$i]) ** 2]]></code>
+      <code><![CDATA[2 * $h]]></code>
+      <code><![CDATA[array_sum($values) / $n]]></code>
+      <code><![CDATA[array_sum(array_map(fn ($v) => ($v - $mean) ** 2, $values)) / ($n - 1)]]></code>
+      <code><![CDATA[ceil($u * $f - 1e-9) / $f]]></code>
+      <code><![CDATA[max(1e-300, (float)$uy[$i]) ** 2]]></code>
+      <code><![CDATA[round($value * $f) / $f]]></code>
+      <code><![CDATA[round(($method === 'max' ? (float)$b['contribution'] / $u : ((float)$b['contribution'] / $u) ** 2) * 100, 1)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Music.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[self::ORDER[$letterIndex % 7]]]></code>
+    </InvalidArrayOffset>
+    <InvalidOperand>
+      <code><![CDATA[$a4]]></code>
+      <code><![CDATA[$a4 * 2 ** (($midi - 69) / 12)]]></code>
+      <code><![CDATA[2 ** (($midi - 69) / 12)]]></code>
+      <code><![CDATA[round($a4 * 2 ** (($midi - 69) / 12), 2)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Numerics.php">
+    <InvalidCast>
+      <code><![CDATA[$v]]></code>
+    </InvalidCast>
+    <InvalidOperand>
+      <code><![CDATA[$fine * $hf / 3]]></code>
+      <code><![CDATA[$h / 2]]></code>
+      <code><![CDATA[$h / 2]]></code>
+      <code><![CDATA[$h / 2]]></code>
+      <code><![CDATA[$h / 2]]></code>
+      <code><![CDATA[$h / 2]]></code>
+      <code><![CDATA[$h / 6]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i]]></code>
+      <code><![CDATA[$i * $h]]></code>
+      <code><![CDATA[$i * $h]]></code>
+      <code><![CDATA[$i * $hf]]></code>
+      <code><![CDATA[$i + 1]]></code>
+      <code><![CDATA[$i + 1]]></code>
+      <code><![CDATA[$simp * $h / 3]]></code>
+      <code><![CDATA[$x]]></code>
+      <code><![CDATA[($a + $b) / 2]]></code>
+      <code><![CDATA[($a + $b) / 2]]></code>
+      <code><![CDATA[($b - $a) / $m]]></code>
+      <code><![CDATA[($b - $a) / $n]]></code>
+      <code><![CDATA[($i % 2 ? 4 : 2) * $v]]></code>
+      <code><![CDATA[($i === 0 || $i === $m ? 1 : ($i % 2 ? 4 : 2)) * $y($a + $i * $hf)]]></code>
+      <code><![CDATA[($xEnd - $x0) / $n]]></code>
+      <code><![CDATA[($y($a) + $y($b)) / 2]]></code>
+      <code><![CDATA[2 * $b]]></code>
+      <code><![CDATA[2 * $c]]></code>
+      <code><![CDATA[2 * $h]]></code>
+      <code><![CDATA[2 * $h]]></code>
+      <code><![CDATA[2 * $y($x0)]]></code>
+      <code><![CDATA[max(abs($x), 1) * 1e-6]]></code>
+      <code><![CDATA[max(abs($x0), 1) * 1e-4]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Odf.php">
+    <InvalidOperand>
+      <code><![CDATA[$maxHeightCm * $w]]></code>
+      <code><![CDATA[$width * $h]]></code>
+      <code><![CDATA[round($height, 2)]]></code>
+      <code><![CDATA[round($width, 2)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/OdpWriter.php">
+    <InvalidArgument>
+      <code><![CDATA[array_map(fn ($l) => preg_replace('/^\s*[-*+]\s+/', '', $l) ?? $l, $slide['body'])]]></code>
+    </InvalidArgument>
+    <InvalidArrayOffset>
+      <code><![CDATA[$s['section']]]></code>
+    </InvalidArrayOffset>
+    <InvalidOperand>
+      <code><![CDATA[$ab * $weight]]></code>
+      <code><![CDATA[$ag * $weight]]></code>
+      <code><![CDATA[$ar * $weight]]></code>
+      <code><![CDATA[$bb * (1 - $weight)]]></code>
+      <code><![CDATA[$bg * (1 - $weight)]]></code>
+      <code><![CDATA[$br * (1 - $weight)]]></code>
+      <code><![CDATA[$c * $cw]]></code>
+      <code><![CDATA[$cw / 2]]></code>
+      <code><![CDATA[$cw / 2]]></code>
+      <code><![CDATA[$cw / 2]]></code>
+      <code><![CDATA[$cw / 2]]></code>
+      <code><![CDATA[$gap * ($count - 1)]]></code>
+      <code><![CDATA[$gap * ($count - 1)]]></code>
+      <code><![CDATA[$gap * ($perRow - 1)]]></code>
+      <code><![CDATA[$gap * ($rows - 1)]]></code>
+      <code><![CDATA[$h - ($body !== [] ? 2 : 0)]]></code>
+      <code><![CDATA[$h - ($caption !== '' ? 0.8 : 0)]]></code>
+      <code><![CDATA[$h - 2]]></code>
+      <code><![CDATA[$h - 3]]></code>
+      <code><![CDATA[$h - 7]]></code>
+      <code><![CDATA[$h / $ih]]></code>
+      <code><![CDATA[$h / $ih]]></code>
+      <code><![CDATA[$i * $cw]]></code>
+      <code><![CDATA[$i * $cw]]></code>
+      <code><![CDATA[$i * ($cw + $gap)]]></code>
+      <code><![CDATA[$i * ($cw + $gap)]]></code>
+      <code><![CDATA[$i * ($w / $columns)]]></code>
+      <code><![CDATA[$r * $rh]]></code>
+      <code><![CDATA[$r * $rh]]></code>
+      <code><![CDATA[$size]]></code>
+      <code><![CDATA[$slide['body']]]></code>
+      <code><![CDATA[$space]]></code>
+      <code><![CDATA[$tableHeight / max(1, count($rows))]]></code>
+      <code><![CDATA[$w / $columns]]></code>
+      <code><![CDATA[$w / $columns]]></code>
+      <code><![CDATA[$w / $columns]]></code>
+      <code><![CDATA[$w / $count]]></code>
+      <code><![CDATA[$w / $count]]></code>
+      <code><![CDATA[$w / $iw]]></code>
+      <code><![CDATA[$w / $iw]]></code>
+      <code><![CDATA[$y + 1]]></code>
+      <code><![CDATA[$y + 1]]></code>
+      <code><![CDATA[($h - $gap * ($rows - 1)) / $rows]]></code>
+      <code><![CDATA[($i % $perColumn) * $rowHeight]]></code>
+      <code><![CDATA[($i % $perRow) * ($cw + $gap)]]></code>
+      <code><![CDATA[($rowHeight - $size) / 2]]></code>
+      <code><![CDATA[($w - $gap * ($count - 1)) / $count]]></code>
+      <code><![CDATA[($w - $gap * ($count - 1)) / $count]]></code>
+      <code><![CDATA[($w - $gap * ($perRow - 1)) / $perRow]]></code>
+      <code><![CDATA[0.114 * $b]]></code>
+      <code><![CDATA[0.299 * $r]]></code>
+      <code><![CDATA[0.587 * $g]]></code>
+      <code><![CDATA[1 - $weight]]></code>
+      <code><![CDATA[1 - $weight]]></code>
+      <code><![CDATA[1 - $weight]]></code>
+      <code><![CDATA[10.6 / $perColumn]]></code>
+      <code><![CDATA[count($rows) * $rh]]></code>
+      <code><![CDATA[count($rows) * $rh]]></code>
+      <code><![CDATA[intdiv($i, $perColumn) * 12.8]]></code>
+      <code><![CDATA[intdiv($i, $perRow) * ($ch + $gap)]]></code>
+      <code><![CDATA[round($v, 3)]]></code>
+    </InvalidOperand>
+    <NoValue>
+      <code><![CDATA[$items]]></code>
+    </NoValue>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$current['agenda']]]></code>
+      <code><![CDATA[$current['agenda']]]></code>
+      <code><![CDATA[$current['body'] !== []]]></code>
+      <code><![CDATA[$current['notes'] !== []]]></code>
+      <code><![CDATA[$current['pictures'] !== []]]></code>
+      <code><![CDATA[$current['title'] !== '' || $current['body'] !== []]]></code>
+      <code><![CDATA[$items !== []]]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Document/OdsWriter.php">
+    <InvalidOperand>
+      <code><![CDATA[$number]]></code>
+      <code><![CDATA[$number / 100]]></code>
+      <code><![CDATA[$number / 100]]></code>
+      <code><![CDATA[$w * 0.21]]></code>
+      <code><![CDATA[round($w * 0.21 + 0.4, 2)]]></code>
+    </InvalidOperand>
+    <InvalidReturnStatement>
+      <code><![CDATA[$rows]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[list<list<string>>]]></code>
+    </InvalidReturnType>
+  </file>
+  <file src="app/talk_ai/lib/Document/OdtWriter.php">
+    <InvalidOperand>
+      <code><![CDATA[$r]]></code>
+      <code><![CDATA[$size]]></code>
+      <code><![CDATA[self::$width]]></code>
+      <code><![CDATA[self::$width - 1]]></code>
+    </InvalidOperand>
+    <NoValue>
+      <code><![CDATA[$paragraph]]></code>
+    </NoValue>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$cover === false]]></code>
+      <code><![CDATA[$cover === null || $cover === [] || $cover === false]]></code>
+      <code><![CDATA[$paragraph !== []]]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Document/Passages.php">
+    <InvalidOperand>
+      <code><![CDATA[$df[$term] + 0.5]]></code>
+      <code><![CDATA[$n - $df[$term] + 0.5]]></code>
+      <code><![CDATA[$tf[$term] * (self::K1 + 1)]]></code>
+      <code><![CDATA[$tf[$term] + self::K1 * (1 - self::B + self::B * count($doc) / max(1, $avg))]]></code>
+      <code><![CDATA[1 + ($n - $df[$term] + 0.5) / ($df[$term] + 0.5)]]></code>
+      <code><![CDATA[1 - self::B]]></code>
+      <code><![CDATA[self::B * count($doc)]]></code>
+      <code><![CDATA[self::K1 + 1]]></code>
+    </InvalidOperand>
+    <RedundantFunctionCall>
+      <code><![CDATA[ksort]]></code>
+    </RedundantFunctionCall>
+  </file>
+  <file src="app/talk_ai/lib/Document/Sport.php">
+    <InvalidOperand>
+      <code><![CDATA[$cm / 100]]></code>
+      <code><![CDATA[$km * 1000]]></code>
+      <code><![CDATA[$km / $seconds * 3600]]></code>
+      <code><![CDATA[$m[1]]]></code>
+      <code><![CDATA[$m[1]]]></code>
+      <code><![CDATA[$m[1] * 3600 + $m[2] * 60]]></code>
+      <code><![CDATA[$m[1] * 60 + (float)$m[2]]]></code>
+      <code><![CDATA[$m[2]]]></code>
+      <code><![CDATA[$met * 3.5 * $kg / 200]]></code>
+      <code><![CDATA[$rest + ($max - $rest) * $high]]></code>
+      <code><![CDATA[$rest + ($max - $rest) * $low]]></code>
+      <code><![CDATA[($cm / 100) ** 2]]></code>
+      <code><![CDATA[($max - $rest) * $high]]></code>
+      <code><![CDATA[($max - $rest) * $low]]></code>
+      <code><![CDATA[(float)$time * 60]]></code>
+      <code><![CDATA[0.7 * $age]]></code>
+      <code><![CDATA[208 - 0.7 * $age]]></code>
+      <code><![CDATA[round($km * 1000 / $seconds, 2)]]></code>
+      <code><![CDATA[round($km / $seconds * 3600, 2)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Statistics.php">
+    <InvalidOperand>
+      <code><![CDATA[$a + $b + $m]]></code>
+      <code><![CDATA[$a + $b + 2]]></code>
+      <code><![CDATA[$a + $m]]></code>
+      <code><![CDATA[$a + $n]]></code>
+      <code><![CDATA[$a + 1]]></code>
+      <code><![CDATA[$a + 1]]></code>
+      <code><![CDATA[$a + 1]]></code>
+      <code><![CDATA[$a + 2 * $m]]></code>
+      <code><![CDATA[$a + 2 * $m]]></code>
+      <code><![CDATA[$a + 2 * $m]]></code>
+      <code><![CDATA[$a + 2 * $m]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha]]></code>
+      <code><![CDATA[$alpha / 2]]></code>
+      <code><![CDATA[$b += 2]]></code>
+      <code><![CDATA[$b - $m]]></code>
+      <code><![CDATA[$between += count($g) * ($m - $grand) ** 2]]></code>
+      <code><![CDATA[$between / $df1]]></code>
+      <code><![CDATA[$chi / 2]]></code>
+      <code><![CDATA[$chi / 2]]></code>
+      <code><![CDATA[$d * $c - 1]]></code>
+      <code><![CDATA[$d * $c - 1]]></code>
+      <code><![CDATA[$d * (1 - 3 / (4 * ($n1 + $n2) - 9))]]></code>
+      <code><![CDATA[$df / 2]]></code>
+      <code><![CDATA[$df1 / 2]]></code>
+      <code><![CDATA[$df2 / 2]]></code>
+      <code><![CDATA[$h / 2]]></code>
+      <code><![CDATA[$i - $a]]></code>
+      <code><![CDATA[$level * 100]]></code>
+      <code><![CDATA[$m * ($b - $m)]]></code>
+      <code><![CDATA[$m - $grand]]></code>
+      <code><![CDATA[$m1 - ($m2 ?? 0)]]></code>
+      <code><![CDATA[$n * $p0]]></code>
+      <code><![CDATA[$n * $p0]]></code>
+      <code><![CDATA[$n * ($n + 1) * (2 * $n + 1) / 24 - $ties / 48]]></code>
+      <code><![CDATA[$n * ($n + 1) / 2 - $plus]]></code>
+      <code><![CDATA[$n1 * $n2 - $u1]]></code>
+      <code><![CDATA[$n1 * $n2 / 12 * (($n + 1) - $ties / ($n * ($n - 1)))]]></code>
+      <code><![CDATA[$p / 2]]></code>
+      <code><![CDATA[$p0]]></code>
+      <code><![CDATA[$p0]]></code>
+      <code><![CDATA[$p0]]></code>
+      <code><![CDATA[$p1]]></code>
+      <code><![CDATA[$plus += $v > 0 ? $ranks[$i] : 0]]></code>
+      <code><![CDATA[$position - $low]]></code>
+      <code><![CDATA[$r ** 2]]></code>
+      <code><![CDATA[$r1 - $n1 * ($n1 + 1) / 2]]></code>
+      <code><![CDATA[$rowSums[$i] * $colSums[$j]]]></code>
+      <code><![CDATA[$squares / $n]]></code>
+      <code><![CDATA[$squares / $n]]></code>
+      <code><![CDATA[$squares / ($n - 1)]]></code>
+      <code><![CDATA[$squares / ($n - 1)]]></code>
+      <code><![CDATA[$ties += $t ** 3 - $t]]></code>
+      <code><![CDATA[$ties / ($n * ($n - 1))]]></code>
+      <code><![CDATA[$ties / ($n ** 3 - $n)]]></code>
+      <code><![CDATA[$ties / 48]]></code>
+      <code><![CDATA[$total * (min(count($rows), count($rows[0])) - 1)]]></code>
+      <code><![CDATA[$total / count($o)]]></code>
+      <code><![CDATA[$u - $n1 * $n2 / 2]]></code>
+      <code><![CDATA[$v1 / $n1]]></code>
+      <code><![CDATA[$v1 / $n1]]></code>
+      <code><![CDATA[$v1 / $n1]]></code>
+      <code><![CDATA[$v1 / $n1]]></code>
+      <code><![CDATA[$v2 / $n2]]></code>
+      <code><![CDATA[$v2 / $n2]]></code>
+      <code><![CDATA[$v2 / $n2]]></code>
+      <code><![CDATA[$var / $n]]></code>
+      <code><![CDATA[$w - $n * ($n + 1) / 4]]></code>
+      <code><![CDATA[$within += array_sum(array_map(fn ($v) => ($v - $m) ** 2, $g))]]></code>
+      <code><![CDATA[$within / $df2]]></code>
+      <code><![CDATA[$x + $i]]></code>
+      <code><![CDATA[$x + 1]]></code>
+      <code><![CDATA[$x -= 1]]></code>
+      <code><![CDATA[$z * $z / 2]]></code>
+      <code><![CDATA[($a - $b) ** 2]]></code>
+      <code><![CDATA[($lo + $hi) / 2]]></code>
+      <code><![CDATA[($lo + $hi) / 2]]></code>
+      <code><![CDATA[($m - $grand) ** 2]]></code>
+      <code><![CDATA[($n + 1) - $ties / ($n * ($n - 1))]]></code>
+      <code><![CDATA[($n1 - 1) * $v1]]></code>
+      <code><![CDATA[($n2 - 1) * $v2]]></code>
+      <code><![CDATA[($o - $e) ** 2]]></code>
+      <code><![CDATA[($v - $mean) ** 2]]></code>
+      <code><![CDATA[($v1 / $n1 + $v2 / $n2) ** 2]]></code>
+      <code><![CDATA[($v1 / $n1) ** 2]]></code>
+      <code><![CDATA[($v2 / $n2) ** 2]]></code>
+      <code><![CDATA[($x[$i] - $mx) ** 2]]></code>
+      <code><![CDATA[($y[$i] - $my) ** 2]]></code>
+      <code><![CDATA[(($n1 - 1) * $v1 + ($n2 - 1) * $v2) / ($n1 + $n2 - 2)]]></code>
+      <code><![CDATA[(count($sorted) - 1) * $q]]></code>
+      <code><![CDATA[-$i * ($i - $a)]]></code>
+      <code><![CDATA[1 + $num * $d]]></code>
+      <code><![CDATA[1 + $num / $c]]></code>
+      <code><![CDATA[1 - $below($observed - 1)]]></code>
+      <code><![CDATA[1 - $below($observed - 1)]]></code>
+      <code><![CDATA[1 - $below($upper - 2)]]></code>
+      <code><![CDATA[1 - $confidence]]></code>
+      <code><![CDATA[1 - $front * self::betaFraction(1 - $x, $b, $a) / $b]]></code>
+      <code><![CDATA[1 - $p0]]></code>
+      <code><![CDATA[1 - $prob($p1)]]></code>
+      <code><![CDATA[1 - $r * $r]]></code>
+      <code><![CDATA[1 - $ties / ($n ** 3 - $n)]]></code>
+      <code><![CDATA[1 - $x]]></code>
+      <code><![CDATA[1 - $x]]></code>
+      <code><![CDATA[1 - $x]]></code>
+      <code><![CDATA[1 - ($a + $b) * $x / ($a + 1)]]></code>
+      <code><![CDATA[1 - 3 / (4 * ($n1 + $n2) - 9)]]></code>
+      <code><![CDATA[1 - exp(-$x + $a * log($x) - self::logGamma($a)) * $h]]></code>
+      <code><![CDATA[1 - self::gammaP($df / 2, $chi / 2)]]></code>
+      <code><![CDATA[1 - self::gammaP($df / 2, $chi / 2)]]></code>
+      <code><![CDATA[1 - self::gammaP($df / 2, $h / 2)]]></code>
+      <code><![CDATA[1 - self::gammaP(0.5, $z * $z / 2)]]></code>
+      <code><![CDATA[1 / $a]]></code>
+      <code><![CDATA[1 / $b]]></code>
+      <code><![CDATA[1 / $tiny]]></code>
+      <code><![CDATA[1 / (abs($d) < $tiny ? $tiny : $d)]]></code>
+      <code><![CDATA[1 / (abs($d) < $tiny ? $tiny : $d)]]></code>
+      <code><![CDATA[1 / (abs($d) < $tiny ? $tiny : $d)]]></code>
+      <code><![CDATA[12 / ($n * ($n + 1)) * $h]]></code>
+      <code><![CDATA[2 * M_PI]]></code>
+      <code><![CDATA[2 * min($below($observed), 1 - $below($observed - 1))]]></code>
+      <code><![CDATA[2 * self::normalTail(abs($z))]]></code>
+      <code><![CDATA[2 * self::normalTail(abs($z))]]></code>
+      <code><![CDATA[array_sum($all) / $n]]></code>
+      <code><![CDATA[array_sum($e) - 1]]></code>
+      <code><![CDATA[array_sum($g) / count($g)]]></code>
+      <code><![CDATA[array_sum($g) / count($g)]]></code>
+      <code><![CDATA[array_sum($values) / $n]]></code>
+      <code><![CDATA[array_sum($values) / $n]]></code>
+      <code><![CDATA[array_sum($x) / $n]]></code>
+      <code><![CDATA[array_sum($y) / $n]]></code>
+      <code><![CDATA[array_sum(array_map(fn ($v) => ($v - $mean) ** 2, $values)) / ($n - 1)]]></code>
+      <code><![CDATA[array_sum(array_slice($ranks, $at, count($g))) ** 2]]></code>
+      <code><![CDATA[count($g) * ($m - $grand) ** 2]]></code>
+      <code><![CDATA[round($level * 100)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Study.php">
+    <InvalidOperand>
+      <code><![CDATA[$avg * 100]]></code>
+      <code><![CDATA[$days * $share]]></code>
+      <code><![CDATA[$hours / max(1, $days / 7)]]></code>
+      <code><![CDATA[$m['weight'] * (in_array(mb_strtolower($m['name']), $double, true) ? 2 : 1)]]></code>
+      <code><![CDATA[$needed * 100]]></code>
+      <code><![CDATA[$target + 10 ** -$decimals]]></code>
+      <code><![CDATA[$v * $f]]></code>
+      <code><![CDATA[0.5 * 10 ** -$decimals]]></code>
+      <code><![CDATA[1 + 3 * ($best - $grade) / ($best - $lowestPass)]]></code>
+      <code><![CDATA[1 - 1e-9]]></code>
+      <code><![CDATA[3 * ($best - $grade)]]></code>
+      <code><![CDATA[4 + 1e-9]]></code>
+      <code><![CDATA[array_sum($list) / count($list)]]></code>
+      <code><![CDATA[floor($avg * 100) / 100]]></code>
+      <code><![CDATA[floor($needed * 100) / 100]]></code>
+      <code><![CDATA[floor($v * $f + 1e-9) / $f]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Document/Units.php">
+    <InvalidOperand>
+      <code><![CDATA[$f ** ($power * $sign)]]></code>
+      <code><![CDATA[$p * self::UNITS[$rest][0]]]></code>
+      <code><![CDATA[$value - 32]]></code>
+      <code><![CDATA[($kelvin - 273.15) * 9]]></code>
+      <code><![CDATA[($value - 32) * 5]]></code>
+      <code><![CDATA[1 / 3.6]]></code>
+      <code><![CDATA[2 * M_PI]]></code>
+      <code><![CDATA[M_PI / 180]]></code>
+      <code><![CDATA[M_PI / 180]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Listener/BotInvokeListener.php">
+    <InvalidReturnStatement>
+      <code><![CDATA[preg_replace_callback('/\{([^}]+)\}/', static function (array $m) use ($parameters): string {
+			$parameter = $parameters[trim($m[1])] ?? null;
+			return is_array($parameter) && is_string($parameter['name'] ?? null) ? '@' . $parameter['name'] : $m[0];
+		}, $decoded['message']) ?? $decoded['message']]]></code>
+    </InvalidReturnStatement>
+  </file>
+  <file src="app/talk_ai/lib/Migration/Version000400Date20261015.php">
+    <UndefinedDocblockClass>
+      <code><![CDATA[$schema->createTable('talk_ai_jobs')]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+    </UndefinedDocblockClass>
+  </file>
+  <file src="app/talk_ai/lib/Migration/Version000900Date20261020.php">
+    <UndefinedDocblockClass>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+    </UndefinedDocblockClass>
+  </file>
+  <file src="app/talk_ai/lib/Migration/Version001200Date20261031.php">
+    <UndefinedDocblockClass>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+    </UndefinedDocblockClass>
+  </file>
+  <file src="app/talk_ai/lib/Service/Actions.php">
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+  </file>
+  <file src="app/talk_ai/lib/Service/Calendar.php">
+    <RedundantCast>
+      <code><![CDATA[(string)($c->getDisplayName() ?? $c->getUri())]]></code>
+      <code><![CDATA[(string)($calendar->getDisplayName() ?? $calendar->getUri())]]></code>
+    </RedundantCast>
+    <RedundantFunctionCall>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+    <UndefinedClass>
+      <code><![CDATA[\OCA\DAV\CalDAV\CalDavBackend]]></code>
+    </UndefinedClass>
+    <UndefinedDocblockClass>
+      <code><![CDATA[$backend]]></code>
+      <code><![CDATA[$backend]]></code>
+      <code><![CDATA[\OCP\Server::get(\OCA\DAV\CalDAV\CalDavBackend::class)]]></code>
+    </UndefinedDocblockClass>
+    <UndefinedInterfaceMethod>
+      <code><![CDATA[createFromString]]></code>
+    </UndefinedInterfaceMethod>
+  </file>
+  <file src="app/talk_ai/lib/Service/Capabilities.php">
+    <InvalidArgument>
+      <code><![CDATA[['search' => false, 'retries' => 1, 'limits' => false]]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="app/talk_ai/lib/Service/Conversation.php">
+    <InvalidReturnStatement>
+      <code><![CDATA[array_map(fn (array $f) => array_diff_key($f, ['mtime' => 0]), array_slice($found, 0, $limit))]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[list<array{id: int, path: string, mime: string, size: int}>]]></code>
+    </InvalidReturnType>
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+    <UndefinedClass>
+      <code><![CDATA[\OCA\Talk\Model\Attendee]]></code>
+      <code><![CDATA[\OCA\Talk\Model\Attendee]]></code>
+      <code><![CDATA[\OCA\Talk\Participant]]></code>
+      <code><![CDATA[\OCA\Talk\Participant]]></code>
+    </UndefinedClass>
+  </file>
+  <file src="app/talk_ai/lib/Service/DocumentJob.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[$result['rounds']]]></code>
+      <code><![CDATA[$result['session']]]></code>
+    </InvalidArrayOffset>
+    <InvalidOperand>
+      <code><![CDATA[$this->elapsed() + $wait]]></code>
+      <code><![CDATA[4.5 * 1024]]></code>
+      <code><![CDATA[microtime(true) + $wait]]></code>
+      <code><![CDATA[round($bytes / 1048576, 1)]]></code>
+    </InvalidOperand>
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+    <RedundantCast>
+      <code><![CDATA[(int)($result['rounds'] ?? 0)]]></code>
+      <code><![CDATA[(string)array_key_first($score)]]></code>
+    </RedundantCast>
+    <UndefinedMethod>
+      <code><![CDATA[tokens]]></code>
+    </UndefinedMethod>
+  </file>
+  <file src="app/talk_ai/lib/Service/Golden.php">
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+  </file>
+  <file src="app/talk_ai/lib/Service/Health.php">
+    <ForbiddenCode>
+      <code><![CDATA[shell_exec($command . ' 2>&1')]]></code>
+      <code><![CDATA[shell_exec($path . ' --list-langs 2>&1')]]></code>
+    </ForbiddenCode>
+    <RedundantCast>
+      <code><![CDATA[(int)$this->appConfig->getValueInt('core', 'lastcron', 0)]]></code>
+    </RedundantCast>
+  </file>
+  <file src="app/talk_ai/lib/Service/Jobs.php">
+    <InvalidOperand>
+      <code><![CDATA[$out[$row['status']]]]></code>
+      <code><![CDATA[$out['tokens'] += (int)$row['tokens']]]></code>
+    </InvalidOperand>
+    <InvalidReturnStatement>
+      <code><![CDATA[$out]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[array{jobs: int, done: int, failed: int, cancelled: int, seconds: float, tokens: int}]]></code>
+    </InvalidReturnType>
+  </file>
+  <file src="app/talk_ai/lib/Service/Office.php">
+    <FalsableReturnStatement>
+      <code><![CDATA[str_starts_with((string)$data, "\x89PNG") ? $data : null]]></code>
+    </FalsableReturnStatement>
+    <MissingDependency>
+      <code><![CDATA[$this->rootFolder]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+  </file>
+  <file src="app/talk_ai/lib/Service/Progress.php">
+    <InvalidOperand>
+      <code><![CDATA[$state['steps'] ?? []]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="app/talk_ai/lib/Service/Reply.php">
+    <InvalidArgument>
+      <code><![CDATA[$spec]]></code>
+    </InvalidArgument>
+    <InvalidOperand>
+      <code><![CDATA[$file->getSize() / 1048576]]></code>
+      <code><![CDATA[$result['added'] ?? []]]></code>
+      <code><![CDATA[$result['added_tasks'] ?? []]]></code>
+      <code><![CDATA[(microtime(true) - $this->started) * 1000]]></code>
+      <code><![CDATA[round($file->getSize() / 1048576)]]></code>
+    </InvalidOperand>
+    <MissingDependency>
+      <code><![CDATA[\OCP\Files\IRootFolder]]></code>
+    </MissingDependency>
+    <NamedArgumentNotAllowed>
+      <code><![CDATA[array_map(fn (array $m) => $m['files'], $history) ?: [[]]]]></code>
+    </NamedArgumentNotAllowed>
+    <RedundantCondition>
+      <code><![CDATA[is_string($result)]]></code>
+    </RedundantCondition>
+    <TypeDoesNotContainType>
+      <code><![CDATA['']]></code>
+    </TypeDoesNotContainType>
+  </file>
+  <file src="app/talk_ai/lib/Service/Web.php">
+    <InvalidArrayOffset>
+      <code><![CDATA[['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][(int)round($bearing / 45) % 8]]]></code>
+    </InvalidArrayOffset>
+    <InvalidOperand>
+      <code><![CDATA[$a - $d]]></code>
+      <code><![CDATA[$a - $d]]></code>
+      <code><![CDATA[$bearing / 45]]></code>
+      <code><![CDATA[($a - $d) * 60]]></code>
+      <code><![CDATA[($a - $d) * 60]]></code>
+      <code><![CDATA[($la2 - $la1) / 2]]></code>
+      <code><![CDATA[($lo2 - $lo1) / 2]]></code>
+      <code><![CDATA[(($a - $d) * 60 - $m) * 60]]></code>
+      <code><![CDATA[2 * 6371.0088]]></code>
+      <code><![CDATA[rad2deg(atan2(sin($lo2 - $lo1) * cos($la2), cos($la1) * sin($la2) - sin($la1) * cos($la2) * cos($lo2 - $lo1))) + 360]]></code>
+      <code><![CDATA[round($bearing)]]></code>
+      <code><![CDATA[sin(($la2 - $la1) / 2) ** 2]]></code>
+      <code><![CDATA[sin(($lo2 - $lo1) / 2) ** 2]]></code>
+    </InvalidOperand>
+  </file>
+</files>

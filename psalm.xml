@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Psalm against Nextcloud's public API (nextcloud/ocp); what it finds and is accepted for
+     now stays in psalm-baseline.xml. -->
+<psalm
+    errorLevel="4"
+    resolveFromConfigFile="true"
+    findUnusedBaselineEntry="true"
+    findUnusedCode="false"
+    errorBaseline="psalm-baseline.xml"
+    phpVersion="8.2"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="app/talk_ai/lib"/>
+        <ignoreFiles>
+            <directory name="vendor"/>
+        </ignoreFiles>
+    </projectFiles>
+    <issueHandlers>
+        <!-- #[\Override] needs PHP 8.3; the app runs on 8.2. -->
+        <MissingOverrideAttribute errorLevel="suppress"/>
+    </issueHandlers>
+    <extraFiles>
+        <directory name="vendor/nextcloud/ocp"/>
+    </extraFiles>
+</psalm>

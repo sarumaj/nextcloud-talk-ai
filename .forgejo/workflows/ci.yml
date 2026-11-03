@@ -1,5 +1,6 @@
 ---
-# The app's PHP must parse, its info.xml must pass the app store's schema, and the
+# The app's PHP must parse, follow Nextcloud's coding standard and pass Psalm, its
+# info.xml must pass the app store's schema, the Markdown must pass markdownlint, and the
 # tests (PHPUnit, no Nextcloud and no network) must pass against each supported
 # Nextcloud's public API; Talk's bot and chat API must still have what the app uses;
 # and the document golden set must pass with the sandbox image and the skills.
@@ -10,7 +11,7 @@ name: CI
 enable-email-notifications: true
 "on":
   push:
-    branches: [main, renovate/all-patch]
+    branches: [main, "renovate/**"]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
@@ -52,6 +53,34 @@ jobs:
           composer config --unset platform.php
           composer require -q --dev --no-interaction -W "nextcloud/ocp:${{ matrix.ocp }}"
           vendor/bin/phpunit
+
+  standards:
+    runs-on: docker
+    container: docker.io/library/composer:2
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        run: *checkout
+
+      - name: Install the development tools
+        run: composer install -q --no-interaction --no-progress
+
+      - name: Check the coding standard
+        run: composer cs:check
+
+      - name: Check the PHP with Psalm
+        run: composer psalm
+
+  markdown:
+    runs-on: docker
+    container: docker.io/library/node:24-bookworm
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        run: *checkout
+
+      - name: Check the Markdown with markdownlint
+        run: npx --yes markdownlint-cli2 "*.md" "docs/**/*.md"
 
   talk-api:
     runs-on: docker
