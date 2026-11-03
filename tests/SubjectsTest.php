@@ -157,7 +157,7 @@ class SubjectsTest extends TestCase {
 		$this->assertStringContainsString("EXDATE;TZID=Europe/Berlin:20261019T080000\r\n", $ics);
 		$this->assertStringContainsString("DTSTART;VALUE=DATE:20270420\r\nDTEND;VALUE=DATE:20270421", $ics);
 		$this->assertStringContainsString('SUMMARY:Exam\; final\, part 1', $ics);
-		$this->assertStringContainsString("BEGIN:VTODO", $ics);
+		$this->assertStringContainsString('BEGIN:VTODO', $ics);
 		// Summer time ends on 25 October 2026 and starts on 28 March 2027.
 		$this->assertStringContainsString("BEGIN:STANDARD\r\nDTSTART:20261025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100", $ics);
 		$this->assertStringContainsString("BEGIN:DAYLIGHT\r\nDTSTART:20270328T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200", $ics);

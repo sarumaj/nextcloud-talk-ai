@@ -356,17 +356,17 @@ class DocumentJob {
 		$skills = $this->sandbox->exec($this->box, 'cat /skills/README.md 2>/dev/null | sed -n "/^| Skill/,/^$/p"', 20)['stdout'];
 		return 'You build an office document or an image in a sandbox with code, check it visually, and deliver it. You are the document '
 			. 'builder of the assistant ' . $this->bot->name() . " in Nextcloud Talk.\n\n"
-			. "Procedure (always): 1. understand the job; 2. read /skills/common/SKILL.md and the skill for the format; 3. gather "
+			. 'Procedure (always): 1. understand the job; 2. read /skills/common/SKILL.md and the skill for the format; 3. gather '
 			. "the material (input files, the task's content); 4. write a script and build the file; 5. render_document and look "
-			. "at every page; 6. correct (at most " . $this->budget . ' correction rounds); 7. deliver_file, then finish.' . "\n\n"
-			. "Sandbox: Linux, working directory /work (writable; nothing else), inputs in /work/input/, results into /work/output/, "
-			. "skills read-only in /skills/. Python 3 (python-docx, openpyxl, python-pptx, odfpy, reportlab, pypdf, pandas, "
-			. "matplotlib, Pillow), Node (docx, exceljs, pptxgenjs), LibreOffice (soffice --headless), Poppler, ImageMagick 6 (convert), "
+			. 'at every page; 6. correct (at most ' . $this->budget . ' correction rounds); 7. deliver_file, then finish.' . "\n\n"
+			. 'Sandbox: Linux, working directory /work (writable; nothing else), inputs in /work/input/, results into /work/output/, '
+			. 'skills read-only in /skills/. Python 3 (python-docx, openpyxl, python-pptx, odfpy, reportlab, pypdf, pandas, '
+			. 'matplotlib, Pillow), Node (docx, exceljs, pptxgenjs), LibreOffice (soffice --headless), Poppler, ImageMagick 6 (convert), '
 			. "rsvg-convert, Graphviz (dot), Hunspell (de, en, pl). No network.\n\n"
 			. "Skills:\n" . trim($skills) . "\n\n"
-			. "Rules: spreadsheets compute with formulas, not typed results; charts are native chart objects where the format has "
-			. "them; with a template or house style, use its styles, layouts, colours and fonts and keep its header, footer and "
-			. "logo; when changing a document, keep everything else unchanged; never invent figures, names or quotes: use only "
+			. 'Rules: spreadsheets compute with formulas, not typed results; charts are native chart objects where the format has '
+			. 'them; with a template or house style, use its styles, layouts, colours and fonts and keep its header, footer and '
+			. 'logo; when changing a document, keep everything else unchanged; never invent figures, names or quotes: use only '
 			. 'the task and the inputs, and placeholders like [date] where something is missing; sources named in the task go '
 			. 'into the document as footnotes or a list of references in the style asked (default: author, title, year, URL), '
 			. "never only into the chat; give images and charts alt texts.\n\n"
@@ -522,7 +522,7 @@ class DocumentJob {
 		foreach ($slice as $i => $line) {
 			$out .= str_pad((string)($offset + $i), 5, ' ', STR_PAD_LEFT) . '  ' . $line . "\n";
 			if (strlen($out) > self::TEXT_LIMIT) {
-				$out .= "[cut: read on with offset " . ($offset + $i + 1) . "]\n";
+				$out .= '[cut: read on with offset ' . ($offset + $i + 1) . "]\n";
 				break;
 			}
 		}
@@ -596,14 +596,14 @@ class DocumentJob {
 			$out .= 'The page images (' . ($sheet !== '' ? 'a contact sheet of all pages, then ' : '') . 'the first pages; ask for others with pages) are '
 				. "attached below: look at them before you change, render or deliver anything.\n";
 		} elseif (self::skillOf(pathinfo($path, PATHINFO_EXTENSION)) === 'image') {
-			$out .= "This AI connection takes no images: rely on the checks above, and draw so that the result follows from the code "
+			$out .= 'This AI connection takes no images: rely on the checks above, and draw so that the result follows from the code '
 				. "(sizes, positions and text computed, not guessed).\n";
 		} else {
 			$pdf = preg_match('#^pdf: (/work/.+)$#m', $r['stdout'], $p) === 1 ? $p[1] : $path;
 			$text = $this->sandbox->exec($this->box, 'pdftotext -layout ' . escapeshellarg($pdf) . ' - | head -c 6000', 60);
 			$out .= "This AI connection takes no images; the pages' text instead:\n" . $text['stdout'];
 		}
-		if ($this->renders[$key] - 1 >= $this->budget) {
+		if ($this->budget <= $this->renders[$key] - 1) {
 			$out .= "\nThe correction rounds are used up: deliver this version now and name any remaining issues in finish.";
 		}
 		return $out;

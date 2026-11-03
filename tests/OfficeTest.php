@@ -106,7 +106,7 @@ class OfficeTest extends TestCase {
 	}
 
 	public function testCalculator(): void {
-		$results = (new Calculator())->evaluate("0.1 + 0.2; -2^2; 2^3^2; 5!; r = 2; pi r^2; 1/3 + 1/6; 10/0; binom(49, 6)");
+		$results = (new Calculator())->evaluate('0.1 + 0.2; -2^2; 2^3^2; 5!; r = 2; pi r^2; 1/3 + 1/6; 10/0; binom(49, 6)');
 		$this->assertSame(['0.3', '-4', '512', '120', '2', '12.5663706143592', '0.5'], array_column(array_slice($results, 0, 7), 'result'));
 		$this->assertSame('1/2', $results[6]['fraction']);
 		$this->assertSame('division by zero', $results[7]['error']);

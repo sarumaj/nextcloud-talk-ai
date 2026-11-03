@@ -26,7 +26,11 @@ final class CliProcess {
 	 * @param list<string> $argv
 	 * @param array<string, string> $env
 	 */
-	public function __construct(array $argv, array $env, public readonly string $dir) {
+	public function __construct(
+		array $argv,
+		array $env,
+		public readonly string $dir,
+	) {
 		$this->stderr = $dir . '/stderr.txt';
 		$setsid = is_executable('/usr/bin/setsid') ? '/usr/bin/setsid' : (is_executable('/bin/setsid') ? '/bin/setsid' : '');
 		if ($setsid !== '' && function_exists('posix_kill')) {

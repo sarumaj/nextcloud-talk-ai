@@ -46,7 +46,7 @@ class Web {
 		if ($type === 'text/html' || $type === 'application/xhtml+xml' || $type === '') {
 			$meta = self::metadata($data, $url);
 			$text = TextExtractor::html(self::mainHtml($data));
-			$text = trim(preg_replace(["/[ \\t]+/", "/\\n\\s*\\n\\s*\\n+/"], [' ', "\n\n"], $text) ?? $text);
+			$text = trim(preg_replace(['/[ \\t]+/', '/\\n\\s*\\n\\s*\\n+/'], [' ', "\n\n"], $text) ?? $text);
 			return 'Page "' . ($meta['title'] ?? $url) . "\" ($url):\n" . mb_substr($text, 0, TextExtractor::MAX);
 		}
 		$text = $this->extractor->extract($data, $type, $name);
@@ -184,7 +184,7 @@ class Web {
 		return [$data, $mime];
 	}
 
-		/**
+	/**
 	 * Freely licensed photos and illustrations from Wikimedia Commons: an image
 	 * link (1600 px) to use in documents and slides, with the attribution its
 	 * license asks for.
@@ -216,7 +216,7 @@ class Web {
 		return ['images' => $out, 'note' => 'Use an image as ![caption · attribution](image link). The attribution is required by the license.'];
 	}
 
-		/** A place from OpenStreetMap (Nominatim): coordinates, kind, country, population and elevation where known. */
+	/** A place from OpenStreetMap (Nominatim): coordinates, kind, country, population and elevation where known. */
 	public function place(string $query, string $language = 'en'): array {
 		$found = json_decode((string)$this->clients->newClient()->get('https://nominatim.openstreetmap.org/search?' . http_build_query([
 			'q' => $query, 'format' => 'jsonv2', 'limit' => 1, 'extratags' => 1, 'addressdetails' => 1, 'accept-language' => $language ?: 'en',

@@ -259,7 +259,7 @@ class TextExtractor {
 			if ($out === []) {
 				return $text;
 			}
-			return "[A scan: text recognised by OCR, may contain errors" . (count($images) >= self::OCR_PAGES ? '; the first ' . self::OCR_PAGES . ' pages' : '') . "]\n\n" . implode("\n\n", $out);
+			return '[A scan: text recognised by OCR, may contain errors' . (count($images) >= self::OCR_PAGES ? '; the first ' . self::OCR_PAGES . ' pages' : '') . "]\n\n" . implode("\n\n", $out);
 		} finally {
 			@unlink($in);
 			foreach (glob($pages . '/*') ?: [] as $file) {

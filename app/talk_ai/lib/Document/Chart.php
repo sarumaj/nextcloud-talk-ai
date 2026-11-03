@@ -382,7 +382,7 @@ class Chart {
 			$out .= '<rect x="' . round($x + $slot * 0.15, 1) . '" y="' . round($py(min($p[$i] / 2, $tMax)), 1) . '" width="' . round($slot * 0.7, 1) . '" height="' . round($py(0) - $py(min($p[$i] / 2, $tMax)), 1) . '" fill="#2e75b6" fill-opacity="0.75"/>'
 				. self::text($x + $slot / 2, $b + 22, (string)($months[$i] ?? ''), 14, 'middle');
 			$line .= ($i === 0 ? 'M' : 'L') . round($x + $slot / 2, 1) . ' ' . round($py($t[$i]), 1) . ' ';
-			$arid += $t[$i] * 2 > $p[$i] ? 1 : 0;
+			$arid += $p[$i] < $t[$i] * 2 ? 1 : 0;
 		}
 		$out .= '<path d="' . trim($line) . '" fill="none" stroke="#c0504d" stroke-width="4" stroke-linejoin="round"/>';
 		$out .= self::text($l - 60, $top - 20, '°C', 16, 'start', 'bold', '#c0504d') . self::text($r + 10, $top - 20, 'mm', 16, 'start', 'bold', '#2e75b6');

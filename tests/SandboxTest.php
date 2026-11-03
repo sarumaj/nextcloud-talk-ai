@@ -13,7 +13,9 @@ use PHPUnit\Framework\TestCase;
 class ScriptedSandbox extends Sandbox {
 	public array $calls = [];
 
-	public function __construct(private array $answers) {
+	public function __construct(
+		private array $answers,
+	) {
 	}
 
 	protected function call(string $op, array $params, int $timeout): array {

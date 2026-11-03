@@ -23,10 +23,10 @@ use OCA\TalkAi\Document\Informatics;
 use OCA\TalkAi\Document\Law;
 use OCA\TalkAi\Document\LinearAlgebra;
 use OCA\TalkAi\Document\Machines;
+use OCA\TalkAi\Document\Math;
 use OCA\TalkAi\Document\Measurement;
 use OCA\TalkAi\Document\Music;
 use OCA\TalkAi\Document\Numerics;
-use OCA\TalkAi\Document\Math;
 use OCA\TalkAi\Document\OdpWriter;
 use OCA\TalkAi\Document\OdsWriter;
 use OCA\TalkAi\Document\OdtWriter;
@@ -34,9 +34,9 @@ use OCA\TalkAi\Document\Passages;
 use OCA\TalkAi\Document\Sport;
 use OCA\TalkAi\Document\Statistics;
 use OCA\TalkAi\Document\Study;
+use OCA\TalkAi\Document\TextExtractor;
 use OCA\TalkAi\Document\Theme;
 use OCA\TalkAi\Document\Units;
-use OCA\TalkAi\Document\TextExtractor;
 use OCP\Files\File;
 use OCP\Server;
 use Psr\Log\LoggerInterface;
@@ -2211,7 +2211,7 @@ class Reply {
 
 	/** A file name without path or characters that file systems refuse. */
 	public static function fileName(string $name): string {
-		$name = trim(preg_replace('#[\\\\/:*?"<>|\x00-\x1f]+#u', ' ', $name) ?? '', " .");
+		$name = trim(preg_replace('#[\\\\/:*?"<>|\x00-\x1f]+#u', ' ', $name) ?? '', ' .');
 		return mb_substr($name !== '' ? $name : 'File', 0, 120);
 	}
 

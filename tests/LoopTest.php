@@ -21,7 +21,10 @@ class ScriptEngine implements Engine {
 	public array $requests = [];
 
 	/** @param list<Turn|callable(Request): Turn> $turns */
-	public function __construct(public array $turns, public int $maxImages = 4) {
+	public function __construct(
+		public array $turns,
+		public int $maxImages = 4,
+	) {
 	}
 
 	public function status(): Status {

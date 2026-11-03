@@ -128,7 +128,9 @@ class Numerics {
 			}
 		}
 		$names = $single ? ['y'] : array_map(fn ($i) => 'y' . ($i + 1), array_keys($eqs));
-		return ['method' => match ($method) { 'euler' => 'explicit Euler', 'heun' => 'Heun', default => 'classical Runge-Kutta (4th order)' },
+		return ['method' => match ($method) {
+			'euler' => 'explicit Euler', 'heun' => 'Heun', default => 'classical Runge-Kutta (4th order)'
+		},
 			'h' => self::g($h), 'end' => array_combine($names, array_map(self::g(...), $y)), 'table' => self::table(['i', 'x', ...$names], $rows),
 			'plot' => 'plot type line with x as labels and each y as a series shows the solution'];
 	}

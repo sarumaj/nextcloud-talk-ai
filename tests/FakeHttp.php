@@ -20,7 +20,9 @@ class FakeHttp implements IClientService {
 	public array $requests = [];
 
 	/** @param list<array{0: int, 1: string}|\Throwable> $answers */
-	public function __construct(public array $answers = []) {
+	public function __construct(
+		public array $answers = [],
+	) {
 	}
 
 	/** A JSON body. */
@@ -57,7 +59,10 @@ class FakeHttp implements IClientService {
 			$body = $stream;
 		}
 		return new class($status, $body) implements IResponse {
-			public function __construct(private int $status, private mixed $body) {
+			public function __construct(
+				private int $status,
+				private mixed $body,
+			) {
 			}
 
 			public function getBody() {

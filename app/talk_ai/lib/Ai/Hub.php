@@ -128,7 +128,7 @@ class Hub {
 	 * Asks and waits for the answer.
 	 *
 	 * @param list<array> $messages oldest first, the question last: {role, text, images?} as the app writes
-	 *        them, or {role, parts} (Request)
+	 *                              them, or {role, parts} (Request)
 	 * @param array{search?: bool, images?: list<array{type: string, data: string}>, context?: string, maxTools?: int,
 	 *        thinking?: bool, onDelta?: callable, heartbeat?: callable, afterTools?: callable, onRetry?: callable,
 	 *        pause?: callable, retries?: int, repeatable?: list<string>, resultChars?: int, session?: mixed} $options

@@ -6,9 +6,9 @@ declare(strict_types=1);
 
 namespace OCA\TalkAi\Tests;
 
+use OCA\TalkAi\Ai\Admin;
 use OCA\TalkAi\Ai\Config;
 use OCA\TalkAi\Ai\Counters;
-use OCA\TalkAi\Ai\Admin;
 use OCA\TalkAi\Ai\Engine\Fallback;
 use OCA\TalkAi\Ai\Engine\Missing;
 use OCA\TalkAi\Ai\Engines;
@@ -16,7 +16,6 @@ use OCA\TalkAi\Ai\Errors;
 use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\Ai\Limits;
 use OCA\TalkAi\Ai\Request;
-use OCA\TalkAi\Ai\Status;
 use OCA\TalkAi\Ai\Turn;
 use OCA\TalkAi\Ai\Usage;
 use OCP\IGroupManager;

@@ -212,11 +212,14 @@ class Statistics {
 		$prob = fn (float $p) => array_sum(array_map(fn ($r) => array_sum(array_map(fn ($k) => Calculator::binomialPdf($n, $p, $k), range($r[0], $r[1]))), $regions));
 		$text = fn (array $r) => $r[0] === $r[1] ? '{' . $r[0] . '}' : '{' . $r[0] . ', …, ' . $r[1] . '}';
 		$out = [
-			'test' => match ($side) { 'right' => 'right-sided: H0: p ≤ ' . $p0, 'left' => 'left-sided: H0: p ≥ ' . $p0, default => 'two-sided: H0: p = ' . $p0 },
+			'test' => match ($side) {
+				'right' => 'right-sided: H0: p ≤ ' . $p0, 'left' => 'left-sided: H0: p ≥ ' . $p0, default => 'two-sided: H0: p = ' . $p0
+			},
 			'n' => $n, 'alpha' => $alpha,
 			'rejection_region' => $regions === [] ? 'empty: no outcome is unlikely enough at this α' : implode(' ∪ ', array_map($text, $regions)),
 			'acceptance_region' => match ($side) {
-				'right' => $text([0, min($n, $upper - 1)]), 'left' => $text([max(0, $lower + 1), $n]), default => $text([max(0, $lower + 1), min($n, $upper - 1)]) },
+				'right' => $text([0, min($n, $upper - 1)]), 'left' => $text([max(0, $lower + 1), $n]), default => $text([max(0, $lower + 1), min($n, $upper - 1)])
+			},
 			'error_type_1' => self::r($prob($p0)),
 			'expected' => self::r($n * $p0), 'sigma' => self::r(sqrt($n * $p0 * (1 - $p0))),
 		];
@@ -229,7 +232,8 @@ class Statistics {
 			$out['decision'] = $in($observed) ? 'reject H0 (k = ' . $observed . ' lies in the rejection region)' : 'H0 is not rejected';
 			$out['p_value'] = self::r(match ($side) {
 				'right' => 1 - $below($observed - 1), 'left' => $below($observed),
-				default => min(1.0, 2 * min($below($observed), 1 - $below($observed - 1))) });
+				default => min(1.0, 2 * min($below($observed), 1 - $below($observed - 1)))
+			});
 		}
 		$out['method'] = 'cumulative binomial probabilities F(n; p; k), exactly; on the WTR/CAS as binomcdf';
 		return $out;

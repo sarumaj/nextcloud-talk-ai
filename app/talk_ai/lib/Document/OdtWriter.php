@@ -465,8 +465,8 @@ class OdtWriter {
 	private static function styles(string $title, bool $landscape, bool $footer): string {
 		$t = self::$theme;
 		$align = $t['justify'] ? 'justify' : 'start';
-		$p = fn (string $name, string $parent, string $paragraph, string $text, string $display = '', string $extra = '') =>
-			'<style:style style:name="' . $name . '"' . ($display !== '' ? ' style:display-name="' . $display . '"' : '') . ' style:family="paragraph" style:parent-style-name="' . $parent . '"' . $extra . '>'
+		$p = fn (string $name, string $parent, string $paragraph, string $text, string $display = '', string $extra = '')
+			=> '<style:style style:name="' . $name . '"' . ($display !== '' ? ' style:display-name="' . $display . '"' : '') . ' style:family="paragraph" style:parent-style-name="' . $parent . '"' . $extra . '>'
 			. ($paragraph !== '' ? '<style:paragraph-properties ' . $paragraph . '/>' : '') . ($text !== '' ? '<style:text-properties ' . $text . '/>' : '') . '</style:style>';
 		$heading = fn (int $level, float $size, string $extra = '') => $p('Heading_20_' . $level, 'Heading', $level === 1 && !$t['numbered'] && $t['headings'] !== '#000000'
 			? 'fo:padding-bottom="0.08cm" fo:border-bottom="1pt solid ' . $t['accent'] . '"' : '', 'fo:font-size="' . $size . 'pt" ' . $extra, 'Heading ' . $level, ' style:default-outline-level="' . $level . '"');

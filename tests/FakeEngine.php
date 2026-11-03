@@ -38,7 +38,12 @@ class FakeEngine implements Engine {
 	private int $calls = 0;
 
 	/** @param list<callable(callable(string, array): string): string> $segments */
-	public function __construct(public array $segments, public bool $toolsWork = true, public bool $images = true, public ?Usage $usage = null) {
+	public function __construct(
+		public array $segments,
+		public bool $toolsWork = true,
+		public bool $images = true,
+		public ?Usage $usage = null,
+	) {
 	}
 
 	/** A Hub that asks this engine. */

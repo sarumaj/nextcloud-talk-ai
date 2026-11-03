@@ -163,7 +163,7 @@ class Ics {
 
 	/** iCalendar text: backslashes, commas, semicolons and new lines escaped. */
 	public static function text(string $value): string {
-		return str_replace(["\\", ';', ',', "\r\n", "\n"], ['\\\\', '\;', '\,', '\n', '\n'], trim($value));
+		return str_replace(['\\', ';', ',', "\r\n", "\n"], ['\\\\', '\;', '\,', '\n', '\n'], trim($value));
 	}
 
 	/** Lines joined with CRLF, each folded at 75 octets (not inside a UTF-8 character). */

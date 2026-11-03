@@ -87,7 +87,8 @@ class Machines {
 			$next = $pc + 1;
 			$changed = '';
 			switch ($op) {
-				case 'LOAD': $acc = $value($x); break;
+				case 'LOAD': $acc = $value($x);
+					break;
 				case 'STORE':
 					if (str_starts_with($x, '#')) {
 						throw new \InvalidArgumentException('line ' . ($pc + 1) . ': STORE cannot take a constant');
@@ -95,9 +96,12 @@ class Machines {
 					$reg[$address($x)] = $acc;
 					$changed = 'R' . $address($x) . ' = ' . $acc;
 					break;
-				case 'ADD': $acc += $value($x); break;
-				case 'SUB': $acc = max(0, $acc - $value($x)); break;
-				case 'MUL': $acc *= $value($x); break;
+				case 'ADD': $acc += $value($x);
+					break;
+				case 'SUB': $acc = max(0, $acc - $value($x));
+					break;
+				case 'MUL': $acc *= $value($x);
+					break;
 				case 'DIV':
 					$d = $value($x);
 					if ($d === 0) {
@@ -106,9 +110,12 @@ class Machines {
 					}
 					$acc = intdiv($acc, $d);
 					break;
-				case 'GOTO': $next = $target($x); break;
-				case 'JZERO': $next = $acc === 0 ? $target($x) : $next; break;
-				case 'JNZERO': $next = $acc > 0 ? $target($x) : $next; break;
+				case 'GOTO': $next = $target($x);
+					break;
+				case 'JZERO': $next = $acc === 0 ? $target($x) : $next;
+					break;
+				case 'JNZERO': $next = $acc > 0 ? $target($x) : $next;
+					break;
 				case 'END':
 					if ($step <= $traceSteps) {
 						$trace[] = ['step' => $step, 'line' => $pc + 1, 'instruction' => $text, 'accumulator' => $acc];

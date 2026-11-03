@@ -8,11 +8,11 @@ namespace OCA\TalkAi\Tests;
 
 use OCA\TalkAi\Service\Actions;
 use OCA\TalkAi\Service\Bot;
+use OCA\TalkAi\Service\Conversation;
 use OCA\TalkAi\Service\Dispatcher;
+use OCA\TalkAi\Service\DocumentJob;
 use OCA\TalkAi\Service\Jobs;
 use OCA\TalkAi\Service\Policy;
-use OCA\TalkAi\Service\Conversation;
-use OCA\TalkAi\Service\DocumentJob;
 use OCA\TalkAi\Service\Sandbox;
 use OCP\Files\File;
 use OCP\Files\Folder;

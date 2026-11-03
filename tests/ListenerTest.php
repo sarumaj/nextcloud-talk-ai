@@ -23,7 +23,10 @@ class FakeBotEvent extends Event {
 	public array $reactions = [];
 	public array $answers = [];
 
-	public function __construct(private array $message, private string $url = Application::BOT_URL) {
+	public function __construct(
+		private array $message,
+		private string $url = Application::BOT_URL,
+	) {
 		parent::__construct();
 	}
 
@@ -86,7 +89,10 @@ class ListenerTest extends TestCase {
 		});
 		$conversation->method('room')->willReturn(new \stdClass());
 		$conversation->method('comment')->willReturnCallback(fn ($room, $id) => $id === 200 ? new class($this->caption, $this->voice) {
-			public function __construct(private string $caption, private bool $voice) {
+			public function __construct(
+				private string $caption,
+				private bool $voice,
+			) {
 			}
 
 			public function getMessage(): string {
