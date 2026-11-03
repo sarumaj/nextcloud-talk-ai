@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # The sandbox in which the AI builds office documents with code: one container per
 # job (see runner.py), read-only, without network, writable only /work and /tmp.
 # Python and Node with the document libraries, LibreOffice headless to convert and

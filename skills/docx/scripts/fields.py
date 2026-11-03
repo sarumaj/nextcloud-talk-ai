@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Fields for python-docx documents: page numbers and a table of contents.
 
     import sys; sys.path.insert(0, "/skills/docx/scripts")

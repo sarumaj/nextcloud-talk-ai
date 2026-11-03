@@ -1,4 +1,6 @@
 ---
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # A review of a pull request by Claude Code, on request: asking claude for a
 # review starts it, and the request is taken off again with the review. Copy this
 # file to .forgejo/workflows/ai-review.yml of a repository of dawid; the steps

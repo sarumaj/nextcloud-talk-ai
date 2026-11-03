@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # render.sh FILE [FIRST-LAST]: the file as PDF (LibreOffice) and its pages as PNG at
 # 150 dpi, plus a contact sheet of up to 12 pages. Prints the paths, one per line.
 # An image (png jpg webp gif svg) is one page: as PNG, at most 2000 px on its longer

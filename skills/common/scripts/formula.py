@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """LaTeX maths as an image, without TeX: ziamath typesets it to SVG (its own math
 font), rsvg-convert turns that into PNG.
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Checks that the Talk (spreed) versions the app supports still have the classes,
 methods and parameters the app uses: run in CI before a release (B-07), so a break
 in Talk's bot or chat API is found there, not on a server.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """describe.py FILE.docx [--styles]: the document's structure: sections (page size,
 margins, header and footer text), each paragraph (index, style, text) and table
 (index, size, first row); with --styles the paragraph and table styles it defines."""

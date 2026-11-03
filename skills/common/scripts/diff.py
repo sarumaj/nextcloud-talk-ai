@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """diff.py ORIGINAL CHANGED: what changed between two versions of a document.
 
 Compares the text (paragraph by paragraph, with styles), and reports whether styles,

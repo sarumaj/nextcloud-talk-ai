@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # Gemini CLI runs with no tools of its own (Engine\GeminiCli): read_file, glob and
 # grep_search would otherwise run unasked and could read the credentials in its home.
 # An admin policy outranks the CLI's bundled rules. A fixed file of the app, so a

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """The golden cases: each builds a file as a model should (or as it should not) and
 states what the checks must say. T-01 ODT protocol, T-02 template, T-03 CSV to XLSX
 with formulas and chart, T-04 PPTX deck with notes, T-05 the same as ODP, T-06 a

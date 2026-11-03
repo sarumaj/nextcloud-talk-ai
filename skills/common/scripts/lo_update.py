@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """lo_update.py IN [OUT]: opens a document in LibreOffice (UNO), updates its tables of
 contents, indexes and fields (and recalculates a spreadsheet), and saves it in place
 or as OUT, whose extension sets the format (.docx .odt .xlsx .ods .pptx .odp .pdf).

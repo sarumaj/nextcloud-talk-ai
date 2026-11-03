@@ -1,4 +1,6 @@
 ---
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # The app's PHP must parse, follow Nextcloud's coding standard and pass Psalm, its
 # info.xml must pass the app store's schema, the Markdown must pass markdownlint, and the
 # tests (PHPUnit, no Nextcloud and no network) must pass against each supported

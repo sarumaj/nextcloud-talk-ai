@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Text that fits, for images drawn with code: measure, wrap and place text with the
 real font, and check colour contrast. Import it, or run it to try a size.
 

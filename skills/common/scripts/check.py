@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """check.py FILE [--formulas] [--lang de|pl|en] [--open-only]: automatic checks of a file.
 
 Always: the package is intact (zip, well-formed XML, the parts its format needs), the

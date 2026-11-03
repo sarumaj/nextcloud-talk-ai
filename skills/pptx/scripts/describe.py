@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """describe.py FILE.pptx [--layouts] [--overflow]: slides with their shapes and text;
 --layouts lists the masters' layouts and their placeholders; --overflow estimates
 text frames whose text needs more room than they have."""

@@ -1,4 +1,6 @@
 ---
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # A tag vX.Y.Z (the version in appinfo/info.xml) becomes a release: the app as
 # talk_ai-X.Y.Z.tar.gz on the Forgejo release, signed with the app's key,
 # and published on the Nextcloud app store, which hands this download to the

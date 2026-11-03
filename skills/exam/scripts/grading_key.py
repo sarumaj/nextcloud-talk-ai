@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """The key from marks to points or grades for an exam's total.
 
     python3 grading_key.py 100                          the usual German 15-point table

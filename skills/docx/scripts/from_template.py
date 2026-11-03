@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """from_template.py TEMPLATE OUT.docx [--clear-body]: a document from a Word (.dotx)
 or LibreOffice (.ott) template, keeping styles, page setup, headers and footers;
 with --clear-body the template's sample text is removed (section settings kept)."""

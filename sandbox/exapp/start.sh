@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # PID 1 of the ExApp: the HaRP tunnel and the runner; the container ends with either.
 set -uo pipefail
 /opt/exapp/harp_connect.sh &

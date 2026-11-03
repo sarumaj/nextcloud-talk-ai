@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # Lines wrap at 100 characters, as in the homelab's documentation; long commands in code blocks
 # and tables may run over.
 MD013:

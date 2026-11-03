@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # The HaRP tunnel (frpc) to the runner's unix socket; without HaRP (manual install)
 # it steps aside and the runner listens on APP_HOST:APP_PORT.
 set -eu

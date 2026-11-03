@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # The document sandbox as an ExApp (AppAPI): for servers where Nextcloud cannot run
 # containers itself. Built from the repository's root:
 #   docker build -t talk-ai-sandbox:latest sandbox/

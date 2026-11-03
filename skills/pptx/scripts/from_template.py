@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """from_template.py TEMPLATE OUT.pptx [--clear]: a presentation from a PowerPoint (.potx)
 or Impress (.otp, .odp) template, keeping masters, layouts and theme; --clear removes
 the template's slides."""
