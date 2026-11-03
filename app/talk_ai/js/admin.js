@@ -185,7 +185,7 @@
 		path: t('PATH for the command'), maxBudgetUsd: t('Most dollars per question (empty: no limit)'), taskType: t('Task type (default: chat with tools)'),
 	}
 	const FLAGS = {
-		search: t('Web search'), caching: t('Prompt caching'), thinking: t('Thinking'), documents: t('PDFs to the model directly'), streaming: t('Streaming'),
+		search: t('Web search'), caching: t('Prompt caching'), thinking: t('Extended thinking'), documents: t('PDFs to the model directly'), streaming: t('Streaming'),
 		fallbacks: t('The provider\'s own fallback model on refusal'), tools: t('Tool calls'), images: t('Images'), structured: t('Structured answers'),
 		mcp: t('Tools as real tool calls (MCP bridge; off: as text)'),
 	}

@@ -1276,6 +1276,7 @@ class Reply {
 		$en = [
 			'Not done' => 'Not done',
 			'Could not answer' => 'Could not answer',
+			'Thinking' => 'Thinking',
 			'Reading' => 'Reading',
 			'Researching' => 'Researching',
 			'Writing' => 'Writing',

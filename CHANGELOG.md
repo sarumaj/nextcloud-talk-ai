@@ -7,6 +7,9 @@
 - A failed tool-calling probe is repeated after a quarter of an hour, not a day: one that failed
   with the AI connection (a command line tool signed out) kept documents, the calendar and
   calculations off for a day after the connection was back.
+- The administration's capability "Thinking" (the model's extended thinking) has a text of its
+  own, "Extended thinking": in German and Polish it showed the bot's status "Denke nach" and
+  "Myślę".
 
 ## 0.13.0 - 2026-11-03
 

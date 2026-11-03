@@ -239,6 +239,7 @@
         "Images per question (empty: the provider's limit)": "Bilder pro Frage (leer: die Grenze des Anbieters)",
         "Web search": "Websuche",
         "Prompt caching": "Prompt-Caching",
+        "Extended thinking": "Erweitertes Denken",
         "PDFs to the model directly": "PDFs direkt an das Modell",
         "Streaming": "Streaming",
         "The provider's own fallback model on refusal": "Das eigene Ersatzmodell des Anbieters bei Ablehnung",

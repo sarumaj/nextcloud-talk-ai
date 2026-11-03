@@ -240,6 +240,7 @@ OC.L10N.register(
         "Images per question (empty: the provider's limit)": "Obrazy na pytanie (puste: limit dostawcy)",
         "Web search": "Wyszukiwanie w sieci",
         "Prompt caching": "Buforowanie promptu",
+        "Extended thinking": "Rozszerzone myślenie",
         "PDFs to the model directly": "PDF-y bezpośrednio do modelu",
         "Streaming": "Strumieniowanie",
         "The provider's own fallback model on refusal": "Własny model zapasowy dostawcy przy odmowie",
