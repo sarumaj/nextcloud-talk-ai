@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Releases are not published on the app store until the app is registered there.
+
 ### Fixed
 
 - A failed tool-calling probe is repeated after a quarter of an hour, not a day: one that failed
