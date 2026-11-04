@@ -44,9 +44,8 @@ jobs:
           tag: ${{ github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           signing-key: ${{ secrets.APP_SIGNING_KEY }}
-          # Not on the app store until talk_ai is registered there (its certificate): the
-          # store refuses an app it does not know, and the job failed after the release.
-          app-store: "false"
+          # Published once APPSTORE_TOKEN is set, after talk_ai is registered there (its
+          # certificate): set the secret only then, as the store refuses an app it does not know.
           app-store-token: ${{ secrets.APPSTORE_TOKEN }}
 
   # The document sandbox's images in the registry beside the code (N-08):
