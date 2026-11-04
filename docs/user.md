@@ -36,8 +36,9 @@ lists what it can do here.
   this page", or share a `.harvester.json` and ask to check and save it: it becomes your
   template, and the file comes into the chat; in Harvester, *New job*, *Your templates*, *Use
   this template* makes the job, with your folder and account. "Why does my Harvester job fail?"
-  reads its log and the picture of the failed step, and can have Harvester test the recipe
-  (nothing is downloaded). A fix goes into the job only after your yes ("undo" reverts it within
+  reads its log and the picture of the failed step, and can have Harvester test the recipe, or
+  try what a feed, mail or other job (or a proposed one, or a fix) would fetch (nothing is
+  downloaded). A fix goes into the job only after your yes ("undo" reverts it within
   a day); it never sees your passwords.
 - **Polls**: "make a poll: pizza or pasta?"
 - **Voice messages**: it listens (when speech recognition is installed) and quotes what
@@ -83,8 +84,10 @@ ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
   deine Vorlage, und die Datei kommt in den Chat; in Harvester macht *Neuer Job*, *Deine
   Vorlagen*, *Diese Vorlage verwenden* den Job, mit deinem Ordner und Konto. „Warum scheitert
   mein Harvester-Job?“ liest sein Protokoll und das Bild des gescheiterten Schritts und kann
-  Harvester das Rezept testen lassen (nichts wird heruntergeladen). Eine Korrektur kommt erst
-  nach deinem Ja in den Job („rückgängig“ innerhalb eines Tages); deine Passwörter sieht er nie.
+  Harvester das Rezept testen oder ausprobieren lassen, was ein Feed-, Mail- oder anderer Job
+  (auch ein vorgeschlagener oder eine Korrektur) holen würde (nichts wird heruntergeladen). Eine
+  Korrektur kommt erst nach deinem Ja in den Job („rückgängig“ innerhalb eines Tages); deine
+  Passwörter sieht er nie.
 - **Umfragen**: „mach eine Umfrage: Pizza oder Pasta?“
 - **Sprachnachrichten**: er hört zu (wenn Spracherkennung installiert ist) und zitiert,
   was er verstanden hat.
@@ -127,8 +130,9 @@ co tu potrafi.
   szablonem, a plik trafia na czat; w Harvesterze *Nowe zadanie*, *Twoje szablony*, *Użyj tego
   szablonu* tworzy zadanie, z twoim folderem i kontem. „Dlaczego moje zadanie Harvestera się nie
   udaje?” czyta jego dziennik i obraz nieudanego kroku i może zlecić Harvesterowi test przepisu
-  (nic nie jest pobierane). Poprawka trafia do zadania dopiero po twojej zgodzie („cofnij” w
-  ciągu doby); nigdy nie widzi twoich haseł.
+  albo próbę, co pobrałoby zadanie kanału, poczty lub innego źródła (także proponowane albo
+  poprawka; nic nie jest pobierane). Poprawka trafia do zadania dopiero po twojej zgodzie
+  („cofnij” w ciągu doby); nigdy nie widzi twoich haseł.
 - **Ankiety**: „zrób ankietę: pizza czy makaron?”
 - **Wiadomości głosowe**: słucha (jeśli jest rozpoznawanie mowy) i cytuje, co zrozumiał.
 - **Skróty**: `/podsumuj`, `/zadania`, `/spotkanie …`, `/protokol`.

@@ -74,7 +74,8 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   [Harvester](https://git.ciepiela.org/dawid/nextcloud-harvester) from a description, has
   Harvester check it, and saves it as your template with its `.harvester.json` in the chat; checks
   and saves a recipe file you share; lists and explains your templates; and finds out why a
-  Harvester job fails (its log, its browser's picture at the failed step, a test of its recipe),
+  Harvester job fails (its log, its browser's picture at the failed step, a test of its recipe,
+  a try of what a feed, mail or other job's listing would fetch, also with a proposed fix),
   putting a fixed recipe into the job only after your yes. It never makes or runs a job and never
   sees an account or a password.
 - **Uses your rights:** the bot sees only what the asking person may see, and the files it sends

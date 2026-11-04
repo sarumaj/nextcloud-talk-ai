@@ -15,6 +15,10 @@
   the job only after the person's yes, keeping its folder, schedule, tags and account. No account,
   password or session reaches the model; it never makes or runs a job. A saved template and an
   applied fix can be undone for 24 hours. The health check shows Harvester.
+- **Harvester**: the `harvester_job` action `try` has Harvester try a job's listing once (its
+  *Try the address*, for every source but a website's; nothing downloaded): a saved job, a
+  proposed recipe file (checked first) or a fix of a job, without an account field; the model
+  gets the outcome or error with its hint, the counts, ten files and the source's notes.
 
 ## 0.13.1 - 2026-11-03
 

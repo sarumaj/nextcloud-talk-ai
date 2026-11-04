@@ -43,6 +43,11 @@ class Harvester {
 	/** Seconds a test is waited for at most, and between two looks at the log. */
 	public const TEST_WAIT_MAX = 90;
 	private const TEST_POLL = 5;
+	/** Seconds a try is waited for (Harvester stops one at 60, after up to 15 for a runner). */
+	private const TRY_TIMEOUT = 75;
+	/** A try's files and progress lines handed to the model. */
+	private const TRY_ITEMS = 10;
+	private const TRY_NOTES = 15;
 	/** A fill step's field that looks like a password's (as Harvester's recipe.PASSWORD_FIELD). */
 	private const PASSWORD_FIELD = '/pass|pwd|(?<![a-z])pw(?![a-z])|current-password|new-password/i';
 	/** The fields of a job as Harvester's form sends them (main.JobIn). */
@@ -277,6 +282,81 @@ class Harvester {
 			}
 		}
 		return ['requested' => true, 'lines' => array_slice($lines, -self::LOG_LINES)];
+	}
+
+	/**
+	 * Has Harvester try a job's listing once (Try the address, POST /api/try: what a run would
+	 * fetch, nothing downloaded or marked), for jobs of every source but a website's. A saved job
+	 * ($jobId, no text) is tried as it is; a proposed one (a recipe file's text) is checked as an
+	 * import first and tried without a job, or, with $jobId, as the fix apply() would make of
+	 * that job (the file's options over the job's), with its history and account. No account
+	 * field is ever sent: Harvester uses the saved job's own.
+	 *
+	 * @return array{tried: bool, why?: string, result?: array} result: the try's summary for the model
+	 */
+	public function tryout(string $userId, ?int $jobId, ?string $text = null): array {
+		$job = $jobId !== null ? self::jobBody($this->rawJob($userId, $jobId)) : null;
+		if ($text !== null) {
+			$checked = $this->check($userId, $text);
+			if (!$checked['ok']) {
+				return ['tried' => false, 'why' => 'Harvester refused the recipe: ' . ($checked['problems'] ?? '')];
+			}
+			$proposed = self::jobBody((array)($checked['job'] ?? []));
+			if ($job !== null) {
+				if (($proposed['source'] ?? '') !== ($job['source'] ?? '')) {
+					return ['tried' => false, 'why' => 'The recipe is for the source ' . ($proposed['source'] ?? '?') . ', the job is of ' . ($job['source'] ?? '?') . '.'];
+				}
+				$job['options'] = (object)array_merge((array)$job['options'], (array)$proposed['options']);
+			} else {
+				$job = $proposed;
+			}
+		}
+		if ($job === null) {
+			return ['tried' => false, 'why' => 'Give a saved job (job) or a recipe file (recipe) to try.'];
+		}
+		if (($job['source'] ?? '') === 'site') {
+			return ['tried' => false, 'why' => 'A website job is not tried: test its recipe instead (action test).'];
+		}
+		$job['target'] = (string)$job['target'] === '' ? '/' : $job['target'];
+		$job['name'] = trim((string)($job['name'] ?? '')) === '' ? 'Try' : $job['name'];
+		// No account: the AI never sees or sends one; Harvester uses the saved job's.
+		[$status, $body] = $this->call($userId, 'POST', '/api/try', ['job' => $job, 'id' => $jobId, 'account' => (object)[]], self::TRY_TIMEOUT);
+		if (in_array($status, [400, 404, 409, 422], true)) {
+			return ['tried' => false, 'why' => self::detail($body)];
+		}
+		if ($status !== 200 || !is_array($body)) {
+			throw new \RuntimeException('Harvester answered HTTP ' . $status . ': ' . self::detail($body));
+		}
+		return ['tried' => true, 'result' => self::tried($body)];
+	}
+
+	/** A try's answer for the model: how it ended, the counts, the first files, notes and folders. */
+	private static function tried(array $body): array {
+		$text = fn (mixed $v): string => mb_substr(is_scalar($v) ? (string)$v : '', 0, self::TEXT_CHARS);
+		$items = array_map(fn (array $item) => array_filter([
+			'path' => mb_substr((string)($item['path'] ?? ''), 0, 300),
+			'tags' => array_values(array_map('strval', (array)($item['tags'] ?? []))),
+			'state' => (string)($item['state'] ?? ''),
+			'pending' => !empty($item['pending']),
+			'problem' => $text($item['problem'] ?? ''),
+		], fn ($v) => $v !== '' && $v !== [] && $v !== false), array_slice(array_values(array_filter((array)($body['items'] ?? []), 'is_array')), 0, self::TRY_ITEMS));
+		$notes = array_map(fn ($n) => mb_substr(is_scalar($n) ? (string)$n : '', 0, self::LINE_CHARS), array_slice(array_values((array)($body['notes'] ?? [])), -self::TRY_NOTES));
+		$found = (int)($body['found'] ?? 0);
+		return array_filter([
+			'ok' => (bool)($body['ok'] ?? false),
+			'outcome' => $text($body['outcome'] ?? ''),
+			'error' => $text($body['error'] ?? ''),
+			'hint' => $text($body['hint'] ?? ''),
+			'seconds' => (float)($body['seconds'] ?? 0),
+			'found' => $found,
+			'cut' => (string)($body['cut'] ?? ''),
+			'running' => !empty($body['running']),
+			'counts' => array_map('intval', array_filter((array)($body['counts'] ?? []), fn ($n) => is_numeric($n) && (int)$n > 0)),
+			'items' => $items,
+			'more_items' => max(0, $found - count($items)),
+			'notes' => $notes,
+			'folders' => array_slice(array_values(array_map('strval', (array)($body['folders'] ?? []))), 0, 50),
+		], fn ($v, $k) => in_array($k, ['ok', 'found'], true) || ($v !== '' && $v !== [] && $v !== false && $v !== 0 && $v !== 0.0), ARRAY_FILTER_USE_BOTH);
 	}
 
 	/**

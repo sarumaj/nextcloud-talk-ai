@@ -282,4 +282,99 @@ class HarvesterTest extends TestCase {
 		$this->assertSame([0, 10, 11], $after, 'only the lines after the request');
 		$this->assertLessThanOrEqual(400, mb_strlen($test['lines'][0]['message']), 'a line is cut');
 	}
+
+	/** A feed job as Harvester holds it and as its export and import give it. */
+	private const FEED = ['id' => 5, 'name' => 'News', 'source' => 'feed', 'target' => '/News', 'schedule' => '0 7 * * *', 'timezone' => 'Europe/Berlin',
+		'options' => ['url' => 'https://example.org/feed.xml', 'file_type' => 'pdf'], 'tags' => ['News'], 'enabled' => true, 'once' => false];
+
+	/** Harvester's answer to a try: 25 files found, 20 listed. */
+	private static function tryAnswer(): array {
+		return ['ok' => true, 'seconds' => 3.2, 'found' => 25, 'cut' => '', 'running' => false,
+			'counts' => ['fetch' => 20, 'later' => 0, 'known' => 5, 'type' => 0, 'size' => 0, 'problem' => 0, 'pattern' => 2],
+			'items' => array_map(fn (int $i) => ['path' => 'News/' . $i . '.pdf', 'url' => 'https://example.org/' . $i . '.pdf', 'tags' => ['News'],
+				'state' => 'fetch', 'pending' => false, 'problem' => ''], range(1, 20)),
+			'more' => 5, 'outcome' => '20 files to fetch', 'outcome_l10n' => ['text' => '%n files'], 'notes' => [str_repeat('n', 1000)], 'notes_l10n' => [null]];
+	}
+
+	public function testASavedJobIsTriedAsItIsWithoutAnAccount(): void {
+		$this->answer = fn (string $method, string $route) => match ($method . ' ' . $route) {
+			'GET /api/jobs' => [200, [self::FEED]],
+			'POST /api/try' => [200, self::tryAnswer()],
+			default => [500, []],
+		};
+		$posted = [];
+		$result = $this->reply($this->harvester(), $posted)['harvester_job']['run']('anna', ['action' => 'try', 'job' => 5]);
+		$this->assertSame(['/api/jobs', '/api/try'], array_column($this->calls, 'route'));
+		$sent = $this->calls[1]['params'];
+		$this->assertSame(5, $sent['id']);
+		$this->assertSame([], $sent['account'], 'never an account');
+		$this->assertSame(['feed', '/News', 'https://example.org/feed.xml'], [$sent['job']['source'], $sent['job']['target'], $sent['job']['options']['url']]);
+		$this->assertArrayNotHasKey('id', $sent['job'], 'the job as JobIn takes it');
+		$this->assertStringContainsString('20 files to fetch', $result);
+		$summary = json_decode((string)preg_replace('/^\[.*\]$/m', '', $result), true);
+		$this->assertSame(['fetch' => 20, 'known' => 5, 'pattern' => 2], $summary['counts']);
+		$this->assertCount(10, $summary['items']);
+		$this->assertSame(['path' => 'News/1.pdf', 'tags' => ['News'], 'state' => 'fetch'], $summary['items'][0]);
+		$this->assertSame(15, $summary['more_items']);
+		$this->assertLessThanOrEqual(400, mb_strlen($summary['notes'][0]), 'a note is cut');
+		$this->assertStringNotContainsString('_l10n', $result);
+	}
+
+	public function testAProposedJobIsCheckedFirstAndTriedWithoutAJob(): void {
+		$recipe = '{"format": "harvester-recipe", "version": 1, "name": "Inbox", "source": "mail", "options": {"folder": "Bills"}}';
+		$this->answer = fn (string $method, string $route) => match ($method . ' ' . $route) {
+			'POST /api/recipes/import' => [200, ['name' => 'Inbox', 'source' => 'mail', 'schedule' => '', 'tags' => [], 'once' => false, 'target' => '',
+				'options' => ['folder' => 'Bills']]],
+			'POST /api/try' => [200, ['ok' => false, 'seconds' => 1, 'found' => 0, 'counts' => [], 'items' => [], 'notes' => [],
+				'error' => 'The mailbox has no folder Bills.', 'hint' => '', 'folders' => ['INBOX', 'INBOX/Bills']]],
+			default => [500, []],
+		};
+		$posted = [];
+		$result = $this->reply($this->harvester(), $posted)['harvester_job']['run']('anna', ['action' => 'try', 'recipe' => $recipe]);
+		$this->assertSame(['/api/recipes/import', '/api/try'], array_column($this->calls, 'route'));
+		$sent = $this->calls[1]['params'];
+		$this->assertNull($sent['id']);
+		$this->assertSame([], $sent['account']);
+		$this->assertSame('/', $sent['job']['target'], 'Harvester wants a folder');
+		$this->assertSame(['folder' => 'Bills'], $sent['job']['options']);
+		$this->assertStringContainsString('The mailbox has no folder Bills.', $result);
+		$this->assertStringContainsString('INBOX/Bills', $result);
+	}
+
+	public function testAFixIsTriedOverTheJobsOptionsWithItsId(): void {
+		$recipe = '{"format": "harvester-recipe", "version": 1, "name": "News", "source": "feed", "options": {"url": "https://example.org/rss"}}';
+		$this->answer = fn (string $method, string $route) => match ($method . ' ' . $route) {
+			'GET /api/jobs' => [200, [self::FEED]],
+			'POST /api/recipes/import' => [200, ['name' => 'News', 'source' => 'feed', 'target' => '', 'options' => ['url' => 'https://example.org/rss']]],
+			'POST /api/try' => [200, self::tryAnswer()],
+			default => [500, []],
+		};
+		$tried = $this->harvester()->tryout('anna', 5, $recipe);
+		$this->assertTrue($tried['tried']);
+		$sent = end($this->calls)['params'];
+		$this->assertSame(5, $sent['id']);
+		$this->assertSame(['url' => 'https://example.org/rss', 'file_type' => 'pdf'], $sent['job']['options']);
+		$this->assertSame(['/News', 'News'], [$sent['job']['target'], $sent['job']['name']], 'the job\'s own settings');
+	}
+
+	public function testATryHarvesterRefusesComesBackWithWhy(): void {
+		$posted = [];
+		foreach ([409 => 'A try of yours is still going on: wait for its end.', 422 => 'Type the address to try first.', 404 => 'Not found'] as $status => $why) {
+			$this->calls = [];
+			$this->answer = fn (string $method, string $route) => $route === '/api/jobs' ? [200, [self::FEED]] : [$status, ['detail' => $why]];
+			$result = $this->reply($this->harvester(), $posted)['harvester_job']['run']('anna', ['action' => 'try', 'job' => 5]);
+			$this->assertSame('Harvester did not try it: ' . $why, $result, 'HTTP ' . $status);
+		}
+		$this->answer = fn () => [200, [['id' => 3, 'name' => 'Bank', 'source' => 'site']]];
+		$this->calls = [];
+		$result = $this->reply($this->harvester(), $posted)['harvester_job']['run']('anna', ['action' => 'try', 'job' => 3]);
+		$this->assertStringContainsString('action test', $result, 'a website job is tested instead');
+		$this->assertNotContains('/api/try', array_column($this->calls, 'route'));
+		$this->answer = fn (string $method, string $route) => [422, ['detail' => 'source: unknown']];
+		$this->calls = [];
+		$result = $this->reply($this->harvester(), $posted)['harvester_job']['run']('anna', ['action' => 'try', 'recipe' => '{"source": "x"}']);
+		$this->assertStringContainsString('Harvester refused the recipe: source: unknown', $result);
+		$this->assertSame(['/api/recipes/import'], array_column($this->calls, 'route'));
+		$this->assertStringContainsString('Give the job', $this->reply($this->harvester(), $posted)['harvester_job']['run']('anna', ['action' => 'try']));
+	}
 }

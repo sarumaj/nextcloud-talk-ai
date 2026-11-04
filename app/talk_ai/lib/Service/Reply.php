@@ -1633,16 +1633,22 @@ class Reply {
 					. 'progress log. "shot" (job): the picture of its browser at the last failed step or challenge, with the page\'s '
 					. 'address and title and what went wrong. "recipe" (job): its recipe file (a value that looks like a password reads '
 					. '"' . Harvester::HIDDEN . '": keep it as it is). "test" (job, wait: seconds up to 90): Harvester tests a website '
-					. 'job\'s recipe (walks it, downloads nothing); the log lines of the wait come back, later ones with "log". "apply" '
+					. 'job\'s recipe (walks it, downloads nothing); the log lines of the wait come back, later ones with "log". "try" (job '
+					. 'and/or recipe): Harvester tries the listing of a job of any other source (feed, media, gallery, mail, remote, '
+					. 'releases) once, up to a minute, downloading nothing: what a run would fetch, skip or already has, the first files '
+					. 'with their paths and tags, or the error with a hint (a mailbox\'s folders when its folder is missing). A saved job '
+					. 'alone is tried as it is, with its own account; a recipe alone (as harvester_recipe writes it) is tried as a new '
+					. 'job, without an account; a recipe with job is tried as the fix "apply" would make (before asking for the yes). '
+					. 'Use "test" for website jobs, "try" for the others. "apply" '
 					. '(job, recipe): puts a fixed recipe file into that job (its recipe and options; its name, folder, schedule, tags '
 					. 'and account stay); it asks for the person\'s yes. Without their wish to change the job, save the fix as a template '
 					. '(harvester_recipe). Accounts, passwords and sessions are never shown or changed.',
 				'input' => ['type' => 'object', 'properties' => [
-					'action' => ['type' => 'string', 'enum' => ['list', 'log', 'shot', 'recipe', 'test', 'apply']],
+					'action' => ['type' => 'string', 'enum' => ['list', 'log', 'shot', 'recipe', 'test', 'try', 'apply']],
 					'job' => ['type' => 'integer', 'description' => 'The job\'s id (from list)'],
 					'lines' => ['type' => 'integer'],
 					'wait' => ['type' => 'integer'],
-					'recipe' => ['type' => 'string', 'description' => 'The fixed recipe file as JSON text (apply)'],
+					'recipe' => ['type' => 'string', 'description' => 'The fixed or proposed recipe file as JSON text (apply, try)'],
 				], 'required' => ['action']],
 				'run' => fn (string $uid, array $args) => $this->harvesterJob($uid, $args),
 			],
@@ -2144,10 +2150,21 @@ class Reply {
 		return $file->getContent();
 	}
 
-	/** harvester_job: the person's jobs, a job's log, its browser's picture and recipe, a test, a fix (after a yes). */
+	/** harvester_job: the person's jobs, a job's log, its browser's picture and recipe, a test, a try, a fix (after a yes). */
 	private function harvesterJob(string $uid, array $args): array|string {
 		$job = (int)($args['job'] ?? 0);
 		$action = (string)($args['action'] ?? 'list');
+		if ($action === 'try') {
+			$text = $this->recipeText($uid, ['recipe' => $args['recipe'] ?? null]);
+			if ($text === null && $job <= 0) {
+				return 'Give the job\'s id (job), a recipe file as JSON (recipe), or both (a fix of that job).';
+			}
+			$tried = $this->harvester->tryout($uid, $job > 0 ? $job : null, $text);
+			if (!$tried['tried']) {
+				return 'Harvester did not try it: ' . ($tried['why'] ?? '');
+			}
+			return self::marked('Harvester\'s try of the listing (nothing downloaded)', $tried['result'] ?? []);
+		}
 		if ($action !== 'list' && $job <= 0) {
 			return 'Give the job\'s id (job); action list lists them.';
 		}

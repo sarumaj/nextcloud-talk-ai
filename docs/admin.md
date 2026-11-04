@@ -213,8 +213,14 @@ the feature's groups (Features per group; empty: everyone) and never for guests:
   its browser at the last failed step (`GET /api/jobs/<id>/shot`, as an image where the engine
   takes images), its recipe file (`POST /api/recipes/export`), a test of a website job's recipe
   (`POST /api/jobs/<id>/test`: Harvester walks it and downloads nothing; the tool waits up to
-  90 s for log lines, later ones are read with the log), and a fixed recipe put into the job
-  (`PUT /api/jobs/<id>`) after the person's yes.
+  90 s for log lines, later ones are read with the log), a try of the listing of a job of any
+  other source (`POST /api/try`, Harvester's *Try the address*: what a run would fetch, skip or
+  already has, nothing downloaded; up to 75 s): a saved job as it is, a recipe file checked as an
+  import first and tried as a new job, or a recipe with a job tried as the fix it would make; the
+  model gets the outcome or the error with its hint, the counts, ten files with their paths, tags
+  and states, the source's notes and a mailbox's folders. No account field is sent: Harvester
+  uses the saved job's own. A fixed recipe goes into the job (`PUT /api/jobs/<id>`) after the
+  person's yes.
 
 Every request goes through AppAPI's `exAppRequest` as the asking person, so Harvester answers
 with that person's templates and jobs only. The tools never make or run a job, never call
@@ -224,9 +230,10 @@ fills into a field that looks like a password's is shown as `(hidden: kept from 
 taken from the job again when a fix is applied. A fix changes the recipe and the options in the
 file; the job's name, folder, schedule, time zone, tags and account stay. A saved template and
 an applied fix can be undone for 24 hours ("undo"; a fix that changes the sign-in's steps has
-made Harvester forget the job's kept session, which undo does not bring back). Reading and
-testing need no yes; in a conversation with others, showing the person's Harvester asks first,
-as their calendar does. The health check shows whether Harvester is installed and switched on.
+made Harvester forget the job's kept session, which undo does not bring back). Reading,
+testing and trying need no yes; in a conversation with others, showing the person's Harvester
+asks first, as their calendar does. The health check shows whether Harvester is installed and
+switched on.
 
 ## Evaluating a model
 
