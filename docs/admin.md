@@ -165,8 +165,12 @@ Python and Node packages from it. By default there is no network at all.
 
 ## Settings (Administration → Assistant → AI in Talk)
 
-Every setting has an explanation on the page; the same keys work with
-`occ config:app:set talk_ai <key> --value …`.
+**Where its settings are:** *Administration settings → Assistant → AI in Talk* (Nextcloud names
+the section *Assistant*, in German *Assistent*, in Polish *Asystent*). Every setting has an
+explanation on the page, and each change is saved as it is made: the line at the bottom of the
+window says *Saved.*, or why not (a value out of range is also marked at its field). The AI
+connection and the scenarios have buttons of their own (*Use this engine and chain*, *Save the
+scenarios*). The same keys work with `occ config:app:set talk_ai <key> --value …`.
 
 - **General**: the bot on or off (emergency stop), guests and federated participants,
   the steps shown while answering (`show_steps`), messages per answer (history window), the

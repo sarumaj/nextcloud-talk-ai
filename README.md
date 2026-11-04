@@ -115,7 +115,8 @@ per day. It is named after the AI that answers: *Claude*, *Gemini*, *ChatGPT*, â
    release's `talk_ai-X.Y.Z.tar.gz` into `custom_apps/` and run `occ app:enable talk_ai`.
    This installs the bot in Talk.
 2. Choose the AI under *Administration*, *Assistant*, *AI in Talk* (or
-   `occ talk_ai:engine`, see [the administrator's guide](docs/admin.md)).
+   `occ talk_ai:engine`, see [the administrator's guide](docs/admin.md)). The app's other
+   settings are on the same page, and each change there is saved as it is made.
 3. In a conversation, open the conversation settings, then *Bots*, and enable the bot.
 
 The bot takes the name of the AI that answers, as the administrator chose it, and is renamed

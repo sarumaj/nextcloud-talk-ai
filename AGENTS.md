@@ -47,6 +47,9 @@ docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-san
 - PHP, JavaScript and CSS indented with tabs (`.editorconfig`); PHP formatted by `composer cs:fix`.
   A reformatting is a commit of its own. New Psalm findings are fixed, not added to
   `psalm-baseline.xml`.
+- Settings save as they change, as Nextcloud's own do (its declarative forms, or a page of our
+  own doing the same): no Save button; what happened is shown (saved, or why not, at the field),
+  never silently. The README and `docs/` name where the settings are, by Nextcloud's menu names.
 - Every source file starts with `SPDX-License-Identifier: AGPL-3.0-or-later`.
 - A new translatable string goes into every file of `l10n/` (`.js` and `.json` alike);
   `tests/L10nTest.php` fails otherwise.

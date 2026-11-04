@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The administration page's settings are saved: its Save threw before it sent anything (the AI
+  connection's box shares the house styles' look, and was read as a house style), and the page
+  said nothing.
+
+### Changed
+
+- The administration page saves each change as it is made, as Nextcloud's own settings do (a
+  box or choice at once, a text a second after the typing stops), and says in a line kept at the
+  window's bottom whether it was saved or why not; there is no Save button any more. The
+  browser asks before the page is left with a change not yet saved.
+
 ## 0.14.0 - 2026-11-04
 
 ### Added

@@ -63,6 +63,7 @@ $docs = 'https://git.ciepiela.org/dawid/nextcloud-talk-ai/src/branch/main/docs/a
 		</table>
 	</section>
 
+	<p class="settings-hint"><?php p($l->t('The settings below are saved as you change them; the line at the bottom of the window says whether they were.')); ?></p>
 	<form id="talk-ai-form" novalidate>
 	<?php foreach ($sections as $section => [$title, $hint]) { ?>
 		<fieldset>
@@ -137,7 +138,7 @@ $docs = 'https://git.ciepiela.org/dawid/nextcloud-talk-ai/src/branch/main/docs/a
 			<button type="button" id="talk-ai-add-style"><?php p($l->t('Add a house style')); ?></button>
 		</fieldset>
 
-		<p><button type="submit" class="primary"><?php p($l->t('Save')); ?></button> <span id="talk-ai-saved" role="status"></span></p>
+		<p class="talk-ai-savebar"><span id="talk-ai-saved" role="status" aria-live="polite"><?php p($l->t('Each change is saved as you make it.')); ?></span></p>
 	</form>
 
 	<h3><?php p($l->t('Document jobs')); ?></h3>

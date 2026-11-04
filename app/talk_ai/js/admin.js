@@ -74,7 +74,10 @@
 			result.textContent = response.ok ? t('Uploaded: {name}. Name it under templates or logo.', { name: json.name }) : json.error
 		})
 		const remove = el('button', { type: 'button' }, t('Remove this style'))
-		remove.addEventListener('click', () => box.remove())
+		remove.addEventListener('click', () => {
+			box.remove()
+			saveStyles()
+		})
 		box.append(el('div', { className: 'talk-ai-field' }, el('label', { htmlFor: fileId }, t('Upload a template or logo')), file, result), remove)
 		return box
 	}
@@ -88,7 +91,8 @@
 		})
 		const features = {}
 		root.querySelectorAll('[data-feature]').forEach((input) => { features[input.dataset.feature] = list(input.value) })
-		const styles = Array.from(root.querySelectorAll('.talk-ai-style')).map((box) => {
+		// The house styles alone: the engine panel's box shares their class for its looks.
+		const styles = Array.from(root.querySelectorAll('#talk-ai-styles > .talk-ai-style')).map((box) => {
 			const v = (name) => box.querySelector('[data-name="' + name + '"]').value
 			return {
 				name: v('name'), groups: list(v('groups')), description: v('description'), palette: list(v('palette')),
@@ -102,22 +106,104 @@
 		}
 	}
 
-	form.addEventListener('submit', async (event) => {
-		event.preventDefault()
+	// Saving: each change is saved as it is made, as Nextcloud's own settings are (a box or a
+	// choice at once, a text a second after the typing stops or when the field is left), only the
+	// part that changed (Settings::save takes any part). What happened shows in the form's status
+	// line, which stays in view at the window's bottom, and an error also at its field; never
+	// silently. A change not saved yet makes the browser ask before the page is left.
+	const saved = document.getElementById('talk-ai-saved')
+	let saving = 0
+	let waiting = null
+	let timer = null
+	const say = (text, failed = false) => {
+		saved.textContent = text
+		saved.classList.toggle('talk-ai-failed', failed)
+	}
+	async function save(body) {
+		saving += 1
+		say(t('Saving …'))
 		root.querySelectorAll('.talk-ai-error').forEach((e) => { e.textContent = '' })
-		const response = await fetch(url('/settings'), { method: 'PUT', body: JSON.stringify(collect()), headers: { 'Content-Type': 'application/json', requesttoken: OC.requestToken } })
-		const json = await response.json()
-		Object.entries(json.errors || {}).forEach(([key, message]) => {
-			const node = document.getElementById('talk-ai-' + key + '-help')
-			if (node) {
-				node.querySelector('.talk-ai-error').textContent = t('Must be {range}.', { range: message })
+		try {
+			const response = await fetch(url('/settings'), { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', requesttoken: OC.requestToken } })
+			let json
+			try {
+				json = await response.json()
+			} catch (e) {
+				throw new Error(response.status + ' ' + response.statusText)
 			}
-		})
-		document.getElementById('talk-ai-saved').textContent = response.ok ? t('Saved.') : t('Not all settings were saved; see the notes.')
-		if (json.settings) {
-			fill(json.settings)
+			const errors = Object.entries(json.errors || {})
+			errors.forEach(([key, message]) => {
+				const node = document.getElementById('talk-ai-' + key + '-help')
+				if (node) {
+					node.querySelector('.talk-ai-error').textContent = t('Must be {range}.', { range: message })
+				}
+			})
+			if (!response.ok && errors.length === 0) {
+				throw new Error(json.message || (response.status + ' ' + response.statusText))
+			}
+			say(response.ok ? t('Saved.') : t('Not all settings were saved; see the notes.'), !response.ok)
+		} catch (e) {
+			say(t('Not saved: {error}', { error: e.message }), true)
+		} finally {
+			saving -= 1
+		}
+	}
+	// The part of the settings an input belongs to, as Settings::save takes it (null: none).
+	function part(input) {
+		if (input.type === 'file') {
+			return null
+		}
+		if (input.name && form.elements[input.name]) {
+			return { values: { [input.name]: input.type === 'checkbox' ? (input.checked ? 'yes' : 'no') : input.value } }
+		}
+		const all = collect()
+		if (input.dataset.feature !== undefined) {
+			return { features: all.features }
+		}
+		if (input.closest('#talk-ai-styles')) {
+			return { styles: all.styles }
+		}
+		const lists = { 'talk-ai-rooms-off': 'rooms_off', 'talk-ai-users-off': 'users_off', 'talk-ai-ai-groups': 'ai_groups' }
+		return lists[input.id] ? { [lists[input.id]]: all[lists[input.id]] } : null
+	}
+	// A part waits (typing) or goes now; parts waiting together go in one request.
+	function changed(body, now) {
+		if (!body) {
+			return
+		}
+		waiting = waiting ? { ...waiting, ...body, values: { ...(waiting.values || {}), ...(body.values || {}) } } : body
+		clearTimeout(timer)
+		timer = null
+		if (now) {
+			const sending = waiting
+			waiting = null
+			save(sending)
+		} else {
+			say(t('Not saved yet …'))
+			timer = setTimeout(() => changed({}, true), 1000)
+		}
+	}
+	form.addEventListener('change', (event) => changed(part(event.target), true))
+	form.addEventListener('input', (event) => {
+		if (event.target.matches('input[type=text], input[type=number], textarea')) {
+			changed(part(event.target), false)
 		}
 	})
+	// Enter in a field: everything, at once.
+	form.addEventListener('submit', (event) => {
+		event.preventDefault()
+		clearTimeout(timer)
+		timer = null
+		waiting = null
+		save(collect())
+	})
+	window.addEventListener('beforeunload', (event) => {
+		if (waiting || saving > 0) {
+			event.preventDefault()
+			event.returnValue = ''
+		}
+	})
+	const saveStyles = () => changed({ styles: collect().styles }, true)
 
 	document.getElementById('talk-ai-add-style').addEventListener('click', () => {
 		document.getElementById('talk-ai-styles').append(styleBox())

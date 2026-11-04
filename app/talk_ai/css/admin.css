@@ -17,3 +17,6 @@
 #talk-ai-admin #talk-ai-fallback li { margin: .3em 0; }
 #talk-ai-admin #talk-ai-fallback details { display: inline-block; vertical-align: top; min-width: 60%; }
 #talk-ai-admin #talk-ai-scenarios textarea, #talk-ai-admin #talk-ai-scenarios input { width: 100%; }
+/* The form's status line stays in view at the window's bottom while the form is scrolled. */
+#talk-ai-admin .talk-ai-savebar { position: sticky; bottom: 0; z-index: 1; margin: 0; padding: 8px 0; background: var(--color-main-background); border-top: 1px solid var(--color-border); }
+#talk-ai-admin .talk-ai-savebar .talk-ai-failed { color: var(--color-error-text, var(--color-error)); font-weight: bold; }
