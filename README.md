@@ -270,8 +270,8 @@ the translations and the Markdown, and runs the tests. [AGENTS.md](AGENTS.md) ha
 conventions and how to release. A tag `vX.Y.Z` with the same version in
 `appinfo/info.xml` is released by `.forgejo/workflows/release.yml` (the shared action
 `nextcloud-app-release` of `dawid/ci-actions`), with the version's section of `CHANGELOG.md` as
-the release's text, signed and published on the app store, given the secrets `APP_SIGNING_KEY`
-and `APPSTORE_TOKEN`.
+the release's text, signed and published on the app store, given the secrets `NC_APP_SIGNING_KEY`
+and `NC_APPSTORE_TOKEN` (not published when the repository's variable `NC_APP_STORE` is `false`).
 
 ## Reporting problems
 
