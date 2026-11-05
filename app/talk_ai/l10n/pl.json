@@ -300,6 +300,8 @@
         "Harvester recipes and jobs": "Przepisy i zadania Harvestera",
         "Harvester recipes: written, checked and saved as your templates; why a job fails": "Przepisy Harvestera: napisane, sprawdzone i zapisane jako twoje szablony; dlaczego zadanie się nie udaje",
         "“A Harvester recipe for the PDFs on this page”": "„Przepis Harvestera na pliki PDF z tej strony”",
+        "Searching inside your files (Findling)": "Przeszukiwanie treści twoich plików (Findling)",
+        "“Which letter mentioned the deductible?”": "„Który list wspominał o udziale własnym?”",
         "Harvester": "Sprawdzam Harvester",
         "The bot writes and checks Harvester recipes, saves them as the person's templates and finds out why their Harvester jobs fail; a job is changed only after their yes. Only with the External App Harvester installed and enabled.": "Bot pisze i sprawdza przepisy Harvestera, zapisuje je jako szablony osoby i ustala, dlaczego jej zadania Harvestera się nie udają; zadanie zmienia dopiero po jej zgodzie. Tylko gdy aplikacja zewnętrzna Harvester jest zainstalowana i włączona.",
         "Saving …": "Zapisywanie …",

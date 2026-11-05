@@ -130,6 +130,7 @@ class Reply {
 		private \OCP\IAppConfig $appConfig,
 		private Texts $texts,
 		private LoggerInterface $logger,
+		private ?ContentSearch $contentSearch = null,
 	) {
 	}
 
@@ -196,6 +197,8 @@ class Reply {
 		}
 		// Harvester's tools: where the administrator switched them on and Harvester is installed.
 		$this->features['harvester'] = ($this->features['harvester'] ?? false) && $this->harvester->available();
+		// The search in file contents: where Findling searches for the person.
+		$this->features['contents'] = !$this->guest && $this->contentSearch?->available($userId) === true;
 		// Young people's groups: no web, and an audience note in the prompt.
 		$this->youth = !$this->guest && $this->policy->allows($userId, 'youth') && $this->policy->restricted('youth');
 		if ($this->youth) {
@@ -654,9 +657,10 @@ class Reply {
 			'web' => ['read_url', 'cite', 'lookup', 'find_images', 'geo'],
 			'calendar' => ['calendar'],
 			'harvester' => ['harvester_recipe', 'harvester_job'],
+			'contents' => ['search_files'],
 		];
 		if ($this->guest) {
-			foreach (['list_files', 'read_file', 'find_files', 'send_file', 'send_flashcards', 'calendar', 'harvester_recipe', 'harvester_job', 'create_document', 'redo_document',
+			foreach (['list_files', 'read_file', 'find_files', 'search_files', 'send_file', 'send_flashcards', 'calendar', 'harvester_recipe', 'harvester_job', 'create_document', 'redo_document',
 				'document_status', 'room_settings', 'my_profile', 'undo', 'share_file', 'delete_my_data', 'create_poll', 'image_study', 'colors', 'new_chat'] as $name) {
 				unset($tools[$name]);
 			}
@@ -718,7 +722,7 @@ class Reply {
 	}
 
 	/** The tools listed first, in this order. */
-	public const CORE_TOOLS = ['list_files', 'read_file', 'find_files', 'send_file', 'read_chat', 'read_url', 'lookup', 'cite',
+	public const CORE_TOOLS = ['list_files', 'read_file', 'find_files', 'search_files', 'send_file', 'read_chat', 'read_url', 'lookup', 'cite',
 		'calculate', 'calendar', 'create_document'];
 
 	/** Adds the confirmed events and tasks, each one recorded to undo within a day. */
@@ -743,7 +747,7 @@ class Reply {
 		}
 		$private = match ($tool) {
 			'calendar' => in_array((string)($args['action'] ?? ''), ['events', 'calendars'], true),
-			'find_files', 'harvester_job' => true,
+			'find_files', 'search_files', 'harvester_job' => true,
 			'harvester_recipe' => in_array((string)($args['action'] ?? ''), ['templates', 'show'], true),
 			'read_file' => array_diff(self::fileIds($args), array_map(fn ($f) => (int)$f['id'], $this->sharedFiles)) !== [],
 			default => false,
@@ -764,7 +768,7 @@ class Reply {
 	/** The step a tool stands for, for the status message. */
 	private function phase(string $uid, string $tool): string {
 		$key = match ($tool) {
-			'read_file', 'list_files', 'find_files' => 'Reading',
+			'read_file', 'list_files', 'find_files', 'search_files' => 'Reading',
 			'read_url', 'lookup', 'cite', 'find_images', 'geo', 'law' => 'Researching',
 			'send_file', 'send_flashcards', 'create_document', 'redo_document' => 'Writing',
 			'calendar' => 'Calendar',
@@ -781,6 +785,7 @@ class Reply {
 		$items = [
 			[true, $t('Questions, explanations, summaries'), $t('“Summarize this for year 8”')],
 			[!$this->guest, $t('Reading files (PDF, Office, photos with OCR)'), $t('“What does the PDF say?”')],
+			[$this->features['contents'] ?? false, $t('Searching inside your files (Findling)'), $t('“Which letter mentioned the deductible?”')],
 			[$this->features['documents'] ?? false, $t('Writing files (PDF, Word, Excel, PowerPoint)'), $t('“A packing list as PDF”')],
 			[$this->canBuild, $t('Demanding documents in the workshop (templates, formulas, long decks, changes)'), $t('“Minutes on this template as .docx”')],
 			[$this->canBuild, $t('Images in the workshop (diagrams, sketches, illustrations, posters)'), $t('“A diagram of the water cycle as PNG”')],
@@ -1349,7 +1354,7 @@ class Reply {
 				'run' => fn (string $uid, array $args) => $this->sharedFiles,
 			],
 			'read_file' => [
-				'description' => 'The text of a file by its id (from the conversation or find_files): Word, Excel (each sheet), PowerPoint '
+				'description' => 'The text of a file by its id (from the conversation, find_files or search_files): Word, Excel (each sheet), PowerPoint '
 					. '(each slide with its notes), OpenDocument, old .doc/.xls/.ppt, PDF, Markdown, CSV, HTML or text.',
 				'input' => ['type' => 'object', 'properties' => ['id' => ['type' => 'integer'],
 					'ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Several files at once (to compare or sum them up): '
@@ -1365,6 +1370,17 @@ class Reply {
 				'run' => fn (string $uid, array $args) => (int)($args['days'] ?? 0) > 0
 					? $this->conversation->recentFiles($uid, (int)$args['days'], (string)($args['query'] ?? ''))
 					: $this->conversation->findFiles($uid, (string)($args['query'] ?? '')),
+			],
+			'search_files' => [
+				'description' => 'Searches inside the person\'s files (text, PDF, Office, scans by OCR), by words and by meaning: id, path, type, '
+					. 'size, date and the passage that matched, best first. For the whole text or more passages, read_file with the id and a query.',
+				'input' => ['type' => 'object', 'properties' => ['query' => ['type' => 'string', 'description' => 'What to look for, in the files\' language'],
+					'folder' => ['type' => 'string', 'description' => 'Only below this folder of theirs, e.g. "Documents/Insurance"'],
+					'types' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => ContentSearch::TYPES]],
+					'since' => ['type' => 'string', 'description' => 'Only files changed since this day, YYYY-MM-DD'],
+					'limit' => ['type' => 'integer', 'description' => 'Hits, ' . ContentSearch::HITS . ' by default, at most ' . ContentSearch::HITS_MAX]],
+					'required' => ['query']],
+				'run' => fn (string $uid, array $args) => $this->searchFiles($uid, $args),
 			],
 			'send_file' => [
 				'description' => 'Sends a file into this chat; the name\'s extension sets the format. Documents (.pdf .docx .odt) from '
@@ -2010,6 +2026,20 @@ class Reply {
 	/** Characters of a file shown at once: a quarter of the model's context (K-03). */
 	private function readBudget(): int {
 		return max(20000, intdiv((int)($this->caps['context'] ?? 32000) * 4, 4));
+	}
+
+	/** search_files: Findling's hits, their passages marked as the files' own words. */
+	private function searchFiles(string $uid, array $args): string {
+		$found = $this->contentSearch === null ? 'The search in file contents is not available here.'
+			: $this->contentSearch->search($uid, (string)($args['query'] ?? ''), (string)($args['folder'] ?? ''), (array)($args['types'] ?? []),
+				(string)($args['since'] ?? ''), (int)($args['limit'] ?? ContentSearch::HITS));
+		if (is_string($found)) {
+			return $found;
+		}
+		if ($found === []) {
+			return 'No file matches. Try other words, or find_files for the names.';
+		}
+		return self::untrusted('search hits', (string)json_encode($found, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 	}
 
 	private function readFile(string $uid, int $id, string $query = '', string $pages = '', int $budget = 0): string {

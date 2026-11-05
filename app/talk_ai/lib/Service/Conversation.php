@@ -414,6 +414,13 @@ class Conversation {
 		return $node instanceof File ? $node : null;
 	}
 
+	/** A file's path in the person's files, as find_files gives it. */
+	public function relativePath(string $userId, File $file): string {
+		// A node found from their folder (userFile) has its path below /<user>/files/.
+		$prefix = '/' . $userId . '/files/';
+		return str_starts_with($file->getPath(), $prefix) ? substr($file->getPath(), strlen($prefix)) : $file->getName();
+	}
+
 	/**
 	 * The person's files whose names contain the words, newest first.
 	 *

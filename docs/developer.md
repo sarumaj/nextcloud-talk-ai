@@ -18,6 +18,9 @@
   - `lib/Service/Harvester.php`: the External App Harvester through AppAPI's `exAppRequest` as
     the asking person (recipe files, templates, jobs, log, shots, tests), resolved only when
     used; `tests/HarvesterTest.php` plays AppAPI.
+  - `lib/Service/ContentSearch.php`: Findling's provider of Nextcloud's search (resolved by its
+    class name, so Findling is no dependency) with a search query of its own, for
+    `search_files`; `tests/ContentSearchTest.php` plays the provider.
   - `lib/Document/`: the built-in writers and readers, maths and subject tools.
 - `sandbox/`: the image (`Dockerfile`) and the runner (`runner.py`: backends docker,
   bwrap and process; the socket protocol, or HTTP for AppAPI); `sandbox/exapp/` the

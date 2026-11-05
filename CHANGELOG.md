@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The bot searches inside the person's files where Findling is installed (`search_files`): by
+  words and meaning, scans included, with the passage that matched, only files the person may
+  open, and in a conversation with others only after their yes; `read_file` then reads the
+  matching ones. Without Findling, files are found by their names as before.
+
 ## 0.14.1 - 2026-11-05
 
 ### Fixed

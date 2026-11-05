@@ -70,6 +70,10 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
   (exams, deadlines, exhibitions, a timetable, a study plan), and turns dates from a PDF, a
   letter or a photo of a timetable into an `.ics` file to import anywhere.
 - **Writing:** feedback as a document with marked corrections (deleted, inserted, highlighted).
+- **Searching inside your files** (optional, where [Findling](https://apps.nextcloud.com/apps/findling)
+  is installed): finds the files whose contents match a question, by its words or its meaning,
+  scans included, and reads the matching ones; only files you may open, and in a conversation
+  with others only after your yes.
 - **Harvester** (optional, where the administrator switches it on): writes a recipe for
   [Harvester](https://git.ciepiela.org/dawid/nextcloud-harvester) from a description, has
   Harvester check it, and saves it as your template with its `.harvester.json` in the chat; checks
@@ -172,6 +176,7 @@ For example:
 - Share a painting and ask "@Claude what is its palette, and what would complement it?"
 - "Put my maths exam on 12 November at 9:00 in my calendar, with a reminder the day before."
 - "A mind map of the causes of the First World War."
+- "Which letter from the insurance mentioned the deductible, and how much is it?"
 - "A Harvester recipe for the PDFs on `https://example.org/minutes`, every Monday." or "Why does
   my Harvester job *Bank* fail?"
 - Share the official syllabus and ask "a mock exam for maths with a marking scheme", "I got 57
@@ -202,7 +207,9 @@ The app (`app/talk_ai/`) is PHP, with no build step.
   message parser, as the asking person sees them. It then asks the AI layer (`lib/Ai/Hub.php`),
   scenario `chat`, with web search and tools that run in PHP with that person's rights:
   - files: `list_files`, `read_file` (`lib/Document/TextExtractor.php`; old formats converted
-    by Collabora, OCR by Tesseract), `find_files`;
+    by Collabora, OCR by Tesseract), `find_files`, `search_files` (`lib/Service/ContentSearch.php`:
+    Findling's provider of Nextcloud's search, as the asking person; only where Findling is
+    enabled for them);
   - writing: `send_file` (`lib/Document/OdtWriter.php`, `OdsWriter.php`, `OdpWriter.php`,
     converted to Word, Excel, PowerPoint or PDF by Nextcloud's file conversion) and
     `send_flashcards`;

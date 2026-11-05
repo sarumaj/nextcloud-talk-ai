@@ -15,6 +15,7 @@
 | A speech-to-text provider     | optional                                                               | voice messages are not understood               |
 | The document sandbox          | optional                                                               | no documents built with code                    |
 | Harvester (an External App)   | optional, with AppAPI; switched on by `harvester`                      | no Harvester recipes or job diagnosis           |
+| Findling                      | optional; used where it is enabled for the person                      | files are found by their names only             |
 | PHP zip                       | required                                                               | –                                               |
 
 `occ talk_ai:check` (with `--deep`, also inside a sandbox container) and the

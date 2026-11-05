@@ -13,6 +13,8 @@ lists what it can do here.
   takes its place.
 - **Questions and files**: share a PDF, a Word, Excel or PowerPoint file or a photo
   and ask about it. Long files: it reads the parts that fit your question and says which.
+- **Searching your files** (where Findling is installed): "which letter mentioned the
+  deductible?" finds it by its contents, scans included, and reads it.
 - **Files it writes**: "a packing list as PDF", "a budget as Excel".
 - **Bigger documents**: "the minutes on this template as .docx", "an Excel file with
   monthly sums as formulas and a chart from this CSV", "add a chapter on costs to this
@@ -62,6 +64,8 @@ ihm antwortest. `@Claude hilfe` zeigt, was er hier kann.
   zu finden“); danach tritt die Antwort an ihre Stelle.
 - **Fragen und Dateien**: Teile eine PDF, Word-, Excel-, PowerPoint-Datei oder ein Foto
   und frag danach. Bei langen Dateien liest er die passenden Stellen und sagt, welche.
+- **Deine Dateien durchsuchen** (wo Findling installiert ist): „welcher Brief erwähnte die
+  Selbstbeteiligung?“ findet ihn nach seinem Inhalt, auch Scans, und liest ihn.
 - **Dateien**: „eine Packliste als PDF“, „ein Budget als Excel“.
 - **Größere Dokumente**: „das Protokoll auf dieser Vorlage als .docx“, „aus dieser CSV
   eine Excel-Datei mit Monatssummen als Formeln und Diagramm“, „ergänze im Bericht ein
@@ -110,6 +114,8 @@ co tu potrafi.
   egzaminów”); potem zastępuje ją odpowiedź.
 - **Pytania i pliki**: udostępnij PDF, plik Word, Excel, PowerPoint lub zdjęcie i zapytaj.
   W długich plikach czyta pasujące fragmenty i mówi, które.
+- **Przeszukiwanie plików** (gdzie zainstalowano Findling): „który list wspominał o udziale
+  własnym?” znajduje go po treści, także skany, i go czyta.
 - **Pliki**: „lista rzeczy do spakowania jako PDF”, „budżet jako Excel”.
 - **Większe dokumenty**: „protokół na tym szablonie jako .docx”, „z tego CSV plik Excel z
   sumami miesięcznymi jako formuły i wykresem”, „dodaj do raportu rozdział o kosztach”.
