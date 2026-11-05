@@ -4441,16 +4441,16 @@
         },
         {
             "name": "symfony/filesystem",
-            "version": "v7.4.21",
+            "version": "v7.4.23",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/filesystem.git",
-                "reference": "fd0e3462be6d32a0d130e8423e4940a7688162d8"
+                "reference": "53d609da66578dad5a39fe290e8f924ec8f05e93"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/filesystem/zipball/fd0e3462be6d32a0d130e8423e4940a7688162d8",
-                "reference": "fd0e3462be6d32a0d130e8423e4940a7688162d8",
+                "url": "https://api.github.com/repos/symfony/filesystem/zipball/53d609da66578dad5a39fe290e8f924ec8f05e93",
+                "reference": "53d609da66578dad5a39fe290e8f924ec8f05e93",
                 "shasum": ""
             },
             "require": {
@@ -4487,7 +4487,7 @@
             "description": "Provides basic utilities for the filesystem",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/filesystem/tree/v7.4.21"
+                "source": "https://github.com/symfony/filesystem/tree/v7.4.23"
             },
             "funding": [
                 {
@@ -4507,8 +4507,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-06T20:05:19+00:00",
-            "published-time": "2026-10-14T06:45:33+00:00"
+            "time": "2026-11-04T08:27:22+00:00",
+            "published-time": "2026-11-04T11:28:00+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",
@@ -5162,16 +5162,16 @@
         },
         {
             "name": "vimeo/psalm",
-            "version": "6.20.8",
+            "version": "6.20.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/vimeo/psalm.git",
-                "reference": "75d7ca00182ca690b273dcd8d172e8efa17d1f90"
+                "reference": "f67170ac3c3b931f5088681e21d6c8babc601c08"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/vimeo/psalm/zipball/75d7ca00182ca690b273dcd8d172e8efa17d1f90",
-                "reference": "75d7ca00182ca690b273dcd8d172e8efa17d1f90",
+                "url": "https://api.github.com/repos/vimeo/psalm/zipball/f67170ac3c3b931f5088681e21d6c8babc601c08",
+                "reference": "f67170ac3c3b931f5088681e21d6c8babc601c08",
                 "shasum": ""
             },
             "require": {
@@ -5276,8 +5276,8 @@
                 "issues": "https://github.com/vimeo/psalm/issues",
                 "source": "https://github.com/vimeo/psalm"
             },
-            "time": "2026-11-03T11:34:31+00:00",
-            "published-time": "2026-11-04T00:42:01+00:00"
+            "time": "2026-11-04T18:28:08+00:00",
+            "published-time": "2026-11-05T00:42:43+00:00"
         },
         {
             "name": "webmozart/assert",
