@@ -67,6 +67,7 @@ Enable the bot in a conversation (conversation settings, Bots). In a conversatio
         <command>OCA\TalkAi\Command\Engine</command>
         <command>OCA\TalkAi\Command\Models</command>
         <command>OCA\TalkAi\Command\Ask</command>
+        <command>OCA\TalkAi\Command\Metrics</command>
     </commands>
     <settings>
         <admin>OCA\TalkAi\Settings\Admin</admin>

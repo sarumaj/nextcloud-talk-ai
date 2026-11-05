@@ -25,7 +25,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class Engine extends Command {
 	/** The settings an option can set (Admin::ENGINES says which apply to which engine). */
 	private const FIELDS = ['model', 'baseUrl' => 'base-url', 'timeout', 'maxImages' => 'max-images', 'headers', 'provider', 'binary', 'home', 'php', 'path',
-		'maxBudgetUsd' => 'max-budget-usd', 'taskType' => 'task-type'];
+		'maxBudgetUsd' => 'max-budget-usd', 'taskType' => 'task-type', 'expires'];
 
 	public function __construct(
 		private Admin $admin,

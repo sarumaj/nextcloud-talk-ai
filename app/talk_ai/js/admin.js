@@ -269,6 +269,7 @@
 		headers: t('Extra headers (JSON, e.g. {"HTTP-Referer": "https://cloud.example"})'), provider: t('Provider name (shown and used for the bot\'s name)'),
 		binary: t('Command (name or absolute path)'), home: t('Credentials directory (HOME of the command, where it is logged in)'), php: t('PHP command line (for the tool bridge)'),
 		path: t('PATH for the command'), maxBudgetUsd: t('Most dollars per question (empty: no limit)'), taskType: t('Task type (default: chat with tools)'),
+		expires: t('Sign-in or key valid until (for monitoring; empty: unknown)'),
 	}
 	const FLAGS = {
 		search: t('Web search'), caching: t('Prompt caching'), thinking: t('Extended thinking'), documents: t('PDFs to the model directly'), streaming: t('Streaming'),
@@ -316,7 +317,7 @@
 				box.append(el('div', { className: 'talk-ai-field' }, el('label', { htmlFor: id }, FIELDS.headers), input))
 			} else {
 				const numeric = ['timeout', 'maxImages', 'maxBudgetUsd'].includes(field)
-				input = el('input', { id, type: numeric ? 'number' : 'text', value: engine.settings[field] ?? '' })
+				input = el('input', { id, type: numeric ? 'number' : (field === 'expires' ? 'date' : 'text'), value: engine.settings[field] ?? '' })
 				if (field === 'maxBudgetUsd') {
 					input.step = '0.01'
 				}

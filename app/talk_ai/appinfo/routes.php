@@ -27,6 +27,8 @@ return [
 		['name' => 'settings#models', 'url' => '/settings/ai/engines/{name}/models', 'verb' => 'GET'],
 		['name' => 'settings#test', 'url' => '/settings/ai/engines/{name}/test', 'verb' => 'POST'],
 		['name' => 'settings#probe', 'url' => '/settings/ai/engines/{name}/probe', 'verb' => 'POST'],
+		// The engines' state for Prometheus, with the bearer token of metrics_token.
+		['name' => 'metrics#run', 'url' => '/metrics', 'verb' => 'GET'],
 		// A question of the OCS API, handed over the same way (Ai\Tickets).
 		['name' => 'ticket#run', 'url' => '/api/v1/run', 'verb' => 'POST'],
 	],

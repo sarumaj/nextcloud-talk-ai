@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Monitoring of the AI connection, the same for every engine and subscription: the app keeps per
+  engine its last answer and its last error, and `occ talk_ai:metrics` (or the route
+  `/apps/talk_ai/metrics` with a bearer token) gives them to Prometheus, with whether the engine
+  is signed in and the day its sign-in or key runs out (a new engine setting). `--probe` asks
+  each engine a short question first, `--probe-stale` only those failing or silent for a day.
+  See the administrator's guide, "Monitoring".
+
 ## 0.15.0 - 2026-11-05
 
 ### Added

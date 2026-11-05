@@ -127,6 +127,9 @@ The bot takes the name of the AI that answers, as the administrator chose it, an
 when that changes (within ten minutes, or at its next answer). For a fixed name:
 `occ config:app:set talk_ai name --value Assistant`.
 
+Whether the AI connection works, and when its sign-in or key runs out, is there for Prometheus
+(`occ talk_ai:metrics`, for every engine alike; [Monitoring](docs/admin.md#monitoring)).
+
 ### The document sandbox (optional)
 
 For demanding office files and images the bot can hand the work to a sandbox: the AI writes

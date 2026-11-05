@@ -268,6 +268,39 @@ the model and before letting everyone use it.
 - `formula` typesets LaTeX in a short-lived sandbox container (ziamath, no network), like a
   small document job: with one job at a time it waits for a running document, and says so.
 
+## Monitoring
+
+Whether the bot can answer depends on its engine's sign-in or key, which can run out, be revoked
+or hit a subscription's limit long before anyone notices in the chat. The app keeps, per engine,
+when it last answered and when and why a turn last failed, from the questions people ask anyway:
+the same for every engine and subscription, without a request of its own. A sign-in that ran out
+shows as `no-key` after the last answer, whatever the provider's message.
+
+`occ talk_ai:metrics` prints this for the engines in use (the chosen one, the fallback chain and
+the scenarios' own) in Prometheus' text format, e.g. for node_exporter's textfile collector;
+`--probe` first asks each ready engine the connection test's short question (a small request
+each), so that an engine nobody used lately still shows whether it is signed in; `--probe-stale`
+asks only those that failed since their last answer or have not answered for a day, which suits
+an hourly timer. Prometheus can
+also scrape `/index.php/apps/talk_ai/metrics` with a bearer token: set one with
+`occ config:app:set talk_ai metrics_token --sensitive --lazy --value "$(openssl rand -hex 32)"`.
+Without it the route answers 404, and a wrong token is throttled as a wrong password is.
+
+| Metric                                               | Meaning                                                                          |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `talk_ai_engine_info`                                | an engine in use: `role` (chosen, fallback, scenario), `provider`, `model`       |
+| `talk_ai_engine_ready`                               | set up (no model call)                                                           |
+| `talk_ai_engine_auth_ok`                             | 0: not signed in, or the last turn failed for the sign-in or key                 |
+| `talk_ai_engine_last_success_timestamp_seconds`      | the last answer (0: never)                                                       |
+| `talk_ai_engine_last_error_timestamp_seconds`        | the last failed turn (0: never)                                                  |
+| `talk_ai_engine_failing_info`                        | failing since its last answer, with the error word (`error`: no-key, busy …)     |
+| `talk_ai_engine_credential_expiry_timestamp_seconds` | the end of the day in the engine's setting "Sign-in or key valid until"          |
+| `talk_ai_metrics_timestamp_seconds`                  | when the metrics were made (a textfile that stopped being written shows its age) |
+
+No provider says when a sign-in runs out, so the date is the administrator's: a token of
+`claude setup-token` holds a year from the day it was made. Enter it on the page or with
+`occ talk_ai:engine claude-cli --expires 2027-11-05`. The metrics hold no key, prompt or answer.
+
 ## Logs and troubleshooting
 
 Log lines start with "AI bot:" and carry the request id (`request`), which the

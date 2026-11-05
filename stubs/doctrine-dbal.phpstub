@@ -1,0 +1,36 @@
+<?php
+
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+// Doctrine DBAL's schema table, as far as the migrations use it: nextcloud/ocp names
+// it in ISchemaWrapper's docblocks but does not ship it (Nextcloud's server does).
+
+namespace Doctrine\DBAL\Schema;
+
+class Column {
+}
+
+class Table {
+	/** @param array<string, mixed> $options */
+	public function addColumn(string $name, string $typeName, array $options = []): Column {
+	}
+
+	/** @param list<string> $columnNames */
+	public function setPrimaryKey(array $columnNames, string|false $indexName = false): self {
+	}
+
+	/**
+	 * @param list<string> $columnNames
+	 * @param list<string> $flags
+	 * @param array<string, mixed> $options
+	 */
+	public function addIndex(array $columnNames, ?string $indexName = null, array $flags = [], array $options = []): self {
+	}
+
+	/**
+	 * @param list<string> $columnNames
+	 * @param array<string, mixed> $options
+	 */
+	public function addUniqueIndex(array $columnNames, ?string $indexName = null, array $options = []): self {
+	}
+}

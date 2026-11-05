@@ -96,7 +96,7 @@ class Health {
 	private function engineItems(): array {
 		$out = [];
 		foreach (array_values(array_unique([$this->engines->chosen(), ...$this->engines->fallback()])) as $i => $name) {
-			$engine = $this->engines->get($name);
+			$engine = Engines::bare($this->engines->get($name));
 			$status = $engine->status();
 			$missing = $engine instanceof ClaudeCli || $engine instanceof GeminiCli ? $engine->missingFlags() : [];
 			$out[] = self::item(($i === 0 ? 'Engine ' : 'Fallback ') . $name, $i === 0 ? $status->ready : ($status->ready ? true : null),

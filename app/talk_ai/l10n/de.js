@@ -234,6 +234,7 @@ OC.L10N.register(
         "Credentials directory (HOME of the command, where it is logged in)": "Verzeichnis der Anmeldedaten (HOME des Befehls, in dem er angemeldet ist)",
         "PHP command line (for the tool bridge)": "PHP-Kommandozeile (für die Werkzeugbrücke)",
         "Most dollars per question (empty: no limit)": "Höchstbetrag pro Frage in Dollar (leer: ohne Grenze)",
+        "Sign-in or key valid until (for monitoring; empty: unknown)": "Anmeldung oder Schlüssel gültig bis (für die Überwachung; leer: unbekannt)",
         "Task type (default: chat with tools)": "Aufgabentyp (Standard: Chat mit Werkzeugen)",
         "Extra headers (JSON, e.g. {\"HTTP-Referer\": \"https://cloud.example\"})": "Zusätzliche Header (JSON, z. B. {\"HTTP-Referer\": \"https://cloud.example\"})",
         "Seconds to wait for an answer": "Wartezeit auf eine Antwort (Sekunden)",

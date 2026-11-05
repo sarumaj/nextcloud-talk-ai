@@ -17,12 +17,12 @@ use OCP\IAppConfig;
 class Admin {
 	/** name => [label, kind (api, cli, nextcloud), settings, flags] */
 	public const ENGINES = [
-		'anthropic' => ['Anthropic API (Claude)', 'api', ['key', 'model', 'baseUrl', 'timeout', 'maxImages'], ['search', 'caching', 'thinking', 'documents', 'streaming', 'fallbacks']],
-		'gemini' => ['Google Gemini API', 'api', ['key', 'model', 'baseUrl', 'timeout', 'maxImages'], ['search', 'documents', 'streaming', 'thinking']],
-		'openai' => ['OpenAI-compatible (OpenAI, OpenRouter, Mistral, Ollama …)', 'api', ['key', 'model', 'baseUrl', 'headers', 'provider', 'timeout', 'maxImages'],
+		'anthropic' => ['Anthropic API (Claude)', 'api', ['key', 'model', 'baseUrl', 'timeout', 'maxImages', 'expires'], ['search', 'caching', 'thinking', 'documents', 'streaming', 'fallbacks']],
+		'gemini' => ['Google Gemini API', 'api', ['key', 'model', 'baseUrl', 'timeout', 'maxImages', 'expires'], ['search', 'documents', 'streaming', 'thinking']],
+		'openai' => ['OpenAI-compatible (OpenAI, OpenRouter, Mistral, Ollama …)', 'api', ['key', 'model', 'baseUrl', 'headers', 'provider', 'timeout', 'maxImages', 'expires'],
 			['tools', 'images', 'structured', 'streaming', 'search', 'documents']],
-		'claude-cli' => ['Claude Code on the server (subscription)', 'cli', ['binary', 'home', 'model', 'timeout', 'php', 'path', 'maxBudgetUsd'], ['mcp', 'search', 'streaming']],
-		'gemini-cli' => ['Gemini CLI on the server (subscription)', 'cli', ['binary', 'home', 'model', 'timeout', 'path'], []],
+		'claude-cli' => ['Claude Code on the server (subscription)', 'cli', ['binary', 'home', 'model', 'timeout', 'php', 'path', 'maxBudgetUsd', 'expires'], ['mcp', 'search', 'streaming']],
+		'gemini-cli' => ['Gemini CLI on the server (subscription)', 'cli', ['binary', 'home', 'model', 'timeout', 'path', 'expires'], []],
 		'taskprocessing' => ['Nextcloud\'s AI (TaskProcessing providers)', 'nextcloud', ['taskType', 'timeout'], []],
 	];
 	/** The scenarios the app registers, for their overrides: name => label. */
@@ -87,6 +87,11 @@ class Admin {
 			};
 			if (in_array($field, ['baseUrl'], true) && $settings[$field] !== null && preg_match('#^https?://#', (string)$settings[$field]) !== 1) {
 				$errors[$field] = 'an http(s) URL';
+				unset($settings[$field]);
+			}
+			// The day the sign-in or key runs out, for monitoring (Metrics): a Claude Code token of setup-token holds a year.
+			if ($field === 'expires' && $settings[$field] !== null && Metrics::expiry((string)$settings[$field]) === null) {
+				$errors[$field] = 'a date (YYYY-MM-DD)';
 				unset($settings[$field]);
 			}
 			if (in_array($field, ['binary', 'home', 'php'], true) && $settings[$field] !== null && !str_starts_with((string)$settings[$field], '/')

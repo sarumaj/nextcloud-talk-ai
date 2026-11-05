@@ -33,6 +33,8 @@ class Engines {
 		private ?Config $config = null,
 		private ?Http $http = null,
 		private ?\OCP\TaskProcessing\IManager $taskProcessing = null,
+		/** Records every engine's turns for monitoring; none in tests. */
+		private ?Watch $watch = null,
 	) {
 	}
 
@@ -92,8 +94,15 @@ class Engines {
 		$this->fixed = $engine;
 	}
 
+	/** The engine itself, without the watch around it (what only its own class offers: a CLI's flags). */
+	public static function bare(Engine $engine): Engine {
+		return $engine instanceof Engine\Watched ? $engine->inner() : $engine;
+	}
+
 	private function one(string $name, ?string $model): Engine {
-		return $this->built[$name . '|' . $model] ??= $this->build($name, $model);
+		return $this->built[$name . '|' . $model] ??= $this->watch !== null
+			? new Engine\Watched($name, $this->build($name, $model), $this->watch)
+			: $this->build($name, $model);
 	}
 
 	private function build(string $name, ?string $model): Engine {
