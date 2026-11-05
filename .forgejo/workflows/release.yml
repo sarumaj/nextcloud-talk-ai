@@ -11,7 +11,7 @@
 # Secrets: NC_APP_SIGNING_KEY, the private key of the app store certificate for
 # talk_ai (PEM); NC_APPSTORE_TOKEN, the API token of the store account
 # (apps.nextcloud.com, account, API token). Without them the release still gets
-# the archive, unsigned and not published. Variable: NC_APP_STORE, false keeps the
+# the archive, unsigned and not published. Variable: NC_APPSTORE, false keeps the
 # release off the app store although NC_APPSTORE_TOKEN is set.
 name: Release
 # A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
@@ -45,9 +45,9 @@ jobs:
           tag: ${{ github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           signing-key: ${{ secrets.NC_APP_SIGNING_KEY }}
-          # Published only when the app store's token is set and the variable NC_APP_STORE is not
+          # Published only when the app store's token is set and the variable NC_APPSTORE is not
           # false (a secret cannot be empty, so the variable turns a shared token off here).
-          app-store: ${{ vars.NC_APP_STORE != 'false' && secrets.NC_APPSTORE_TOKEN != '' }}
+          app-store: ${{ vars.NC_APPSTORE != 'false' && secrets.NC_APPSTORE_TOKEN != '' }}
           app-store-token: ${{ secrets.NC_APPSTORE_TOKEN }}
 
   # The document sandbox's images in the registry beside the code (N-08):
