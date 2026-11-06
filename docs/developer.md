@@ -30,7 +30,8 @@
 - `tests/`: PHPUnit (no Nextcloud, no network: `FakeEngine` plays a scripted model behind
   the real `Hub` and `Loop`, a fake sandbox answers like the real one, Talk's events come
   as fixtures),
-  `tests/golden/` (the document cases with the image), `tests/compat/` (Talk's API).
+  `tests/golden/` (the document cases with the image), `tests/compat/` (Talk's API),
+  `tests/server/check.sh` (the app on a real Nextcloud: what the administrator and other apps get).
 
 ## Exams and studies without built-in rules
 
@@ -197,4 +198,16 @@ When changing a skill, the prompt or a tool's description: raise the version, ru
 composer install && vendor/bin/phpunit
 docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-sandbox:test
 python3 tests/compat/talk_api.py
+```
+
+On a real Nextcloud with PostgreSQL in Docker, as CI's job `server` does (the shared action
+`nextcloud-app-server` of `dawid/ci-actions`): the app store's release upgraded to the checkout,
+its background jobs, disabling and enabling, `tests/server/check.sh` and no error of the app in
+`nextcloud.log`. `--keep` leaves the containers running at `http://localhost:8080` (`admin`, the
+password in the script) to look at them.
+
+```bash
+curl -fsSLO https://git.ciepiela.org/dawid/ci-actions/raw/branch/main/nextcloud-app-server.py
+python3 nextcloud-app-server.py run --app-dir app/talk_ai --nextcloud 32 --apps spreed \
+  --check tests/server/check.sh
 ```

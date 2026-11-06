@@ -15,7 +15,8 @@ person's rights.
   App.
 - `skills/`: the guides and scripts the model reads in the sandbox.
 - `tests/`: PHPUnit tests (no Nextcloud, no network; `L10nTest.php` checks the translations),
-  `tests/golden/` (the document golden set with the sandbox image), `tests/compat/` (Talk's API).
+  `tests/golden/` (the document golden set with the sandbox image), `tests/compat/` (Talk's API),
+  `tests/server/check.sh` (the app on a real Nextcloud, CI's job `server`).
 - `docs/user.md`, `docs/admin.md`, `docs/developer.md`: the details the README links to.
 - `screenshots/`: the README's and the app store's pictures.
 - `composer.json`: development tools only (PHPUnit, php-cs-fixer, Psalm); the app needs none.
@@ -36,7 +37,9 @@ docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-san
 
 `appinfo/info.xml` is checked against `https://apps.nextcloud.com/schema/apps/info.xsd` with
 `xmllint --noout --schema`. CI also runs the tests against every Nextcloud from `min-version` to
-`max-version` (`nextcloud/ocp` of each branch).
+`max-version` (`nextcloud/ocp` of each branch), and on a real Nextcloud 32 and 35 with PostgreSQL
+(the job `server`: the app store's release upgraded to the checkout, then `tests/server/check.sh`;
+how to run it locally is in `docs/developer.md`, "Tests").
 
 ## Conventions
 

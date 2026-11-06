@@ -269,12 +269,13 @@ python3 tests/compat/talk_api.py
 
 The tests need neither Nextcloud nor network. CI lints the PHP, checks Nextcloud's coding standard
 (php-cs-fixer) and Psalm, checks `appinfo/info.xml` against the app store's schema, the translations
-and the Markdown, and runs the tests. [AGENTS.md](AGENTS.md) has the conventions and how to release;
-the release bot (`release-bot`) tags the releases that are due, weekly. A tag `vX.Y.Z` with the same
-version in `appinfo/info.xml` is released by `.forgejo/workflows/release.yml` (the shared action
-`nextcloud-app-release` of `dawid/ci-actions`), with the version's section of `CHANGELOG.md` as the
-release's text, signed and published on the app store, given the secrets `NC_APP_SIGNING_KEY` and
-`NC_APPSTORE_TOKEN` (not published when the repository's variable `NC_APPSTORE` is `false`).
+and the Markdown, runs the tests, and checks the app on a real Nextcloud with PostgreSQL.
+[AGENTS.md](AGENTS.md) has the conventions and how to release; the release bot (`release-bot`) tags
+the releases that are due, weekly. A tag `vX.Y.Z` with the same version in `appinfo/info.xml` is
+released by `.forgejo/workflows/release.yml` (the shared action `nextcloud-app-release` of
+`dawid/ci-actions`), with the version's section of `CHANGELOG.md` as the release's text, signed and
+published on the app store, given the secrets `NC_APP_SIGNING_KEY` and `NC_APPSTORE_TOKEN` (not
+published when the repository's variable `NC_APPSTORE` is `false`).
 
 ## Reporting problems
 

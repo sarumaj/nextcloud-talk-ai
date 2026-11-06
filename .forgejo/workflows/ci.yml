@@ -4,8 +4,10 @@
 # The app's PHP must parse, follow Nextcloud's coding standard and pass Psalm, its
 # info.xml must pass the app store's schema, the Markdown must pass markdownlint, and the
 # tests (PHPUnit, no Nextcloud and no network) must pass against each supported
-# Nextcloud's public API; Talk's bot and chat API must still have what the app uses;
-# and the document golden set must pass with the sandbox image and the skills.
+# Nextcloud's public API; on a real Nextcloud with PostgreSQL the app must upgrade from
+# its app store release, run its jobs and pass tests/server/check.sh; Talk's bot and chat
+# API must still have what the app uses; and the document golden set must pass with the
+# sandbox image and the skills.
 # A failure blocks the merge (branch protection: all checks required).
 name: CI
 # A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
@@ -83,6 +85,32 @@ jobs:
 
       - name: Check the Markdown with markdownlint
         run: npx --yes markdownlint-cli2 "*.md" "docs/**/*.md"
+
+  server:
+    # A whole Ubuntu with rootless Docker, for Nextcloud and PostgreSQL: the migrations,
+    # repair steps, jobs, routes and commands that the API package alone does not run.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest Nextcloud info.xml supports and the newest released one (36 has no
+        # image yet; the php job covers it with dev-master).
+        nextcloud: ["32", "35"]
+    steps:
+      - name: Check out
+        run: *checkout
+
+      - name: Check the app on Nextcloud ${{ matrix.nextcloud }}
+        uses: https://git.ciepiela.org/dawid/ci-actions/nextcloud-app-server@main
+        with:
+          app-id: talk_ai
+          nextcloud: ${{ matrix.nextcloud }}
+          # The bot is Talk's.
+          apps: spreed
+          check: tests/server/check.sh
+          # Docs or translations alone need no server.
+          paths: app/** tests/server/** .forgejo/workflows/ci.yml
 
   talk-api:
     runs-on: docker

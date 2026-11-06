@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- CI checks the app on a real Nextcloud 32 and 35 with PostgreSQL (the shared action
+  `nextcloud-app-server`): installed over the app store's release and upgraded, its background jobs
+  run, then what the administrator and other apps get (`tests/server/check.sh`): the bot registered
+  with Talk once, the administration page, the OCS status, the metrics behind their token and the
+  `occ` commands.
+
 ## 0.16.0 - 2026-11-05
 
 ### Added
