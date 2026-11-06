@@ -13,6 +13,9 @@
 # (apps.nextcloud.com, account, API token). Without them the release still gets
 # the archive, unsigned and not published. Variable: NC_APPSTORE, false keeps the
 # release off the app store although NC_APPSTORE_TOKEN is set.
+#
+# Run by hand on a tag (Actions, Release, Run workflow: the tag as the ref) to retry its
+# release: the release and its text are kept, the files replaced. On a branch it fails at once.
 name: Release
 # A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
 # branch fails, Renovate opens a pull request, which mails the repository's watchers.
@@ -20,6 +23,7 @@ enable-email-notifications: true
 "on":
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   release:
@@ -27,6 +31,13 @@ jobs:
     container: docker.io/library/debian:bookworm-slim
     timeout-minutes: 15
     steps:
+      - name: Check the run is on a release tag
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v[0-9]*) ;;
+            *) echo "$GITHUB_REF is not a release tag: run it on the tag"; exit 1 ;;
+          esac
+
       - name: Install the tools
         run: apt-get update -qq && apt-get install -qq -y --no-install-recommends ca-certificates git openssl python3 >/dev/null
 
@@ -61,6 +72,13 @@ jobs:
     env:
       TAG: ${{ github.ref_name }}
     steps:
+      - name: Check the run is on a release tag
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v[0-9]*) ;;
+            *) echo "$GITHUB_REF is not a release tag: run it on the tag"; exit 1 ;;
+          esac
+
       - name: Check out
         run: |
           git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
