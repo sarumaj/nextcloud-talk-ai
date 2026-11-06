@@ -14,8 +14,10 @@
 # the archive, unsigned and not published. Variable: NC_APPSTORE, false keeps the
 # release off the app store although NC_APPSTORE_TOKEN is set.
 #
-# Run by hand on a tag (Actions, Release, Run workflow: the tag as the ref) to retry its
-# release: the release and its text are kept, the files replaced. On a branch it fails at once.
+# Run by hand to retry a tag's release (the release and its text are kept, the files replaced):
+# from main, with the tag in "tag" (fj actions dispatch release.yml main -I tag=v1.2.3). A tag
+# made before this trigger existed cannot be picked as the run's ref: Forgejo reads the
+# workflow from that ref, which has no workflow_dispatch.
 name: Release
 # A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
 # branch fails, Renovate opens a pull request, which mails the repository's watchers.
@@ -24,19 +26,21 @@ enable-email-notifications: true
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to release (vX.Y.Z); empty for the tag chosen above
+        required: false
 
 jobs:
   release:
     runs-on: docker
     container: docker.io/library/debian:bookworm-slim
     timeout-minutes: 15
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - name: Check the run is on a release tag
-        run: |
-          case "$GITHUB_REF" in
-            refs/tags/v[0-9]*) ;;
-            *) echo "$GITHUB_REF is not a release tag: run it on the tag"; exit 1 ;;
-          esac
+      - name: Check the tag
+        run: case "$TAG" in v[0-9]*) ;; *) echo "$TAG is not a release tag"; exit 1 ;; esac
 
       - name: Install the tools
         run: apt-get update -qq && apt-get install -qq -y --no-install-recommends ca-certificates git openssl python3 >/dev/null
@@ -44,8 +48,8 @@ jobs:
       - name: Check out
         run: |
           git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
-          git fetch -q --depth 1 origin "${{ github.sha }}"
-          git checkout -q FETCH_HEAD
+          git fetch -q --depth 1 origin "refs/tags/$TAG:refs/tags/$TAG"
+          git checkout -q "$TAG"
 
       # The app folder alone, named as the app, with the licence.
       - name: Release
@@ -53,7 +57,7 @@ jobs:
         with:
           app-id: talk_ai
           include: LICENSE
-          tag: ${{ github.ref_name }}
+          tag: ${{ env.TAG }}
           token: ${{ secrets.GITHUB_TOKEN }}
           signing-key: ${{ secrets.NC_APP_SIGNING_KEY }}
           # Published only when the app store's token is set and the variable NC_APPSTORE is not
@@ -70,20 +74,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - name: Check the run is on a release tag
-        run: |
-          case "$GITHUB_REF" in
-            refs/tags/v[0-9]*) ;;
-            *) echo "$GITHUB_REF is not a release tag: run it on the tag"; exit 1 ;;
-          esac
+      - name: Check the tag
+        run: case "$TAG" in v[0-9]*) ;; *) echo "$TAG is not a release tag"; exit 1 ;; esac
 
       - name: Check out
         run: |
           git init -q . && git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
-          git fetch -q --depth 1 origin "${{ github.sha }}"
-          git checkout -q FETCH_HEAD
+          git fetch -q --depth 1 origin "refs/tags/$TAG:refs/tags/$TAG"
+          git checkout -q "$TAG"
 
       - name: Build the images
         run: |
