@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.17.0 - 2026-11-09
+
 ### Added
 
 - CI checks the app on a real Nextcloud 32 and 35 with PostgreSQL (the shared action
