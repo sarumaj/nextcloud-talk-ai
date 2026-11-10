@@ -55,7 +55,7 @@ class HarvesterTest extends TestCase {
 	}
 
 	private function response(int $status, mixed $body): IResponse {
-		$response = $this->createMock(IResponse::class);
+		$response = $this->createStub(IResponse::class);
 		$response->method('getStatusCode')->willReturn($status);
 		$response->method('getBody')->willReturn(is_string($body) ? $body : (string)json_encode($body));
 		return $response;
@@ -79,7 +79,7 @@ class HarvesterTest extends TestCase {
 				return $this->test->request($appId, $route, $userId, $method, $params);
 			}
 		};
-		$urls = $this->createMock(IURLGenerator::class);
+		$urls = $this->createStub(IURLGenerator::class);
 		$urls->method('linkToRouteAbsolute')->willReturn('https://cloud.example/index.php/apps/app_api/embedded/harvester/harvester');
 		return new class($this->memoryConfig(), $urls, $appApi ? $api : null) extends Harvester {
 			public function __construct(
@@ -112,24 +112,24 @@ class HarvesterTest extends TestCase {
 
 	/** A Reply whose Harvester tools run with this Harvester; the chat's files are recorded. */
 	private function reply(Harvester $harvester, array &$posted, array $features = ['harvester' => true]): array {
-		$conversation = $this->createMock(Conversation::class);
+		$conversation = $this->createStub(Conversation::class);
 		$conversation->method('numberOfPeople')->willReturn(1);
 		$conversation->method('saveFile')->willReturnCallback(function ($room, $uid, string $name, string $data) use (&$posted): File {
 			$posted[] = ['name' => $name, 'data' => $data];
-			$file = $this->createMock(File::class);
+			$file = $this->createStub(File::class);
 			$file->method('getName')->willReturn($name);
 			return $file;
 		});
-		$shared = $this->createMock(File::class);
+		$shared = $this->createStub(File::class);
 		$shared->method('getSize')->willReturn(strlen(self::RECIPE));
 		$shared->method('getContent')->willReturn(self::RECIPE);
 		$conversation->method('userFile')->willReturnCallback(fn ($uid, int $id) => $id === 42 ? $shared : null);
-		$reply = new Reply($conversation, $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class),
-			$this->createMock(OdsWriter::class), $this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class),
-			$this->createMock(Web::class), $this->createMock(Calendar::class), $harvester, $this->createMock(Requests::class), $this->createMock(Actions::class),
-			$this->createMock(Capabilities::class), $this->createMock(\OCA\TalkAi\Ai\Hub::class), $this->createMock(Sandbox::class), $this->createMock(Dispatcher::class),
-			$this->createMock(Jobs::class), $this->createMock(Policy::class), $this->createMock(Confirmations::class), new FakeProgress(),
-			$this->createMock(\OCP\IConfig::class), $this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
+		$reply = new Reply($conversation, $this->createStub(TextExtractor::class), $this->createStub(OdtWriter::class),
+			$this->createStub(OdsWriter::class), $this->createStub(OdpWriter::class), $this->createStub(Office::class), $this->createStub(Bot::class),
+			$this->createStub(Web::class), $this->createStub(Calendar::class), $harvester, $this->createStub(Requests::class), $this->createStub(Actions::class),
+			$this->createStub(Capabilities::class), $this->createStub(\OCA\TalkAi\Ai\Hub::class), $this->createStub(Sandbox::class), $this->createStub(Dispatcher::class),
+			$this->createStub(Jobs::class), $this->createStub(Policy::class), $this->createStub(Confirmations::class), new FakeProgress(),
+			$this->createStub(\OCP\IConfig::class), $this->createStub(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
 		$set = function (string $name, mixed $value) use ($reply): void {
 			(new \ReflectionProperty(Reply::class, $name))->setValue($reply, $value);
 		};

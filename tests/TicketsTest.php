@@ -33,22 +33,22 @@ class TicketsTest extends TestCase {
 	private function hub(ScriptEngine $engine, ?IRootFolder $root = null): Hub {
 		$engines = new Engines($this->memoryConfig());
 		$engines->fix($engine);
-		$hub = new Hub($engines, new Conversations($this->memoryConfig(), $root ?? $this->createMock(IRootFolder::class)));
+		$hub = new Hub($engines, new Conversations($this->memoryConfig(), $root ?? $this->createStub(IRootFolder::class)));
 		$hub->registerScenario('assistant', ['system' => 's', 'ocs' => true, 'description' => 'd']);
 		$hub->registerScenario('secret', ['system' => 's']);
 		return $hub;
 	}
 
 	private function tickets(Hub $hub, FakeHttp $http): Tickets {
-		$jobs = $this->createMock(IJobList::class);
+		$jobs = $this->createStub(IJobList::class);
 		$jobs->method('add')->willReturnCallback(function ($class, $argument) {
 			$this->queued[] = [$class, $argument];
 		});
-		$urls = $this->createMock(IURLGenerator::class);
+		$urls = $this->createStub(IURLGenerator::class);
 		$urls->method('getAbsoluteURL')->willReturnCallback(fn ($p) => 'https://cloud.example' . $p);
-		$random = $this->createMock(ISecureRandom::class);
+		$random = $this->createStub(ISecureRandom::class);
 		$random->method('generate')->willReturnCallback(fn (int $n) => substr(str_repeat(bin2hex(random_bytes(16)), 3), 0, $n));
-		$crypto = $this->createMock(ICrypto::class);
+		$crypto = $this->createStub(ICrypto::class);
 		$crypto->method('encrypt')->willReturnCallback(fn ($v) => 'enc:' . $v);
 		$crypto->method('decrypt')->willReturnCallback(fn ($v) => substr($v, 4));
 		return new Tickets($hub, $this->memoryConfig(), $jobs, $http, $urls, $random, new Config($this->memoryConfig(), $crypto));
@@ -117,17 +117,17 @@ class TicketsTest extends TestCase {
 	}
 
 	public function testATranscriptGoesToFilesAsMarkdownAndForgetDropsIt(): void {
-		$file = $this->createMock(File::class);
+		$file = $this->createStub(File::class);
 		$file->method('putContent')->willReturnCallback(function ($content) {
 			$this->saved = $content;
 		});
 		$file->method('getPath')->willReturn('/ewa/files/AI conversations/x.md');
 		// Newer Nextcloud returns IUserFolder (a Folder) from getUserFolder().
-		$folder = $this->createMock(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
+		$folder = $this->createStub(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
 		$folder->method('nodeExists')->willReturn(false);
 		$folder->method('newFolder')->willReturn($folder);
 		$folder->method('newFile')->willReturn($file);
-		$root = $this->createMock(IRootFolder::class);
+		$root = $this->createStub(IRootFolder::class);
 		$root->method('getUserFolder')->willReturn($folder);
 		$hub = $this->hub(new ScriptEngine([new Turn('Paris.'), new Turn('Asked for a capital; it is Paris.')]), $root);
 		$hub->ask('ewa', 'assistant', [['role' => 'user', 'text' => 'Capital of France?']], ['conversation' => 'c2']);

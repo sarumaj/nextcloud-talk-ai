@@ -28,7 +28,7 @@ class MonitoringTest extends TestCase {
 	private array $recorded = [];
 
 	private function watch(array $rows = []): Watch {
-		$watch = $this->createMock(Watch::class);
+		$watch = $this->createStub(Watch::class);
 		$watch->method('record')->willReturnCallback(function (string $engine, Turn $turn) {
 			$this->recorded[] = [$engine, $turn->error];
 		});
@@ -37,14 +37,14 @@ class MonitoringTest extends TestCase {
 	}
 
 	private function config(): Config {
-		$crypto = $this->createMock(ICrypto::class);
+		$crypto = $this->createStub(ICrypto::class);
 		$crypto->method('encrypt')->willReturnCallback(fn ($v) => 'enc:' . $v);
 		$crypto->method('decrypt')->willReturnCallback(fn ($v) => substr($v, 4));
 		return new Config($this->memoryConfig(), $crypto);
 	}
 
 	private function engines(Watch $watch): Engines {
-		return new Engines($this->memoryConfig(), $this->config(), new \OCA\TalkAi\Ai\Http(new FakeHttp()), $this->createMock(\OCP\TaskProcessing\IManager::class), $watch);
+		return new Engines($this->memoryConfig(), $this->config(), new \OCA\TalkAi\Ai\Http(new FakeHttp()), $this->createStub(\OCP\TaskProcessing\IManager::class), $watch);
 	}
 
 	/** A fallback chain's first engine failing is recorded under its own name, though the next one answered. */

@@ -31,12 +31,12 @@ use Psr\Log\NullLogger;
 /** Which tools go with a question: all that are allowed, always the same, for the prompt cache. */
 class ToolChoiceTest extends TestCase {
 	private function tools(array $features = []): array {
-		$reply = new Reply($this->createMock(Conversation::class), $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class),
-			$this->createMock(OdsWriter::class), $this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class),
-			$this->createMock(Web::class), $this->createMock(Calendar::class), $this->createMock(Harvester::class), $this->createMock(Requests::class), $this->createMock(Actions::class),
-			$this->createMock(Capabilities::class), $this->createMock(\OCA\TalkAi\Ai\Hub::class), $this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class),
-			$this->createMock(Policy::class), $this->createMock(Confirmations::class), new FakeProgress(), $this->createMock(\OCP\IConfig::class),
-			$this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
+		$reply = new Reply($this->createStub(Conversation::class), $this->createStub(TextExtractor::class), $this->createStub(OdtWriter::class),
+			$this->createStub(OdsWriter::class), $this->createStub(OdpWriter::class), $this->createStub(Office::class), $this->createStub(Bot::class),
+			$this->createStub(Web::class), $this->createStub(Calendar::class), $this->createStub(Harvester::class), $this->createStub(Requests::class), $this->createStub(Actions::class),
+			$this->createStub(Capabilities::class), $this->createStub(\OCA\TalkAi\Ai\Hub::class), $this->createStub(Sandbox::class), $this->createStub(Dispatcher::class), $this->createStub(Jobs::class),
+			$this->createStub(Policy::class), $this->createStub(Confirmations::class), new FakeProgress(), $this->createStub(\OCP\IConfig::class),
+			$this->createStub(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
 		$set = function (string $name, mixed $value) use ($reply): void {
 			$p = new \ReflectionProperty(Reply::class, $name);
 			$p->setValue($reply, $value);

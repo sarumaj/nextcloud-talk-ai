@@ -116,7 +116,7 @@ class DocumentJobTest extends TestCase {
 		$this->sandbox = new FakeSandbox();
 		$this->row = ['id' => 7, 'user_id' => 'ewa', 'token' => 't', 'message_id' => 5, 'task' => 'Ein Protokoll der Sitzung', 'format' => 'docx',
 			'name' => 'Protokoll', 'attempts' => 1, 'options' => ['inputs' => []], 'feedback' => null, 'cancel' => false, 'delivered' => [], 'status' => 'running'];
-		$conversation = $this->createMock(Conversation::class);
+		$conversation = $this->createStub(Conversation::class);
 		$conversation->method('room')->willReturn(new \stdClass());
 		$comment = new class {
 			public function getId(): int {
@@ -138,18 +138,18 @@ class DocumentJobTest extends TestCase {
 		});
 		$conversation->method('deliver')->willReturnCallback(function ($room, $user, $folder, $name, $data) {
 			$this->delivered[] = [$folder, $name, $data];
-			$file = $this->createMock(File::class);
+			$file = $this->createStub(File::class);
 			$file->method('getName')->willReturn($name);
 			$file->method('getId')->willReturn(99);
 			return $file;
 		});
-		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig = $this->createStub(IAppConfig::class);
 		$appConfig->method('getValueString')->willReturnCallback(fn ($app, $key, $default = '') => $this->config[$key] ?? $default);
 		$appConfig->method('setValueString')->willReturnCallback(function ($app, $key, $value) {
 			$this->config[$key] = $value;
 			return true;
 		});
-		$jobs = $this->createMock(Jobs::class);
+		$jobs = $this->createStub(Jobs::class);
 		$jobs->method('claim')->willReturn(true);
 		$jobs->method('get')->willReturnCallback(function () {
 			$row = $this->row;
@@ -167,13 +167,13 @@ class DocumentJobTest extends TestCase {
 			$this->row['outcome'] = $outcome;
 		});
 		$jobs->method('queued')->willReturn([]);
-		$policy = $this->createMock(Policy::class);
-		$config = $this->createMock(IConfig::class);
+		$policy = $this->createStub(Policy::class);
+		$config = $this->createStub(IConfig::class);
 		$config->method('getUserValue')->willReturn('en');
-		$root = $this->createMock(IRootFolder::class);
+		$root = $this->createStub(IRootFolder::class);
 		if ($files) {
 			// Newer Nextcloud returns IUserFolder (a Folder) from getUserFolder().
-			$folder = $this->createMock(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
+			$folder = $this->createStub(interface_exists('OCP\Files\IUserFolder') ? 'OCP\Files\IUserFolder' : Folder::class);
 			$folder->method('nodeExists')->willReturn(false);
 			$folder->method('getFreeSpace')->willReturnCallback(fn () => $this->freeSpace);
 			$folder->method('newFolder')->willReturn($folder);
@@ -183,18 +183,18 @@ class DocumentJobTest extends TestCase {
 			});
 			$folder->method('newFile')->willReturnCallback(function ($name, $data) {
 				$this->saved[$name] = $data;
-				return $this->createMock(File::class);
+				return $this->createStub(File::class);
 			});
 			$root->method('getUserFolder')->willReturn($folder);
 		} else {
 			$root->method('getUserFolder')->willThrowException(new \RuntimeException('no files in tests'));
 		}
-		$urls = $this->createMock(IURLGenerator::class);
+		$urls = $this->createStub(IURLGenerator::class);
 		$urls->method('getAbsoluteURL')->willReturnCallback(fn ($path) => 'https://cloud.example' . $path);
-		$bot = $this->createMock(Bot::class);
+		$bot = $this->createStub(Bot::class);
 		$bot->method('name')->willReturn('AI');
 		$job = new TestDocumentJob($this->sandbox, $conversation, $appConfig, $jobs, $policy, $config, $root, $urls, $bot,
-			$this->createMock(Dispatcher::class), $this->createMock(Actions::class), $this->createMock(IAppData::class), new EnglishTexts(), new FakeProgress(), new NullLogger(),
+			$this->createStub(Dispatcher::class), $this->createStub(Actions::class), $this->createStub(IAppData::class), new EnglishTexts(), new FakeProgress(), new NullLogger(),
 			$hub->hub($appConfig));
 		$job->noSleep = true;
 		return $job;

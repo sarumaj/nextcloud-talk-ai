@@ -131,7 +131,7 @@ class LimitsTest extends TestCase {
 
 	public function testOnlyTheGroupsMayAskWhenSome(): void {
 		$this->values['ai_groups'] = '["staff"]';
-		$groups = $this->createMock(IGroupManager::class);
+		$groups = $this->createStub(IGroupManager::class);
 		$groups->method('isInGroup')->willReturnCallback(fn ($uid, $group) => $uid === 'ewa' && $group === 'staff');
 		$hub = $this->hub(new ScriptEngine([new Turn('a'), new Turn('b'), new Turn('c')]), $this->limits(), null, $groups);
 		$this->assertSame('done', $hub->ask('ewa', 'chat', [['role' => 'user', 'text' => 'q']])['state']);
@@ -180,14 +180,14 @@ class LimitsTest extends TestCase {
 	}
 
 	private function config(): Config {
-		$crypto = $this->createMock(ICrypto::class);
+		$crypto = $this->createStub(ICrypto::class);
 		$crypto->method('encrypt')->willReturnCallback(fn ($v) => 'enc:' . $v);
 		$crypto->method('decrypt')->willReturnCallback(fn ($v) => substr($v, 4));
 		return new Config($this->memoryConfig(), $crypto);
 	}
 
 	public function testTheAdministrationKeepsKeysApartAndChecksWhatItSaves(): void {
-		$admin = new Admin(new Engines($this->memoryConfig(), $this->config(), new \OCA\TalkAi\Ai\Http(new FakeHttp()), $this->createMock(\OCP\TaskProcessing\IManager::class)),
+		$admin = new Admin(new Engines($this->memoryConfig(), $this->config(), new \OCA\TalkAi\Ai\Http(new FakeHttp()), $this->createStub(\OCP\TaskProcessing\IManager::class)),
 			$this->config(), $this->memoryConfig());
 		$this->assertSame([], $admin->save('anthropic', ['key' => 'sk-ant-secret', 'model' => 'claude-opus-5-5', 'binary' => '/bin/sh', 'flags' => ['search' => false]]));
 		$this->assertStringStartsWith('enc:', $this->values['ai_secret_anthropic_key']);

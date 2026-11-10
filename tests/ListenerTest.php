@@ -62,15 +62,15 @@ class ListenerTest extends TestCase {
 	private bool $voice = false;
 
 	private function listener(): BotInvokeListener {
-		$dispatcher = $this->createMock(Dispatcher::class);
+		$dispatcher = $this->createStub(Dispatcher::class);
 		$dispatcher->method('dispatch')->willReturnCallback(function ($token, $user, $id, $text) {
 			$this->dispatched[] = [$token, $user, $id, $text];
 		});
-		$conversation = $this->createMock(Conversation::class);
+		$conversation = $this->createStub(Conversation::class);
 		$conversation->method('numberOfPeople')->willReturnCallback(fn () => $this->people);
-		$bot = $this->createMock(Bot::class);
+		$bot = $this->createStub(Bot::class);
 		$bot->method('name')->willReturn('Claude');
-		$jobs = $this->createMock(Jobs::class);
+		$jobs = $this->createStub(Jobs::class);
 		$jobs->method('active')->willReturnCallback(fn () => $this->active);
 		$jobs->method('cancel')->willReturnCallback(function ($id) {
 			$this->cancelled[] = $id;
@@ -79,10 +79,10 @@ class ListenerTest extends TestCase {
 			$this->feedback[] = $text;
 		});
 		$jobs->method('byMessage')->willReturnCallback(fn ($token, $file, $message) => $message === 500 ? ['id' => 9, 'user_id' => 'ewa', 'options' => []] : null);
-		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig = $this->createStub(IAppConfig::class);
 		$appConfig->method('getValueString')->willReturnCallback(fn ($app, $key, $default = '') => $this->config[$key] ?? $default);
 		$switches = new Switches($appConfig, $jobs);
-		$requests = $this->createMock(\OCA\TalkAi\Service\Requests::class);
+		$requests = $this->createStub(\OCA\TalkAi\Service\Requests::class);
 		$requests->method('answeredAt')->willReturnCallback(fn ($token, $id) => $id === 100 ? time() - 60 : 0);
 		$requests->method('release')->willReturnCallback(function ($token, $id) {
 			$this->released[] = $id;

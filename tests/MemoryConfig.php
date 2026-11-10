@@ -13,7 +13,7 @@ trait MemoryConfig {
 	private array $values = [];
 
 	private function memoryConfig(): IAppConfig {
-		$config = $this->createMock(IAppConfig::class);
+		$config = $this->createStub(IAppConfig::class);
 		$config->method('getValueString')->willReturnCallback(fn ($app, $key, $default = '') => $this->values[$key] ?? $default);
 		$config->method('getValueInt')->willReturnCallback(fn ($app, $key, $default = 0) => (int)($this->values[$key] ?? $default));
 		$config->method('setValueString')->willReturnCallback(function ($app, $key, $value) {

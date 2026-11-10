@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 /** What the app asks: scenarios, who may ask, what goes with a question, and the result's shape. */
 class HubTest extends TestCase {
 	private function hub(ScriptEngine|Missing $engine): Hub {
-		$engines = new Engines($this->createMock(IAppConfig::class));
+		$engines = new Engines($this->createStub(IAppConfig::class));
 		$engines->fix($engine);
 		return new Hub($engines);
 	}

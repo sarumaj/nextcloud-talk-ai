@@ -19,9 +19,9 @@ class TickerTest extends TestCase {
 	private array $edited = [];
 
 	private function ticker(FakeProgress $progress): TickerController {
-		$time = $this->createMock(ITimeFactory::class);
+		$time = $this->createStub(ITimeFactory::class);
 		$time->method('getTime')->willReturnCallback(fn () => $this->now);
-		$conversation = $this->createMock(Conversation::class);
+		$conversation = $this->createStub(Conversation::class);
 		$conversation->method('room')->willReturn(new \stdClass());
 		$conversation->method('postText')->willReturnCallback(function ($room, $text) {
 			$this->posted[] = $text;
@@ -36,7 +36,7 @@ class TickerTest extends TestCase {
 			$this->edited[] = $text;
 			return true;
 		});
-		return new TickerController('talk_ai', $this->createMock(IRequest::class), $this->createMock(Dispatcher::class), $progress,
+		return new TickerController('talk_ai', $this->createStub(IRequest::class), $this->createStub(Dispatcher::class), $progress,
 			$conversation, new EnglishTexts(), $time);
 	}
 

@@ -32,6 +32,8 @@
   as fixtures),
   `tests/golden/` (the document cases with the image), `tests/compat/` (Talk's API),
   `tests/server/check.sh` (the app on a real Nextcloud: what the administrator and other apps get).
+- `composer.json`: development tools only (PHPUnit, php-cs-fixer, Psalm); the app needs none.
+  The tools need PHP 8.4 (`config.platform.php`, for PHPUnit 13); the app runs on PHP 8.2.
 
 ## Exams and studies without built-in rules
 

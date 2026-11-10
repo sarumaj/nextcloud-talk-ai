@@ -32,14 +32,14 @@ class AiSettingsTest extends TestCase {
 	private array $params = [];
 
 	private function settings(): Settings {
-		$switches = $this->createMock(Switches::class);
+		$switches = $this->createStub(Switches::class);
 		$switches->method('list')->willReturn([]);
-		return new Settings($this->memoryConfig(), $this->createMock(Jobs::class), $this->createMock(Requests::class), $this->createMock(Health::class),
-			$this->createMock(Policy::class), $switches);
+		return new Settings($this->memoryConfig(), $this->createStub(Jobs::class), $this->createStub(Requests::class), $this->createStub(Health::class),
+			$this->createStub(Policy::class), $switches);
 	}
 
 	private function controller(): SettingsController {
-		$crypto = $this->createMock(ICrypto::class);
+		$crypto = $this->createStub(ICrypto::class);
 		$crypto->method('encrypt')->willReturnCallback(fn ($v) => 'enc:' . strrev($v));
 		$crypto->method('decrypt')->willReturnCallback(fn ($v) => strrev(substr($v, 4)));
 		$config = new Config($this->memoryConfig(), $crypto);
@@ -49,9 +49,9 @@ class AiSettingsTest extends TestCase {
 				return $name === 'taskprocessing' ? new Missing() : parent::get($name, $model);
 			}
 		};
-		$request = $this->createMock(IRequest::class);
+		$request = $this->createStub(IRequest::class);
 		$request->method('getParams')->willReturnCallback(fn () => $this->params);
-		return new SettingsController('talk_ai', $request, $this->settings(), $this->createMock(Jobs::class), $this->createMock(IAppData::class),
+		return new SettingsController('talk_ai', $request, $this->settings(), $this->createStub(Jobs::class), $this->createStub(IAppData::class),
 			new Admin($engines, $config, $this->memoryConfig()), $engines);
 	}
 

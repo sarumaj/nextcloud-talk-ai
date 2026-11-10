@@ -58,7 +58,7 @@ class ContentSearchTest extends TestCase {
 	}
 
 	private function file(string $name): File {
-		$file = $this->createMock(File::class);
+		$file = $this->createStub(File::class);
 		$file->method('getName')->willReturn($name);
 		$file->method('getMimetype')->willReturn('application/pdf');
 		$file->method('getSize')->willReturn(1234);
@@ -95,7 +95,7 @@ class ContentSearchTest extends TestCase {
 				return SearchResult::complete('File contents', $this->test->entries);
 			}
 		};
-		$container = $this->createMock(ContainerInterface::class);
+		$container = $this->createStub(ContainerInterface::class);
 		$container->method('get')->willReturnCallback(function (string $id) use ($installed, $provider) {
 			$this->assertSame('OCA\\Findling\\Search\\Provider', $id);
 			if (!$installed) {
@@ -103,12 +103,12 @@ class ContentSearchTest extends TestCase {
 			}
 			return $provider;
 		});
-		$apps = $this->createMock(IAppManager::class);
+		$apps = $this->createStub(IAppManager::class);
 		$apps->method('isEnabledForUser')->willReturnCallback(fn (string $app) => $app === 'findling' && $enabled);
-		$users = $this->createMock(IUserManager::class);
-		$users->method('get')->willReturnCallback(fn (string $uid) => $uid === 'anna' ? $this->createMock(IUser::class) : null);
+		$users = $this->createStub(IUserManager::class);
+		$users->method('get')->willReturnCallback(fn (string $uid) => $uid === 'anna' ? $this->createStub(IUser::class) : null);
 		$files = [7 => $this->file('Insurance.pdf'), 8 => $this->file('Lease.pdf')];
-		$conversation = $this->createMock(Conversation::class);
+		$conversation = $this->createStub(Conversation::class);
 		$conversation->method('userFile')->willReturnCallback(fn (string $uid, int $id) => $uid === 'anna' ? ($files[$id] ?? null) : null);
 		$conversation->method('relativePath')->willReturnCallback(fn (string $uid, File $file) => 'Documents/' . $file->getName());
 		return new ContentSearch($apps, $users, $container, $conversation, new NullLogger());
@@ -163,14 +163,14 @@ class ContentSearchTest extends TestCase {
 
 	/** Reply's tools with this search, for a person alone in the chat. */
 	private function tools(?ContentSearch $search, bool $on): array {
-		$conversation = $this->createMock(Conversation::class);
+		$conversation = $this->createStub(Conversation::class);
 		$conversation->method('numberOfPeople')->willReturn(1);
-		$reply = new Reply($conversation, $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class),
-			$this->createMock(OdsWriter::class), $this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class),
-			$this->createMock(Web::class), $this->createMock(Calendar::class), $this->createMock(Harvester::class), $this->createMock(Requests::class), $this->createMock(Actions::class),
-			$this->createMock(Capabilities::class), $this->createMock(\OCA\TalkAi\Ai\Hub::class), $this->createMock(Sandbox::class), $this->createMock(Dispatcher::class),
-			$this->createMock(Jobs::class), $this->createMock(Policy::class), $this->createMock(Confirmations::class), new FakeProgress(),
-			$this->createMock(\OCP\IConfig::class), $this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger(), $search);
+		$reply = new Reply($conversation, $this->createStub(TextExtractor::class), $this->createStub(OdtWriter::class),
+			$this->createStub(OdsWriter::class), $this->createStub(OdpWriter::class), $this->createStub(Office::class), $this->createStub(Bot::class),
+			$this->createStub(Web::class), $this->createStub(Calendar::class), $this->createStub(Harvester::class), $this->createStub(Requests::class), $this->createStub(Actions::class),
+			$this->createStub(Capabilities::class), $this->createStub(\OCA\TalkAi\Ai\Hub::class), $this->createStub(Sandbox::class), $this->createStub(Dispatcher::class),
+			$this->createStub(Jobs::class), $this->createStub(Policy::class), $this->createStub(Confirmations::class), new FakeProgress(),
+			$this->createStub(\OCP\IConfig::class), $this->createStub(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger(), $search);
 		(new \ReflectionProperty(Reply::class, 'features'))->setValue($reply, ['contents' => $on, 'documents' => true, 'sandbox' => true, 'web' => true, 'calendar' => true, 'harvester' => false]);
 		(new \ReflectionProperty(Reply::class, 'caps'))->setValue($reply, ['images' => true]);
 		(new \ReflectionProperty(Reply::class, 'room'))->setValue($reply, new class {

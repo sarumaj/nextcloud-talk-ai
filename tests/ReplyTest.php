@@ -61,16 +61,16 @@ class ReplyTest extends TestCase {
 
 	/** A Hub whose engine is not set up. */
 	private function hub(): Hub {
-		$engines = new Engines($this->createMock(\OCP\IAppConfig::class));
+		$engines = new Engines($this->createStub(\OCP\IAppConfig::class));
 		$engines->fix(new Missing());
 		return new Hub($engines);
 	}
 
 	private function reply(Conversation $conversation, Requests $requests): Reply {
-		return new Reply($conversation, $this->createMock(TextExtractor::class), $this->createMock(OdtWriter::class), $this->createMock(OdsWriter::class),
-			$this->createMock(OdpWriter::class), $this->createMock(Office::class), $this->createMock(Bot::class), $this->createMock(Web::class),
-			$this->createMock(Calendar::class), $this->createMock(Harvester::class), $requests, $this->createMock(Actions::class), $this->createMock(Capabilities::class), $this->hub(),
-			$this->createMock(Sandbox::class), $this->createMock(Dispatcher::class), $this->createMock(Jobs::class), $this->createMock(Policy::class),
-			$this->createMock(Confirmations::class), new FakeProgress(), $this->createMock(\OCP\IConfig::class), $this->createMock(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
+		return new Reply($conversation, $this->createStub(TextExtractor::class), $this->createStub(OdtWriter::class), $this->createStub(OdsWriter::class),
+			$this->createStub(OdpWriter::class), $this->createStub(Office::class), $this->createStub(Bot::class), $this->createStub(Web::class),
+			$this->createStub(Calendar::class), $this->createStub(Harvester::class), $requests, $this->createStub(Actions::class), $this->createStub(Capabilities::class), $this->hub(),
+			$this->createStub(Sandbox::class), $this->createStub(Dispatcher::class), $this->createStub(Jobs::class), $this->createStub(Policy::class),
+			$this->createStub(Confirmations::class), new FakeProgress(), $this->createStub(\OCP\IConfig::class), $this->createStub(\OCP\IAppConfig::class), new EnglishTexts(), new NullLogger());
 	}
 }

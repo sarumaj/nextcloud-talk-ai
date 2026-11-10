@@ -36,12 +36,12 @@ class TaskProcessingTest extends TestCase {
 	 * @param array<string, string> $providers type => provider id
 	 */
 	private function manager(array $providers, array $outputs, bool $sync = true): IManager {
-		$manager = $this->createMock(IManager::class);
+		$manager = $this->createStub(IManager::class);
 		$manager->method('getPreferredProvider')->willReturnCallback(function (string $type) use ($providers, $sync) {
 			if (!isset($providers[$type])) {
 				throw new \OCP\TaskProcessing\Exception\Exception('no provider');
 			}
-			$provider = $this->createMock($sync ? ISynchronousProvider::class : IProvider::class);
+			$provider = $this->createStub($sync ? ISynchronousProvider::class : IProvider::class);
 			$provider->method('getId')->willReturn($providers[$type]);
 			$provider->method('getName')->willReturn('OpenAI and LocalAI integration');
 			return $provider;
@@ -172,7 +172,7 @@ class TaskProcessingTest extends TestCase {
 	}
 
 	private function hub(ScriptEngine $engine): Hub {
-		$engines = new Engines($this->createMock(IAppConfig::class));
+		$engines = new Engines($this->createStub(IAppConfig::class));
 		$engines->fix($engine);
 		return new Hub($engines);
 	}

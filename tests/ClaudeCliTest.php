@@ -112,7 +112,7 @@ class ClaudeCliTest extends TestCase {
 
 	public function testANextQuestionGoesToTheSameProcess(): void {
 		$engine = $this->engine([[['text' => 'One.']], [['text' => 'Two.']]]);
-		$engines = new Engines($this->createMock(IAppConfig::class));
+		$engines = new Engines($this->createStub(IAppConfig::class));
 		$engines->fix($engine);
 		$hub = new Hub($engines);
 		$hub->registerScenario('job', ['system' => 's']);
