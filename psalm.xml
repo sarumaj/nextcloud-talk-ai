@@ -22,6 +22,14 @@
     <issueHandlers>
         <!-- #[\Override] needs PHP 8.3; the app runs on 8.2. -->
         <MissingOverrideAttribute errorLevel="suppress"/>
+        <!-- CliProcess starts a command line model with an argv array, which PHP runs without a
+             shell: none of it is shell code. Psalm takes proc_open's command for a shell's
+             whether it is a string or an array. -->
+        <TaintedShell>
+            <errorLevel type="suppress">
+                <file name="app/talk_ai/lib/Ai/Engine/CliProcess.php"/>
+            </errorLevel>
+        </TaintedShell>
     </issueHandlers>
     <stubs>
         <file name="stubs/doctrine-dbal.phpstub"/>

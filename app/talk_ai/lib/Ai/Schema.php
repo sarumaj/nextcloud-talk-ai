@@ -17,7 +17,11 @@ final class Schema {
 		if (isset($schema['enum']) && is_array($schema['enum']) && !in_array($value, $schema['enum'], true)) {
 			return $at . ' should be one of ' . json_encode($schema['enum'], JSON_UNESCAPED_UNICODE);
 		}
-		if (is_array($value) && (!array_is_list($value) || $value === [])) {
+		if (!is_array($value)) {
+			return '';
+		}
+		// An empty array is both an object and a list: it is checked as either.
+		if (!array_is_list($value) || $value === []) {
 			foreach ((array)($schema['required'] ?? []) as $key) {
 				if (!array_key_exists($key, $value)) {
 					return $at . '.' . $key . ' is missing';
@@ -29,7 +33,7 @@ final class Schema {
 				}
 			}
 		}
-		if (is_array($value) && array_is_list($value) && is_array($schema['items'] ?? null)) {
+		if (array_is_list($value) && is_array($schema['items'] ?? null)) {
 			foreach ($value as $i => $item) {
 				if (($fail = self::check($item, $schema['items'], $at . '[' . $i . ']')) !== '') {
 					return $fail;

@@ -179,7 +179,7 @@ class Numerics {
 		for ($j = 0; $j < $n; $j++) {
 			$v = array_column($a, $j);
 			for ($i = 0; $i < $j; $i++) {
-				$r[$i][$j] = array_sum(array_map(fn ($k) => $q[$k][$i] * $a[$k][$j], range(0, $n - 1)));
+				$r[$i][$j] = (float)array_sum(array_map(fn ($k) => $q[$k][$i] * $a[$k][$j], range(0, $n - 1)));
 				for ($k = 0; $k < $n; $k++) {
 					$v[$k] -= $r[$i][$j] * $q[$k][$i];
 				}

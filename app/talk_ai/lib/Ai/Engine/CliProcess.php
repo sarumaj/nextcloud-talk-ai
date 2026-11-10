@@ -16,7 +16,7 @@ namespace OCA\TalkAi\Ai\Engine;
 final class CliProcess {
 	/** @var resource */
 	private $proc;
-	/** @var array<int, resource> */
+	/** @var array<int, resource> stdin and stdout while open: a pipe closed is taken out */
 	private array $pipes = [];
 	private string $buffer = '';
 	private string $stderr;
@@ -92,7 +92,9 @@ final class CliProcess {
 	/** The end of input: the tool answers what it has and exits. */
 	public function closeInput(): void {
 		if (is_resource($this->pipes[0] ?? null)) {
-			fclose($this->pipes[0]);
+			$stdin = $this->pipes[0];
+			unset($this->pipes[0]);
+			fclose($stdin);
 		}
 	}
 
@@ -139,7 +141,9 @@ final class CliProcess {
 			}
 		}
 		if (is_resource($this->pipes[1] ?? null)) {
-			fclose($this->pipes[1]);
+			$stdout = $this->pipes[1];
+			unset($this->pipes[1]);
+			fclose($stdout);
 		}
 		proc_close($this->proc);
 	}
