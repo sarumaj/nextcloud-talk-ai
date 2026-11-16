@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.17.1 - 2026-11-16
+
+### Fixed
+
+- **psalm:** the findings Psalm 7 reports under PHP 8.5 (#6)
+
 ## 0.17.0 - 2026-11-09
 
 ### Added
