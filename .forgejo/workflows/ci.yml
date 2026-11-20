@@ -103,32 +103,8 @@ jobs:
       - name: Install the development tools
         run: composer install -q --no-interaction --no-progress
 
-      # On Renovate's branches (dawid/ci-actions' renovate-regenerate, committed as
-      # regenerate-bot): the code as a new php-cs-fixer or coding standard formats it,
-      # and Psalm's baseline as a new Psalm records its findings, each only when the
-      # branch changes that tool's version: a dependency's real findings still fail.
-      - name: Format the code anew for a new php-cs-fixer
-        uses: https://git.ciepiela.org/dawid/ci-actions/renovate-regenerate@main
-        with:
-          run: composer cs:fix
-          paths: app/talk_ai tests
-          message: "style: the code as the new php-cs-fixer formats it"
-          when: |
-            composer.lock "php-cs-fixer/shim"
-            composer.lock "nextcloud/coding-standard"
-            composer.lock "kubawerlos/php-cs-fixer-custom-fixers"
-          token: ${{ secrets.REGENERATE_TOKEN }}
-
-      - name: Record Psalm's baseline anew for a new Psalm
-        uses: https://git.ciepiela.org/dawid/ci-actions/renovate-regenerate@main
-        with:
-          # Psalm exits 2 while the baseline holds findings; the check below tells.
-          run: vendor/bin/psalm --threads=1 --no-cache --no-progress --set-baseline=psalm-baseline.xml > /dev/null || true
-          paths: psalm-baseline.xml
-          message: "chore(psalm): the baseline as the new Psalm records it"
-          when: composer.lock "vimeo/psalm"
-          token: ${{ secrets.REGENERATE_TOKEN }}
-
+      # On Renovate's branches the regenerate bot (bots/regenerate, set up in HomeLab) commits the
+      # files these checks compare, from a build of its own without any token.
       - name: Check the coding standard
         run: composer cs:check
 
