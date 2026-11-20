@@ -77,7 +77,8 @@ tag.
 ## Screenshots
 
 `screenshots/1-…png` to `4-…png` were recorded against a throwaway Nextcloud in Docker, with Talk
-and this app from the working tree, demo people (Anna and Ben Example) and demo content only,
-with Playwright (Chromium, 1280×800 at device scale 2), then scaled down to 1600 pixels wide
-(`vips thumbnail in.png out.png[compression=9,strip] 1600`). `appinfo/info.xml` links them by
-their raw URLs on `main`. Never show real accounts, addresses or host names.
+and this app from the working tree, demo people (Anna and Ben Example) and demo content only, with
+Playwright (Chromium, 1280×800 at device scale 2), then scaled down to 1600 pixels wide (`vips
+thumbnail in.png out.png[compression=9,strip] 1600`). `appinfo/info.xml` links them by their media
+URLs on `main` (`/media/`: they are in Git LFS, and `/raw/` would serve its pointer). Never show
+real accounts, addresses or host names.
