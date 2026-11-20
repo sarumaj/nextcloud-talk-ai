@@ -32,10 +32,10 @@ Enable the bot in a conversation (conversation settings, Bots). In a conversatio
     <website>https://git.ciepiela.org/dawid/nextcloud-talk-ai</website>
     <bugs>https://github.com/sarumaj/nextcloud-talk-ai/issues</bugs>
     <repository>https://git.ciepiela.org/dawid/nextcloud-talk-ai</repository>
-    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/raw/branch/main/screenshots/1-help.png</screenshot>
-    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/raw/branch/main/screenshots/2-document-workshop.png</screenshot>
-    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/raw/branch/main/screenshots/3-maths-and-calendar.png</screenshot>
-    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/raw/branch/main/screenshots/4-administration.png</screenshot>
+    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/media/branch/main/screenshots/1-help.png</screenshot>
+    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/media/branch/main/screenshots/2-document-workshop.png</screenshot>
+    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/media/branch/main/screenshots/3-maths-and-calendar.png</screenshot>
+    <screenshot>https://git.ciepiela.org/dawid/nextcloud-talk-ai/media/branch/main/screenshots/4-administration.png</screenshot>
     <dependencies>
         <php min-version="8.2"/>
         <lib>zip</lib>
