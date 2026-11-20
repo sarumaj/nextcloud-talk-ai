@@ -8,6 +8,8 @@
 # its app store release, run its jobs and pass tests/server/check.sh; Talk's bot and chat
 # API must still have what the app uses; and the document golden set must pass with the
 # sandbox image and the skills.
+# The PHPUnit results go to the pull request, a comment per Nextcloud version
+# (dawid/ci-actions' test-report).
 # A failure blocks the merge (branch protection: all checks required).
 name: CI
 # A failed job mails whoever started the run. Renovate's bot has no mailbox: when its
@@ -39,12 +41,13 @@ jobs:
         ocp: [dev-stable32, dev-stable33, dev-stable34, dev-stable35, dev-master]
     steps:
       # What the composer image had: bash and git (the steps), zip and bz2, Composer
-      # from its installer, checked against the signature Composer publishes.
+      # from its installer, checked against the signature Composer publishes; and
+      # Python, which the test report runs with.
       - &tools
         name: Install git, the PHP extensions and Composer
         shell: sh
         run: |
-          apk add -q bash git unzip libzip bzip2
+          apk add -q bash git unzip libzip bzip2 python3
           apk add -q --virtual .build $PHPIZE_DEPS libzip-dev bzip2-dev
           docker-php-ext-install -j"$(nproc)" zip bz2 > /dev/null
           apk del -q .build
@@ -69,12 +72,22 @@ jobs:
           xmllint --noout --schema /tmp/info.xsd app/talk_ai/appinfo/info.xml
 
       - name: Run the tests against Nextcloud's API (${{ matrix.ocp }})
+        id: tests
         run: |
           composer install -q --no-interaction --no-progress
           # Newer Nextcloud needs a newer PHP than the lowest one composer.json resolves for.
           composer config --unset platform.php
           composer require -q --dev --no-interaction -W "nextcloud/ocp:${{ matrix.ocp }}"
-          vendor/bin/phpunit
+          vendor/bin/phpunit --log-junit /tmp/phpunit.xml
+
+      # The results as one comment per Nextcloud version on the pull request
+      # (dawid/ci-actions), also when tests failed; not when an earlier step failed.
+      - name: Test report
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: https://git.ciepiela.org/dawid/ci-actions/test-report@main
+        with:
+          junit: /tmp/phpunit.xml
+          name: CI / php (${{ matrix.ocp }})
 
   standards:
     runs-on: docker
