@@ -17,4 +17,8 @@ $config
 	->in(__DIR__ . '/tests')
 	->append([__FILE__]);
 
+// php-cs-fixer refuses a PHP newer than the syntax it knows (8.6, until a release that
+// knows it): the code keeps to the syntax of PHP 8.2, the oldest it supports.
+$config->setUnsupportedPhpVersionAllowed(true);
+
 return $config;
