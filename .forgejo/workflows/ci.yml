@@ -29,10 +29,10 @@ concurrency:
 jobs:
   php:
     runs-on: docker
-    # PHP 8.5 with Composer: composer:2 follows PHP's newest release (8.6 since
-    # 2026-11-19), which php-cs-fixer refuses, Psalm crashes on and which lacks
-    # mbstring there. Renovate's bump of this tag shows when the tools support the next.
-    container: docker.io/library/php:8.5-cli-alpine
+    # PHP 8.6, with the mbstring extension its image lacks (built in the first step) and
+    # php-cs-fixer allowed to run on it (.php-cs-fixer.dist.php). Renovate bumps this tag
+    # in a pull request of its own (renovate/php), whose CI shows what the next PHP breaks.
+    container: docker.io/library/php:8.6-cli-alpine
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -41,15 +41,16 @@ jobs:
         ocp: [dev-stable32, dev-stable33, dev-stable34, dev-stable35, dev-master]
     steps:
       # What the composer image had: bash and git (the steps), zip and bz2, Composer
-      # from its installer, checked against the signature Composer publishes; and
+      # from its installer, checked against the signature Composer publishes; mbstring,
+      # which PHPUnit needs and PHP's 8.6 image lacks; and
       # Python, which the test report runs with.
       - &tools
         name: Install git, the PHP extensions and Composer
         shell: sh
         run: |
-          apk add -q bash git unzip libzip bzip2 python3
-          apk add -q --virtual .build $PHPIZE_DEPS libzip-dev bzip2-dev
-          docker-php-ext-install -j"$(nproc)" zip bz2 > /dev/null
+          apk add -q bash git unzip libzip bzip2 oniguruma python3
+          apk add -q --virtual .build $PHPIZE_DEPS libzip-dev bzip2-dev oniguruma-dev
+          docker-php-ext-install -j"$(nproc)" zip bz2 mbstring > /dev/null
           apk del -q .build
           wget -q -O /tmp/composer-setup.php https://getcomposer.org/installer
           [ "$(wget -q -O - https://composer.github.io/installer.sig)" = \
@@ -92,7 +93,7 @@ jobs:
   standards:
     runs-on: docker
     # As the job php above, with the same tools.
-    container: docker.io/library/php:8.5-cli-alpine
+    container: docker.io/library/php:8.6-cli-alpine
     timeout-minutes: 10
     steps:
       - *tools
