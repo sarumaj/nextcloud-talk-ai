@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- **voice:** a voice message is also answered by voice, beside the text answer: through
+  Nextcloud's text-to-speech, in the language of the answer, without code, links, formulas and
+  citation marks, up to about a minute and a half (setting `voice_replies`, on by default; the
+  health check shows the provider)
+- **voice:** the External App talk_ai_voice, a text-to-speech provider with Piper on the CPU
+  (German, Polish and English voices in the image, MP3), its image built and tested in CI and
+  published with each release (`talk-ai-voice-exapp`)
+
 ## 0.17.1 - 2026-11-16
 
 ### Fixed

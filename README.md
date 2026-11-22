@@ -4,6 +4,9 @@ A bot for [Nextcloud Talk](https://apps.nextcloud.com/apps/spreed) that answers 
 assistant for work and school in your conversations. It reads the files you share, writes
 documents, slides, spreadsheets and flash cards, does maths and cites sources.
 
+- **Talks back:** a voice message gets its answer as text and, with a voice installed (the
+  External App talk_ai_voice: Piper on the server, German, Polish and English), as a voice
+  message too.
 - **Reads what you share:** Word, Excel (every sheet), PowerPoint (with speaker notes),
   OpenDocument, old `.doc`/`.xls`/`.ppt`, PDF, Markdown, CSV and text, and images. Text in photos
   and scanned PDFs is read with OCR. It also finds your files by name, reads web pages, and

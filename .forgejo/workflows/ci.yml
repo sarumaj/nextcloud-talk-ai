@@ -6,8 +6,9 @@
 # tests (PHPUnit, no Nextcloud and no network) must pass against each supported
 # Nextcloud's public API; on a real Nextcloud with PostgreSQL the app must upgrade from
 # its app store release, run its jobs and pass tests/server/check.sh; Talk's bot and chat
-# API must still have what the app uses; and the document golden set must pass with the
-# sandbox image and the skills.
+# API must still have what the app uses; the document golden set must pass with the
+# sandbox image and the skills; and the voice External App's image must build and speak
+# German, Polish and English (tests/voice).
 # The PHPUnit results go to the pull request, a comment per Nextcloud version
 # (dawid/ci-actions' test-report).
 # A failure blocks the merge (branch protection: all checks required).
@@ -70,7 +71,7 @@ jobs:
         run: |
           apk add -q libxml2-utils
           wget -q -O /tmp/info.xsd https://apps.nextcloud.com/schema/apps/info.xsd
-          xmllint --noout --schema /tmp/info.xsd app/talk_ai/appinfo/info.xml
+          xmllint --noout --schema /tmp/info.xsd app/talk_ai/appinfo/info.xml voice/exapp/appinfo/info.xml
 
       - name: Run the tests against Nextcloud's API (${{ matrix.ocp }})
         id: tests
@@ -186,3 +187,19 @@ jobs:
           for f in skills/*/scripts/*.py; do python3 -m py_compile "$f"; done
           for f in skills/*/scripts/*.sh; do bash -n "$f"; done
 
+  voice:
+    # A whole Ubuntu with rootless Docker, to build the voice External App's image.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        run: *checkout
+
+      - name: Build the voice External App's image
+        run: docker build -t talk-ai-voice-exapp:ci -f voice/exapp/Dockerfile .
+
+      # Piper speaks a sentence per language as MP3; a task goes to a fake Nextcloud.
+      - name: Test the voice External App
+        run: >-
+          docker run --rm -v "$PWD/tests/voice:/tests:ro" --entrypoint python3 talk-ai-voice-exapp:ci
+          -m unittest discover -s /tests -v

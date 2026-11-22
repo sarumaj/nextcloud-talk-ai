@@ -87,6 +87,12 @@ class Health {
 		} catch (\Throwable) {
 		}
 		$out[] = self::item('Speech-to-text', $stt ? true : null, $stt ? 'a provider is installed' : 'no provider', 'voice messages are not understood');
+		$tts = false;
+		try {
+			$tts = isset(Server::get(\OCP\TaskProcessing\IManager::class)->getAvailableTaskTypes()[\OCP\TaskProcessing\TaskTypes\TextToSpeech::ID]);
+		} catch (\Throwable) {
+		}
+		$out[] = self::item('Text-to-speech', $tts ? true : null, $tts ? 'a provider is installed' : 'no provider (e.g. the External App talk_ai_voice)', 'voice messages are answered in text only');
 		$out[] = self::item('PHP zip', extension_loaded('zip'), extension_loaded('zip') ? phpversion('zip') : 'missing', 'no office files read or written');
 		$out[] = $this->cron();
 		return $out;
