@@ -9,7 +9,7 @@
 [AI in Talk](https://apps.nextcloud.com/apps/talk_ai) uses it to answer voice messages by voice too; the Assistant's "Generate speech" can use it as well. The optional input "language" chooses the voice; "auto" reads it from the text.
 
 Install it with AppAPI (a deploy daemon, e.g. HaRP).]]></description>
-    <version>0.17.1</version>
+    <version>0.18.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAiVoice</namespace>
