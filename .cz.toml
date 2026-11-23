@@ -4,4 +4,5 @@
 name = "cz_conventional_commits"
 tag_format = "v$version"
 version_provider = "scm"
-version_files = ["app/talk_ai/appinfo/info.xml:<version>"]
+# Both apps' info.xml carry the release's version: the voice ExApp's stayed at 0.17.1 in 0.18.0.
+version_files = ["app/talk_ai/appinfo/info.xml:<version>", "voice/exapp/appinfo/info.xml:<version>"]
