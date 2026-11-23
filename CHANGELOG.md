@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.18.0 - 2026-11-23
+
 ### Added
 
 - **voice:** a voice message is also answered by voice, beside the text answer: through
