@@ -19,6 +19,7 @@ class Settings {
 		'enabled' => ['general', 'bool', 'yes', null, null, 'The bot answers', 'Off: it answers nobody (emergency stop); running document jobs are cancelled.'],
 		'allow_guests' => ['general', 'bool', 'no', null, null, 'Answer guests and federated participants', 'They get chat answers only: no files, calendars or documents.'],
 		'show_steps' => ['general', 'bool', 'yes', null, null, 'Show the steps while answering', 'The status message of a slow answer lists what the bot does and why, a line per tool it uses; the answer then takes its place.'],
+		'voice_replies' => ['general', 'bool', 'yes', null, null, 'Answer voice messages by voice too', 'Beside the text answer, a voice message spoken by Nextcloud\'s text-to-speech (e.g. the External App "AI in Talk: voice"). Without a text-to-speech provider, text only.'],
 		'history_window' => ['general', 'int', '30', 5, 200, 'Messages per answer', 'How many recent messages of the conversation go with each question; older ones are summarized.'],
 		'context_tokens' => ['general', 'int', '0', 0, 2000000, 'Context size of the model (tokens)', '0: known from the model\'s name. The context is cut to fit.'],
 		'harvester' => ['general', 'bool', 'no', null, null, 'Harvester recipes and jobs', 'The bot writes and checks Harvester recipes, saves them as the person\'s templates and finds out why their Harvester jobs fail; a job is changed only after their yes. Only with the External App Harvester installed and enabled.'],

@@ -31,7 +31,9 @@
   the real `Hub` and `Loop`, a fake sandbox answers like the real one, Talk's events come
   as fixtures),
   `tests/golden/` (the document cases with the image), `tests/compat/` (Talk's API),
-  `tests/server/check.sh` (the app on a real Nextcloud: what the administrator and other apps get).
+  `tests/server/check.sh` (the app on a real Nextcloud: what the administrator and other apps get),
+  `tests/voice/` (the voice External App in its image: Piper per language, a task against a fake
+  Nextcloud).
 - `composer.json`: development tools only (PHPUnit, php-cs-fixer, Psalm); the app needs none.
   The tools need PHP 8.4 (`config.platform.php`, for PHPUnit 13); the app runs on PHP 8.2.
 
@@ -199,6 +201,8 @@ When changing a skill, the prompt or a tool's description: raise the version, ru
 ```bash
 composer install && vendor/bin/phpunit
 docker build -t talk-ai-sandbox:test sandbox/ && tests/golden/run.sh talk-ai-sandbox:test
+docker build -t talk-ai-voice-exapp:test -f voice/exapp/Dockerfile . && docker run --rm \
+  -v "$PWD/tests/voice:/tests:ro" --entrypoint python3 talk-ai-voice-exapp:test -m unittest discover -s /tests
 python3 tests/compat/talk_api.py
 ```
 

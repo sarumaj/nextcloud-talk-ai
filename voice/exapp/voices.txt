@@ -1,0 +1,6 @@
+7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819 de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx
+974adee790533adb273a1ac88f49027d2a1b8f0f2cf4905954a4791e79264e85 de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx.json
+38f66464240ed74f186e6b7dc13c6e3b22e023426299f25c2b3cc9dfa9373fbc pl/pl_PL/gosia/medium/pl_PL-gosia-medium.onnx
+1aefb31a9d53ffe44a8163ff73ec833acb7a6253848f6bb0403d8a66f9c7510d pl/pl_PL/gosia/medium/pl_PL-gosia-medium.onnx.json
+5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f en/en_US/lessac/medium/en_US-lessac-medium.onnx
+efe19c417bed055f2d69908248c6ba650fa135bc868b0e6abb3da181dab690a0 en/en_US/lessac/medium/en_US-lessac-medium.onnx.json

@@ -309,13 +309,17 @@ class Conversation {
 		return $beside->getParent()->getFullPath($this->freeName($beside->getParent(), $name));
 	}
 
-	/** Posts a saved file as the bot's message: Talk's file message by file id, as Talk 25's attachments are; the message. */
-	public function postFile(object $room, File $file, int $replyTo): ?object {
+	/**
+	 * Posts a saved file as the bot's message: Talk's file message by file id, as Talk 25's
+	 * attachments are; the message. $metaData goes with it, e.g. ['messageType' =>
+	 * 'voice-message'], which Talk's clients show as a voice message with its player.
+	 */
+	public function postFile(object $room, File $file, int $replyTo, array $metaData = []): ?object {
 		$chat = Server::get('OCA\Talk\Chat\ChatManager');
 		$parent = $replyTo > 0 ? $this->comment($room, $replyTo) : null;
 		return $chat->addSystemMessage(
 			$room, null, 'bots', Application::botActorId(),
-			json_encode(['message' => 'file_shared', 'parameters' => ['fileId' => (string)$file->getId(), 'metaData' => ['mimeType' => $file->getMimetype()]]], JSON_THROW_ON_ERROR),
+			json_encode(['message' => 'file_shared', 'parameters' => ['fileId' => (string)$file->getId(), 'metaData' => ['mimeType' => $file->getMimetype()] + $metaData]], JSON_THROW_ON_ERROR),
 			new \DateTime(), true, null, $parent,
 		);
 	}

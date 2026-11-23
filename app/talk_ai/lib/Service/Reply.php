@@ -93,6 +93,8 @@ class Reply {
 	private array $ran = [];
 	/** Whether the asking person is a guest or federated (no files, no calendar). */
 	private bool $guest = false;
+	/** The question was a voice message: the answer is also spoken (speak()). */
+	private bool $voiceInput = false;
 	/** Whether private information may be shown here (one person, or they said yes in a group). */
 	private bool $reveal = false;
 	private bool $youth = false;
@@ -131,6 +133,7 @@ class Reply {
 		private Texts $texts,
 		private LoggerInterface $logger,
 		private ?ContentSearch $contentSearch = null,
+		private ?Speech $speech = null,
 	) {
 	}
 
@@ -233,6 +236,7 @@ class Reply {
 			}
 			// The chat shows what was said; the model gets it marked as data from outside.
 			$this->say('🎙️ > ' . str_replace("\n", "\n> ", $spoken));
+			$this->voiceInput = true;
 			$spoken = self::untrusted('transcript of a voice message', $spoken);
 			$question = trim(preg_replace('/\{file\}|\[file "[^"]*", id \d+\]/', '', $question) . "\n" . $spoken);
 		}
@@ -271,6 +275,9 @@ class Reply {
 		$this->debug('answer', ['answer' => (string)($result['text'] ?? ''), 'error' => (string)($result['error'] ?? '')]);
 		if (($result['state'] ?? '') === 'done' && trim((string)($result['text'] ?? '')) !== '') {
 			$this->postAnswer($userId, (string)$result['text']);
+			if ($this->voiceInput) {
+				$this->speak($userId, (string)$result['text']);
+			}
 		} elseif (($result['state'] ?? '') !== 'done') {
 			$this->failure = (string)($result['error'] ?? 'unknown error');
 			$this->say('⚠️ ' . $this->text($userId, 'Could not answer') . ': ' . self::explain($this->failure));
@@ -279,6 +286,33 @@ class Reply {
 		}
 		if (!$this->guest) {
 			$this->remember($room, $userId, $history);
+		}
+	}
+
+	/**
+	 * The answer to a voice message also as a voice message (Speech), in the language it
+	 * is written in, after the text answer; when that fails, the text answer stands alone.
+	 */
+	private function speak(string $uid, string $answer): void {
+		$speech = $this->speech ??= Server::get(Speech::class);
+		if (!Speech::wanted($speech->switchedOn(), $this->voiceInput, $this->guest, $speech->available())) {
+			return;
+		}
+		$language = Speech::language($answer, substr((string)$this->config->getUserValue($uid, 'core', 'lang', 'en'), 0, 2));
+		$text = Speech::spokenText($answer, $language);
+		if ($text === '') {
+			return;
+		}
+		$audio = $speech->synthesize($uid, $text, $language, $this->requestId);
+		if ($audio === null) {
+			return;
+		}
+		try {
+			$name = self::fileName($this->text($uid, 'Spoken answer') . ' ' . date('Y-m-d H-i-s')) . '.' . Speech::extension($audio['mime']);
+			$file = $this->conversation->saveFile($this->room, $uid, $name, $audio['data']);
+			$this->conversation->postFile($this->room, $file, $this->messageId, ['messageType' => 'voice-message']);
+		} catch (\Throwable $e) {
+			$this->logger->warning('AI bot: the spoken answer could not be sent: ' . $e->getMessage(), ['request' => $this->requestId]);
 		}
 	}
 
@@ -1308,6 +1342,7 @@ class Reply {
 			'No transcription' => 'I cannot listen to voice messages here (no speech recognition installed). Please write to me.',
 			'Undo hint' => '(“undo” reverts this within 24 h)',
 			'Long answer' => 'shortened; the whole answer is in the file',
+			'Spoken answer' => 'Spoken answer',
 			'New chat' => 'New chat: I no longer read the messages before this one (they stay in the chat).',
 			'this chat' => 'this chat',
 			'New chat moderators' => 'Only the moderators of this conversation can start a new chat here, as it is everyone\'s.',

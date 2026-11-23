@@ -44,7 +44,10 @@ lists what it can do here.
   a day); it never sees your passwords.
 - **Polls**: "make a poll: pizza or pasta?"
 - **Voice messages**: it listens (when speech recognition is installed) and quotes what
-  it understood.
+  it understood. Its answer comes as text and, where the administrator has installed a voice,
+  also as a voice message in the language of the answer (German, Polish or English); a long
+  answer is read up to about a minute and a half, the rest is in the chat. Code, links, formulas
+  and tables are not read out.
 - **Shortcuts**: `/zusammenfassen` (summary), `/todo`, `/termin …`, `/protokoll`.
 - **A new chat**: "new chat" (or `/new`) and it forgets what was said before, also its
   summary; the messages stay in the chat. In a group, only its moderators can.

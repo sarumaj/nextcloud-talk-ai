@@ -13,6 +13,7 @@
 | pdftotext, pdftoppm (Poppler) | optional                                                               | no PDFs; scanned PDFs without OCR               |
 | Tesseract (+ languages)       | optional                                                               | no text from photos and scans                   |
 | A speech-to-text provider     | optional                                                               | voice messages are not understood               |
+| A text-to-speech provider     | optional, e.g. the External App talk_ai_voice (below)                  | voice messages are answered in text only        |
 | The document sandbox          | optional                                                               | no documents built with code                    |
 | Harvester (an External App)   | optional, with AppAPI; switched on by `harvester`                      | no Harvester recipes or job diagnosis           |
 | Findling                      | optional; used where it is enabled for the person                      | files are found by their names only             |
@@ -164,6 +165,26 @@ mirror (`RUNNER_NETWORK`, made by you, e.g. an internal Docker network with a pr
 `RUNNER_PIP_INDEX_URL` / `RUNNER_NPM_REGISTRY`; the model may then install missing
 Python and Node packages from it. By default there is no network at all.
 
+## Spoken replies
+
+The bot answers a voice message in text and, with a text-to-speech provider installed, also
+as a voice message (setting `voice_replies`, *Answer voice messages by voice too*, on by
+default): the answer's prose (no code, links, formulas, tables or citation marks), up to
+1200 characters ending on a sentence, then "the rest is in the chat", in the language the
+answer is written in (German, Polish or English; else the person's). It goes through
+Nextcloud's text-to-speech (TaskProcessing `core:text2speech`), with the input `language`
+for a provider that takes one. Any failure leaves the text answer alone (logged at info).
+
+The External App **talk_ai_voice** is such a provider: Piper on the server's CPU, with a
+German (thorsten), Polish (gosia) and English (lessac) voice baked into its image, as MP3,
+which every Talk client plays (the iOS app has no Ogg/Opus). Install it with AppAPI
+(Administration → External Apps, or `occ app_api:app:register talk_ai_voice <daemon>
+--info-xml https://git.ciepiela.org/dawid/nextcloud-talk-ai/raw/branch/main/voice/exapp/appinfo/info.xml`),
+or build its image yourself from the repository's root (`docker build -f
+voice/exapp/Dockerfile .`). About 1 GB of image, 100 MB of memory per voice used, and a few
+seconds of one CPU per sentence. Nothing leaves the server. The Assistant's *Generate speech*
+can use it as well.
+
 ## Settings (Administration → Assistant → AI in Talk)
 
 **Where its settings are:** *Administration settings → Assistant → AI in Talk* (Nextcloud names
@@ -174,7 +195,8 @@ connection and the scenarios have buttons of their own (*Use this engine and cha
 scenarios*). The same keys work with `occ config:app:set talk_ai <key> --value …`.
 
 - **General**: the bot on or off (emergency stop), guests and federated participants,
-  the steps shown while answering (`show_steps`), messages per answer (history window), the
+  the steps shown while answering (`show_steps`), spoken replies to voice messages
+  (`voice_replies`, see above), messages per answer (history window), the
   model's context size, the notice when the bot is enabled, Harvester's recipes and jobs
   (`harvester`, off by default; see below).
 - **Features per group**: writing files, the document sandbox, the web, the calendar,
@@ -257,6 +279,8 @@ the model and before letting everyone use it.
 - Changes outside the chat (calendar entries, shares, deleting, a Harvester job's recipe)
   need the person's yes, for exactly one action, and can be undone for 24 hours.
 - Nothing of questions or answers is logged unless debugging is switched on.
+- A spoken reply is made by the text-to-speech provider the administrator installed; with
+  talk_ai_voice on the server itself, nothing of it leaves the server.
 - People can delete their data themselves ("delete my data": all records, preferences
   and memories; or the delivered documents).
 - API keys are encrypted in the database and shown nowhere; the sandbox never sees them. A
