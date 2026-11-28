@@ -3,10 +3,12 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>talk_ai_voice</id>
     <name>AI in Talk: voice</name>
-    <summary>Text-to-speech with Piper on the server's CPU, for the spoken replies of AI in Talk</summary>
+    <summary>Text-to-speech with Piper on the server's CPU, for the spoken replies of AI in Talk, and the bot's voice in calls</summary>
     <description><![CDATA[Nextcloud's text-to-speech ("Generate speech") spoken by [Piper](https://github.com/OHF-Voice/piper1-gpl) on the server's CPU, in German, Polish and English, as MP3. Nothing leaves the server: the voices are in the image.
 
 [AI in Talk](https://apps.nextcloud.com/apps/talk_ai) uses it to answer voice messages by voice too; the Assistant's "Generate speech" can use it as well. The optional input "language" chooses the voice; "auto" reads it from the text.
+
+It is also the bot's voice in calls: a person alone with the bot can call it, and it joins through Talk's high-performance backend, hears them (Whisper on the CPU, in the image), asks the bot and speaks the answer. That needs the backend's internal secret in AI in Talk's settings.
 
 Install it with AppAPI (a deploy daemon, e.g. HaRP).]]></description>
     <version>0.18.0</version>
@@ -32,6 +34,21 @@ Install it with AppAPI (a deploy daemon, e.g. HaRP).]]></description>
                 <name>VOICE_MP3_KBPS</name>
                 <display-name>Bit rate of the spoken MP3 (kbit/s)</display-name>
                 <default>64</default>
+            </variable>
+            <variable>
+                <name>CALL_MAX_MINUTES</name>
+                <display-name>Minutes a call with the bot may last</display-name>
+                <default>30</default>
+            </variable>
+            <variable>
+                <name>CALL_MAX_ACTIVE</name>
+                <display-name>Calls the bot takes at the same time</display-name>
+                <default>2</default>
+            </variable>
+            <variable>
+                <name>WHISPER_THREADS</name>
+                <display-name>CPU threads for writing down what is said in a call</display-name>
+                <default>2</default>
             </variable>
             <variable>
                 <name>VOICE_POLL_SECONDS</name>

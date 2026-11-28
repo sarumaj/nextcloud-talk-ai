@@ -48,6 +48,12 @@ lists what it can do here.
   also as a voice message in the language of the answer (German, Polish or English); a long
   answer is read up to about a minute and a half, the rest is in the chat. Code, links, formulas
   and tables are not read out.
+- **Calls**: in a conversation with the bot alone, start a call and it joins after a moment
+  and greets you; then just talk. It answers briefly, in your language (German, Polish or
+  English), and stops when you speak while it talks. A long question takes a few seconds ("one
+  moment"). It is a voice only: no tile in the call. Hang up to end; it leaves by itself after
+  the administrator's limit (30 minutes by default). Where the administrator has not set it up,
+  the call rings unanswered as before. What you say goes to the AI as your questions do.
 - **Shortcuts**: `/zusammenfassen` (summary), `/todo`, `/termin …`, `/protokoll`.
 - **A new chat**: "new chat" (or `/new`) and it forgets what was said before, also its
   summary; the messages stay in the chat. In a group, only its moderators can.

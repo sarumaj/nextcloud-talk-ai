@@ -10,7 +10,9 @@ use OCA\TalkAi\Ai\Hub;
 use OCA\TalkAi\Ai\Provider;
 use OCA\TalkAi\Listener\BotEnabledListener;
 use OCA\TalkAi\Listener\BotInvokeListener;
+use OCA\TalkAi\Listener\CallListener;
 use OCA\TalkAi\Listener\QuietFolderShareListener;
+use OCA\TalkAi\Service\Calls;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -33,6 +35,10 @@ class Application extends App implements IBootstrap {
 		// Talk's classes by name: the app installs without Talk.
 		$context->registerEventListener('OCA\Talk\Events\BotInvokeEvent', BotInvokeListener::class);
 		$context->registerEventListener('OCA\Talk\Events\BotEnabledEvent', BotEnabledListener::class);
+		// Calls the bot answers by voice (Service\Calls, the External App talk_ai_voice).
+		foreach ([CallListener::STARTED, ...CallListener::ENDED] as $event) {
+			$context->registerEventListener($event, CallListener::class);
+		}
 		// Before Talk's own listeners (priority 0): no "shared a folder" for the folder share a sent file needs.
 		$context->registerEventListener(ShareCreatedEvent::class, QuietFolderShareListener::class, 100);
 		$context->registerEventListener('OCA\Talk\Events\BeforeDuplicateShareSentEvent', QuietFolderShareListener::class, 100);
@@ -56,6 +62,13 @@ class Application extends App implements IBootstrap {
 				'search' => true,
 				'ocs' => true,
 				'description' => 'A general assistant: questions, explanations, texts, with web search where the AI has it.',
+			]);
+			// A call's questions, asked by the External App talk_ai_voice as the person (Service\Calls).
+			$hub->registerScenario(Calls::SCENARIO, [
+				'system' => Calls::SYSTEM,
+				'search' => true,
+				'ocs' => true,
+				'description' => 'A call with the bot: short answers meant to be heard.',
 			]);
 		});
 	}

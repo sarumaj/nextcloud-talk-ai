@@ -206,6 +206,25 @@ docker build -t talk-ai-voice-exapp:test -f voice/exapp/Dockerfile . && docker r
 python3 tests/compat/talk_api.py
 ```
 
+### Calls
+
+`voice/exapp/call.py` is the bot in a call; `tests/voice/test_call.py` its unit tests (in the
+image, as above). `tests/voice/call_e2e.py` runs a whole call against Talk's high-performance
+backend without a Nextcloud: the aio-talk image, a caller (an internal client too) that asks
+"Was ist die Hauptstadt von Deutschland?" aloud, and the bot with Whisper, Piper and an `ask()`
+that answers a fixed sentence; it passes when the bot heard the question and the caller heard
+the greeting and the answer (written down by Whisper).
+
+```bash
+docker network create callnet
+docker run -d --name talk --hostname talk --network callnet -e NC_DOMAIN=nc.test -e TALK_HOST=talk \
+  -e TURN_DOMAIN=talk -e TALK_PORT=3478 -e TURN_SECRET=turnsecret -e SIGNALING_SECRET=sigsecret \
+  -e INTERNAL_SECRET=internalsecret --user 1000 ghcr.io/nextcloud-releases/aio-talk:latest
+docker run --rm --network callnet -v "$PWD/tests/voice:/tests:ro" --entrypoint python3 \
+  talk-ai-voice-exapp:test /tests/call_e2e.py
+docker rm -f talk && docker network rm callnet
+```
+
 On a real Nextcloud with PostgreSQL in Docker, as CI's job `server` does (the shared action
 `nextcloud-app-server` of `dawid/ci-actions`): the app store's release upgraded to the checkout,
 its background jobs, disabling and enabling, `tests/server/check.sh` and no error of the app in

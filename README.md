@@ -7,6 +7,9 @@ documents, slides, spreadsheets and flash cards, does maths and cites sources.
 - **Talks back:** a voice message gets its answer as text and, with a voice installed (the
   External App talk_ai_voice: Piper on the server, German, Polish and English), as a voice
   message too.
+- **Takes calls:** alone with the bot in a conversation, call it and talk; it hears you
+  (Whisper on the server), answers briefly and speaks the answer, through Talk's
+  high-performance backend.
 - **Reads what you share:** Word, Excel (every sheet), PowerPoint (with speaker notes),
   OpenDocument, old `.doc`/`.xls`/`.ppt`, PDF, Markdown, CSV and text, and images. Text in photos
   and scanned PDFs is read with OCR. It also finds your files by name, reads web pages, and
