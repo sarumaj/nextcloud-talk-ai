@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="7.0.5@e3586fb9542ad66e37122f7c7ddf6b9a9ea7eaec">
+<files psalm-version="7.3.0@6480ee65f252d9829b0c5a49d44c1fa263babfa2">
   <file src="app/talk_ai/lib/Ai/Admin.php">
     <InvalidOperand>
       <code><![CDATA[(microtime(true) - $started) * 1000]]></code>
@@ -75,12 +75,12 @@
   </file>
   <file src="app/talk_ai/lib/Ai/Engines.php">
     <TypeDoesNotContainType>
-      <code><![CDATA['claude-cli' => new Engine\ClaudeCli($settings)]]></code>
-      <code><![CDATA['claude-cli' => new Engine\ClaudeCli($settings)]]></code>
-      <code><![CDATA['gemini-cli' => new Engine\GeminiCli($settings)]]></code>
-      <code><![CDATA['gemini-cli' => new Engine\GeminiCli($settings)]]></code>
-      <code><![CDATA['taskprocessing' => new Engine\TaskProcessing($this->taskProcessing ??= Server::get(\OCP\TaskProcessing\IManager::class), $settings)]]></code>
-      <code><![CDATA['taskprocessing' => new Engine\TaskProcessing($this->taskProcessing ??= Server::get(\OCP\TaskProcessing\IManager::class), $settings)]]></code>
+      <code><![CDATA['claude-cli']]></code>
+      <code><![CDATA['claude-cli']]></code>
+      <code><![CDATA['gemini-cli']]></code>
+      <code><![CDATA['gemini-cli']]></code>
+      <code><![CDATA['taskprocessing']]></code>
+      <code><![CDATA['taskprocessing']]></code>
     </TypeDoesNotContainType>
   </file>
   <file src="app/talk_ai/lib/Ai/Http.php">
@@ -207,7 +207,6 @@
       <code><![CDATA[$k * log($p)]]></code>
       <code><![CDATA[$k * log($x)]]></code>
       <code><![CDATA[$n - $k + $i]]></code>
-      <code><![CDATA[$p ** $k]]></code>
       <code><![CDATA[$result * ($n - $k + $i) / $i]]></code>
       <code><![CDATA[$result *= $i]]></code>
       <code><![CDATA[$term / (2 * $n + 1)]]></code>
@@ -225,7 +224,6 @@
       <code><![CDATA[((($d[0] * $q + $d[1]) * $q + $d[2]) * $q + $d[3]) * $q + 1]]></code>
       <code><![CDATA[(((($b[0] * $r + $b[1]) * $r + $b[2]) * $r + $b[3]) * $r + $b[4]) * $r + 1]]></code>
       <code><![CDATA[(1 + sqrt(5)) / 2]]></code>
-      <code><![CDATA[(1 - $p) ** ($n - $k)]]></code>
       <code><![CDATA[-$ax * $ax / $n]]></code>
       <code><![CDATA[-$z * $z / 2]]></code>
       <code><![CDATA[-2 * log($p)]]></code>
@@ -363,7 +361,6 @@
       <code><![CDATA[-M_PI / 2 + 2 * M_PI * $i / $n]]></code>
       <code><![CDATA[10 * ceil(max(max($t), max($p) / 2) / 10)]]></code>
       <code><![CDATA[10 * floor(min($t) / 10)]]></code>
-      <code><![CDATA[10 ** floor(log10($raw))]]></code>
       <code><![CDATA[150 + $i * 34]]></code>
       <code><![CDATA[165 * sin($angle)]]></code>
       <code><![CDATA[2 * M_PI]]></code>
@@ -528,10 +525,6 @@
       <code><![CDATA[-$c[$name] / $nu]]></code>
       <code><![CDATA[-$k + sqrt($k * $k + 4 * $k * $c)]]></code>
       <code><![CDATA[-($lo + $hi) / 2]]></code>
-      <code><![CDATA[10 ** $mid]]></code>
-      <code><![CDATA[10 ** -$pk]]></code>
-      <code><![CDATA[10 ** -$pk]]></code>
-      <code><![CDATA[10 ** -$pk]]></code>
       <code><![CDATA[14 - $approx]]></code>
       <code><![CDATA[14 - $p]]></code>
       <code><![CDATA[14 - $p]]></code>
@@ -582,10 +575,8 @@
       <code><![CDATA[$years * max(1, $perYear)]]></code>
       <code><![CDATA[($factor - 1) * 100]]></code>
       <code><![CDATA[((1 + $r) ** max(1, $perYear) - 1) * 100]]></code>
-      <code><![CDATA[(1 + $r) ** $n]]></code>
-      <code><![CDATA[(1 + $r) ** $n]]></code>
-      <code><![CDATA[(1 + $r) ** -$n]]></code>
-      <code><![CDATA[(1 + $r) ** max(1, $perYear)]]></code>
+      <code><![CDATA[(1 + $r) ** $n - 1]]></code>
+      <code><![CDATA[(1 + $r) ** max(1, $perYear) - 1]]></code>
       <code><![CDATA[1 + $r]]></code>
       <code><![CDATA[1 + $r]]></code>
       <code><![CDATA[1 + $r]]></code>
@@ -627,7 +618,6 @@
       <code><![CDATA[abs($dot($n1, $n2)) / ($norm($n1) * $norm($n2))]]></code>
       <code><![CDATA[abs($dot($w, $n)) / $norm($n)]]></code>
       <code><![CDATA[abs($nd) / ($norm($n) * $norm($d))]]></code>
-      <code><![CDATA[self::float($c) ** 2]]></code>
     </InvalidOperand>
   </file>
   <file src="app/talk_ai/lib/Document/Math.php">
@@ -639,18 +629,15 @@
     <InvalidOperand>
       <code><![CDATA[$confidence * 100]]></code>
       <code><![CDATA[$confidence * 100]]></code>
-      <code><![CDATA[$share ** 2]]></code>
       <code><![CDATA[$u * $f]]></code>
       <code><![CDATA[$u / abs($f) * 100]]></code>
       <code><![CDATA[$value * $f]]></code>
       <code><![CDATA[($method === 'max' ? (float)$b['contribution'] / $u : ((float)$b['contribution'] / $u) ** 2) * 100]]></code>
-      <code><![CDATA[((float)$b['contribution'] / $u) ** 2]]></code>
       <code><![CDATA[1 / max(1e-300, (float)$uy[$i]) ** 2]]></code>
       <code><![CDATA[2 * $h]]></code>
       <code><![CDATA[array_sum($values) / $n]]></code>
       <code><![CDATA[array_sum(array_map(fn ($v) => ($v - $mean) ** 2, $values)) / ($n - 1)]]></code>
       <code><![CDATA[ceil($u * $f - 1e-9) / $f]]></code>
-      <code><![CDATA[max(1e-300, (float)$uy[$i]) ** 2]]></code>
       <code><![CDATA[round($value * $f) / $f]]></code>
       <code><![CDATA[round(($method === 'max' ? (float)$b['contribution'] / $u : ((float)$b['contribution'] / $u) ** 2) * 100, 1)]]></code>
     </InvalidOperand>
@@ -662,7 +649,6 @@
     <InvalidOperand>
       <code><![CDATA[$a4]]></code>
       <code><![CDATA[$a4 * 2 ** (($midi - 69) / 12)]]></code>
-      <code><![CDATA[2 ** (($midi - 69) / 12)]]></code>
       <code><![CDATA[round($a4 * 2 ** (($midi - 69) / 12), 2)]]></code>
     </InvalidOperand>
   </file>
@@ -848,7 +834,6 @@
       <code><![CDATA[$met * 3.5 * $kg / 200]]></code>
       <code><![CDATA[$rest + ($max - $rest) * $high]]></code>
       <code><![CDATA[$rest + ($max - $rest) * $low]]></code>
-      <code><![CDATA[($cm / 100) ** 2]]></code>
       <code><![CDATA[($max - $rest) * $high]]></code>
       <code><![CDATA[($max - $rest) * $low]]></code>
       <code><![CDATA[(float)$time * 60]]></code>
@@ -912,7 +897,6 @@
       <code><![CDATA[$p1]]></code>
       <code><![CDATA[$plus += $v > 0 ? $ranks[$i] : 0]]></code>
       <code><![CDATA[$position - $low]]></code>
-      <code><![CDATA[$r ** 2]]></code>
       <code><![CDATA[$r1 - $n1 * ($n1 + 1) / 2]]></code>
       <code><![CDATA[$rowSums[$i] * $colSums[$j]]]></code>
       <code><![CDATA[$squares / $n]]></code>
@@ -941,20 +925,13 @@
       <code><![CDATA[$x + 1]]></code>
       <code><![CDATA[$x -= 1]]></code>
       <code><![CDATA[$z * $z / 2]]></code>
-      <code><![CDATA[($a - $b) ** 2]]></code>
       <code><![CDATA[($lo + $hi) / 2]]></code>
       <code><![CDATA[($lo + $hi) / 2]]></code>
-      <code><![CDATA[($m - $grand) ** 2]]></code>
       <code><![CDATA[($n + 1) - $ties / ($n * ($n - 1))]]></code>
       <code><![CDATA[($n1 - 1) * $v1]]></code>
       <code><![CDATA[($n2 - 1) * $v2]]></code>
-      <code><![CDATA[($o - $e) ** 2]]></code>
-      <code><![CDATA[($v - $mean) ** 2]]></code>
-      <code><![CDATA[($v1 / $n1 + $v2 / $n2) ** 2]]></code>
-      <code><![CDATA[($v1 / $n1) ** 2]]></code>
-      <code><![CDATA[($v2 / $n2) ** 2]]></code>
-      <code><![CDATA[($x[$i] - $mx) ** 2]]></code>
-      <code><![CDATA[($y[$i] - $my) ** 2]]></code>
+      <code><![CDATA[($v1 / $n1) ** 2 / ($n1 - 1)]]></code>
+      <code><![CDATA[($v2 / $n2) ** 2 / ($n2 - 1)]]></code>
       <code><![CDATA[(($n1 - 1) * $v1 + ($n2 - 1) * $v2) / ($n1 + $n2 - 2)]]></code>
       <code><![CDATA[(count($sorted) - 1) * $q]]></code>
       <code><![CDATA[-$i * ($i - $a)]]></code>
@@ -999,7 +976,7 @@
       <code><![CDATA[array_sum($x) / $n]]></code>
       <code><![CDATA[array_sum($y) / $n]]></code>
       <code><![CDATA[array_sum(array_map(fn ($v) => ($v - $mean) ** 2, $values)) / ($n - 1)]]></code>
-      <code><![CDATA[array_sum(array_slice($ranks, $at, count($g))) ** 2]]></code>
+      <code><![CDATA[array_sum(array_slice($ranks, $at, count($g))) ** 2 / count($g)]]></code>
       <code><![CDATA[count($g) * ($m - $grand) ** 2]]></code>
       <code><![CDATA[round($level * 100)]]></code>
     </InvalidOperand>
@@ -1026,7 +1003,6 @@
   </file>
   <file src="app/talk_ai/lib/Document/Units.php">
     <InvalidOperand>
-      <code><![CDATA[$f ** ($power * $sign)]]></code>
       <code><![CDATA[$p * self::UNITS[$rest][0]]]></code>
       <code><![CDATA[$value - 32]]></code>
       <code><![CDATA[($kelvin - 273.15) * 9]]></code>
@@ -1204,8 +1180,6 @@
       <code><![CDATA[2 * 6371.0088]]></code>
       <code><![CDATA[rad2deg(atan2(sin($lo2 - $lo1) * cos($la2), cos($la1) * sin($la2) - sin($la1) * cos($la2) * cos($lo2 - $lo1))) + 360]]></code>
       <code><![CDATA[round($bearing)]]></code>
-      <code><![CDATA[sin(($la2 - $la1) / 2) ** 2]]></code>
-      <code><![CDATA[sin(($lo2 - $lo1) / 2) ** 2]]></code>
     </InvalidOperand>
   </file>
 </files>
