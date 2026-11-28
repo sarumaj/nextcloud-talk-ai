@@ -122,6 +122,8 @@ OC.L10N.register(
         "Answer guests and federated participants": "Gästen und föderierten Teilnehmenden antworten",
         "Spoken answer": "Gesprochene Antwort",
         "Answer voice messages by voice too": "Sprachnachrichten auch per Sprache beantworten",
+        "Answer calls": "Anrufe annehmen",
+        "A person alone with the bot can call it: it joins the call and talks, with the External App \"AI in Talk: voice\" and Talk's high-performance backend, whose internal secret it needs (occ config:app:set talk_ai call_internal_secret --sensitive --value=…). Without them, the call rings unanswered.": "Wer allein mit dem Bot ist, kann ihn anrufen: Er tritt dem Anruf bei und spricht, mit der External App „AI in Talk: voice“ und dem High-Performance-Backend von Talk, dessen internes Geheimnis er braucht (occ config:app:set talk_ai call_internal_secret --sensitive --value=…). Ohne sie klingelt der Anruf unbeantwortet.",
         "Beside the text answer, a voice message spoken by Nextcloud's text-to-speech (e.g. the External App \"AI in Talk: voice\"). Without a text-to-speech provider, text only.": "Neben der Textantwort eine Sprachnachricht, gesprochen von Nextclouds Sprachausgabe (z. B. der External App „AI in Talk: voice“). Ohne Anbieter für die Sprachausgabe nur Text.",
         "They get chat answers only: no files, calendars or documents.": "Sie bekommen nur Chat-Antworten: keine Dateien, Kalender oder Dokumente.",
         "Show the steps while answering": "Schritte beim Antworten zeigen",

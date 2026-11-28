@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- **voice:** the bot answers calls: a person alone with it in a conversation starts a call, and
+  the External App talk_ai_voice joins through Talk's high-performance backend (an internal
+  client: its internal secret, `call_internal_secret`), writes down what is said with Whisper on
+  the CPU, asks the new scenario `call` as the person and speaks the answer with Piper; speaking
+  stops it (setting `voice_calls`, on by default; `tests/voice/call_e2e.py` runs a whole call)
+
 ## 0.18.0 - 2026-11-23
 
 ### Added

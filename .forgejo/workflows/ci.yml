@@ -188,9 +188,10 @@ jobs:
           for f in skills/*/scripts/*.sh; do bash -n "$f"; done
 
   voice:
-    # A whole Ubuntu with rootless Docker, to build the voice External App's image.
+    # A whole Ubuntu with rootless Docker, to build the voice External App's image and run a
+    # call through the high-performance backend.
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out
         run: *checkout
@@ -203,3 +204,20 @@ jobs:
         run: >-
           docker run --rm -v "$PWD/tests/voice:/tests:ro" --entrypoint python3 talk-ai-voice-exapp:ci
           -m unittest discover -s /tests -v
+
+      # A whole call against Talk's high-performance backend (the aio-talk image, as Nextcloud
+      # AIO runs it), without a Nextcloud: the bot greets, hears a question, answers
+      # (docs/developer.md, "Calls").
+      - name: Test a call through the high-performance backend
+        run: |
+          docker network create callnet
+          docker run -d --name talk --hostname talk --network callnet -e NC_DOMAIN=nc.test -e TALK_HOST=talk \
+            -e TURN_DOMAIN=talk -e TALK_PORT=3478 -e TURN_SECRET=turnsecret -e SIGNALING_SECRET=sigsecret \
+            -e INTERNAL_SECRET=internalsecret --user 1000 ghcr.io/nextcloud-releases/aio-talk:latest
+          for i in $(seq 1 60); do docker logs talk 2>&1 | grep -q "Listening on" && break; sleep 2; done
+          docker run --rm --network callnet -v "$PWD/tests/voice:/tests:ro" --entrypoint python3 \
+            talk-ai-voice-exapp:ci /tests/call_e2e.py
+
+      - name: The high-performance backend's log
+        if: failure()
+        run: docker logs talk 2>&1 | tail -100

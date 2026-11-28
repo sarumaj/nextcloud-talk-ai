@@ -185,6 +185,41 @@ voice/exapp/Dockerfile .`). About 1 GB of image, 100 MB of memory per voice used
 seconds of one CPU per sentence. Nothing leaves the server. The Assistant's *Generate speech*
 can use it as well.
 
+## Calls
+
+A person alone with the bot in a conversation (where it answers every message) can call it
+(setting `voice_calls`, *Answer calls*, on by default). When they start the call, AI in Talk
+(`Service\Calls`) asks the External App talk_ai_voice to join; it takes part as a voice:
+
+- **In the call** through Talk's high-performance backend (the signaling server with Janus), as
+  an *internal client*, as Talk's recording server does: it needs the backend's internal secret
+  (the signaling server's `[clients] internalsecret`; in Nextcloud AIO's and the aio-talk
+  image's `INTERNAL_SECRET`), set in AI in Talk:
+  `occ config:app:set talk_ai call_internal_secret --sensitive --value=<secret>`. It is no
+  participant of the conversation: every client plays its audio, but Talk shows no tile for it.
+  The addresses (the signaling server, STUN and TURN with fresh credentials) come from Talk's
+  settings for the caller. The External App's container must reach the signaling server
+  (HTTPS) and the TURN server (UDP or TCP 3478 by default).
+- **Hearing:** it cuts the person's speech into utterances (voice activity, webrtcvad) and
+  writes each down with Whisper on the CPU (faster-whisper, the `small` model in the image),
+  in German, Polish or English. Speaking while the bot talks stops it.
+- **Answering:** each utterance is asked through the OCS API as the person, in the scenario
+  `call` (short answers meant to be heard, web search where the engine has it), as one
+  remembered conversation: the same engine, limits and groups (`ai_groups`) as the person's
+  other questions. After three seconds without an answer it says "one moment". Piper speaks
+  the answer (the call's voice: the language Whisper heard).
+- **Ending:** it leaves when the call ends, when nobody else is in it for 20 seconds, or after
+  `CALL_MAX_MINUTES` (30) of the External App, saying so. `CALL_MAX_ACTIVE` (2) calls at once;
+  more ring unanswered. `WHISPER_THREADS` (2) CPU threads for Whisper.
+- **Not joining:** without the secret, without talk_ai_voice installed and enabled, in a
+  conversation with more people, for a guest, where the bot is switched off, or when the AI may
+  not answer the person (logged at info): the call rings as before.
+- **Resources:** the image grows to about 2 GB (Whisper's model, aiortc); a call takes about
+  700 MB of memory (Whisper loaded at the first call and kept), one or two CPUs while it
+  transcribes and speaks, and audio of about 50 kbit/s each way.
+- **Privacy:** nothing of the call is stored by the External App; the questions and answers go
+  where the person's other questions go (the engine; the remembered conversation for its time).
+
 ## Settings (Administration → Assistant → AI in Talk)
 
 **Where its settings are:** *Administration settings → Assistant → AI in Talk* (Nextcloud names
@@ -194,11 +229,11 @@ window says *Saved.*, or why not (a value out of range is also marked at its fie
 connection and the scenarios have buttons of their own (*Use this engine and chain*, *Save the
 scenarios*). The same keys work with `occ config:app:set talk_ai <key> --value …`.
 
-- **General**: the bot on or off (emergency stop), guests and federated participants,
-  the steps shown while answering (`show_steps`), spoken replies to voice messages
-  (`voice_replies`, see above), messages per answer (history window), the
-  model's context size, the notice when the bot is enabled, Harvester's recipes and jobs
-  (`harvester`, off by default; see below).
+- **General**: the bot on or off (emergency stop), guests and federated participants, the steps
+  shown while answering (`show_steps`), spoken replies to voice messages (`voice_replies`, see
+  above), calls (`voice_calls`, see above), messages per answer (history window), the model's
+  context size, the notice when the bot is enabled, Harvester's recipes and jobs (`harvester`, off
+  by default; see below).
 - **Features per group**: writing files, the document sandbox, the web, the calendar,
   Harvester, and youth mode (no web search; content for minors), each for named groups or
   everyone.

@@ -13,6 +13,9 @@ POST /init (ready at once: the voices are in the image), PUT /enabled (registers
 removes the provider). A thread asks Nextcloud for the next task every POLL seconds
 while the app is enabled.
 
+Calls (call.py): AI in Talk asks it to join a call (POST /call/join) or leave one (POST
+/call/leave), through AppAPI; it takes part as a voice that hears, asks the bot and speaks.
+
     python3 voice.py --say de "Hallo"   # writes speech to stdout (MP3), for the image's smoke test
 """
 
@@ -31,6 +34,9 @@ import urllib.error
 import urllib.request
 import uuid
 import wave
+
+# call.py beside this file: python3 -I leaves the script's directory off the path.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 VOICES_DIR = os.environ.get("VOICES_DIR", "/voices")
 # The voice per language: <dir>/<name>.onnx with its .onnx.json (Dockerfile).
@@ -98,24 +104,38 @@ def synthesize(text, language):
     return bytes(encoder.encode(frames) + encoder.flush())
 
 
-# Nextcloud's OCS API, as the ExApp (AppAPI's headers, no user).
-def _headers(extra=None):
+def pcm(text, language):
+    """The text spoken in the language's voice, as 48 kHz mono 16-bit PCM (for a call)."""
+    from call import to_48k  # pylint: disable=import-outside-toplevel
+
+    if language not in VOICES:
+        language = language_of(text)
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        voice(language).synthesize_wav(text[:MAX_CHARS], wav)
+    buffer.seek(0)
+    with wave.open(buffer, "rb") as wav:
+        return to_48k(wav.readframes(wav.getnframes()), wav.getframerate())
+
+
+# Nextcloud's OCS API, as the ExApp (AppAPI's headers), or as a person through it (user).
+def _headers(extra=None, user=""):
     headers = {
         "OCS-APIRequest": "true",
         "AA-VERSION": os.environ.get("AA_VERSION", "2.0.0"),
         "EX-APP-ID": os.environ.get("APP_ID", ""),
         "EX-APP-VERSION": os.environ.get("APP_VERSION", ""),
-        "AUTHORIZATION-APP-API": base64.b64encode((":" + os.environ.get("APP_SECRET", "")).encode()).decode(),
+        "AUTHORIZATION-APP-API": base64.b64encode((user + ":" + os.environ.get("APP_SECRET", "")).encode()).decode(),
     }
     headers.update(extra or {})
     return headers
 
 
-def ocs(method, path, body=None, data=None, content_type="application/json", timeout=60):
+def ocs(method, path, body=None, data=None, content_type="application/json", timeout=60, user=""):
     """An OCS request; its data, or None for 204 No Content. Raises urllib.error.HTTPError."""
     url = os.environ.get("NEXTCLOUD_URL", "").rstrip("/") + path + ("&" if "?" in path else "?") + "format=json"
     payload = data if data is not None else (json.dumps(body).encode() if body is not None else None)
-    request = urllib.request.Request(url, data=payload, method=method, headers=_headers({"Content-Type": content_type} if payload is not None else {}))
+    request = urllib.request.Request(url, data=payload, method=method, headers=_headers({"Content-Type": content_type} if payload is not None else {}, user))
     with urllib.request.urlopen(request, timeout=timeout) as response:
         if response.status == 204:
             return None
@@ -265,12 +285,50 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authorized():
             return self.reply(401, {"error": "unauthorized"})
         length = int(self.headers.get("Content-Length", 0))
-        if length:
-            self.rfile.read(length)
+        raw = self.rfile.read(min(length, 65536)) if length else b""
         if self.path.startswith("/init"):
             threading.Thread(target=report_init, daemon=True).start()
             return self.reply(200, {})
+        if self.path.startswith("/call/"):
+            try:
+                params = json.loads(raw or b"{}")
+            except ValueError:
+                params = None
+            if not isinstance(params, dict):
+                return self.reply(400, {"error": "bad-request"})
+            if self.path.startswith("/call/join"):
+                return self.reply(200, {"error": calls().join(params) if enabled.is_set() else "disabled"})
+            if self.path.startswith("/call/leave"):
+                calls().leave(str(params.get("token") or ""))
+                return self.reply(200, {"error": ""})
         return self.reply(404, {"error": "not found"})
+
+
+_calls = None
+_calls_lock = threading.Lock()
+
+
+def calls():
+    """The calls the bot is in (call.Calls), made at the first."""
+    global _calls  # pylint: disable=global-statement
+    import call  # pylint: disable=import-outside-toplevel
+
+    with _calls_lock:
+        if _calls is None:
+            whisper = call.Whisper()
+
+            def factory(token, params):
+                user = str(params.get("user") or "")
+                return call.Call(
+                    token, params,
+                    ask=call.asker(ocs, user, "call-%s-%d" % (token, int(time.time()))),
+                    transcribe=whisper,
+                    speak=pcm,
+                    settings=lambda: call.talk_settings(ocs, user, token),
+                )
+
+            _calls = call.Calls(factory)
+        return _calls
 
 
 class UnixHTTPServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
