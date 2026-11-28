@@ -11,7 +11,7 @@
 It is also the bot's voice in calls: a person alone with the bot can call it, and it joins through Talk's high-performance backend, hears them (Whisper on the CPU, in the image), asks the bot and speaks the answer. That needs the backend's internal secret in AI in Talk's settings.
 
 Install it with AppAPI (a deploy daemon, e.g. HaRP).]]></description>
-    <version>0.18.0</version>
+    <version>0.19.0</version>
     <licence>agpl</licence>
     <author>Dawid Ciepiela</author>
     <namespace>TalkAiVoice</namespace>

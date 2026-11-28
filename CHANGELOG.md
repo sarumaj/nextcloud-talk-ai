@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.19.0 - 2026-11-28
+
 ### Added
 
 - **voice:** the bot answers calls: a person alone with it in a conversation starts a call, and
